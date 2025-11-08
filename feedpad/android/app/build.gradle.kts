@@ -5,6 +5,18 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// local.properties dosyasından API key'i oku
+val mapsApiKey: String = run {
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        val lines = localPropertiesFile.readLines()
+        val apiKeyLine = lines.find { it.startsWith("MAPS_API_KEY=") }
+        apiKeyLine?.substringAfter("MAPS_API_KEY=")?.trim() ?: ""
+    } else {
+        ""
+    }
+}
+
 android {
     namespace = "com.example.feedpad"
     compileSdk = flutter.compileSdkVersion
@@ -28,6 +40,9 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        
+        // Google Maps API Key'i manifest'e inject et
+        manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
     }
 
     buildTypes {
