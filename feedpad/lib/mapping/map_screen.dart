@@ -12,7 +12,7 @@ class MapScreen extends StatefulWidget {
 class _MapScreenState extends State<MapScreen> {
   GoogleMapController? mapController;
   String? _mapError;
-  Set<Marker> _markers = {};
+  final Set<Marker> _markers = {};
   int _markerIdCounter = 0;
 
   // Başlangıç konumu (İstanbul örnek olarak)
@@ -116,7 +116,7 @@ class _MapScreenState extends State<MapScreen> {
         markerId: MarkerId(markerId),
         position: position,
         infoWindow: InfoWindow(
-          title: 'İşaretçi ${_markerIdCounter}',
+          title: 'İşaretçi $_markerIdCounter',
           snippet:
               '${position.latitude.toStringAsFixed(6)}, ${position.longitude.toStringAsFixed(6)}',
         ),

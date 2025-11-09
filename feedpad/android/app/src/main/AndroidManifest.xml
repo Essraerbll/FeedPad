@@ -12,7 +12,7 @@
         android:largeHeap="true">
         <!-- Google Maps API Key -->
         <meta-data android:name="com.google.android.geo.API_KEY"
-            android:value="${MAPS_API_KEY}"/>
+            android:value="AIzaSy03pzQj5Svm-1P_jVgyl38_Nw276h9YRoY"/>
         
         <activity
             android:name=".MainActivity"
