@@ -31,25 +31,46 @@ class _AuthScreenState extends State<AuthScreen> {
           );
         } else {
           // Kayıt ol
-          await FirebaseAuth.instance.createUserWithEmailAndPassword(
+          
+          final UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
             email: _userEmail,
             password: _userPassword,
           );
-          // Firestore'a kullanıcı bilgilerini kaydetme işlemi burada yapılacak
-          await FirebaseFirestore.instance
-              .collection('users')
-              .doc(FirebaseAuth.instance.currentUser!.uid)
-              .set({
-            'email': _userEmail,
-            'username': _userName,
-            'profileImageUrl': '', // İsteğe bağlı, daha sonra yüklenebilir
-            'createdAt': Timestamp.now(),
-            'updatedAt': Timestamp.now(),
-            'location': '', // İsteğe bağlı, daha sonra eklenebilir
-            'bio': '', // İsteğe bağlı
-            'followersCount': 0,
-            'followingCount': 0,
-          });
+          
+          // EN GÜVENİLİR YÖNTEM: Kullanıcı nesnesini doğrudan userCredential'dan al
+          final User? firebaseUser = userCredential.user; 
+          
+          if (firebaseUser != null) {
+            try {
+              print('Firestore\'a kaydedilen UID: ${firebaseUser.uid}');
+              // Kullanıcı ID'sini kullanarak profili otomatik kaydet
+              await FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(firebaseUser.uid)
+                  .set({
+                'email': _userEmail,
+                'username': _userName,
+                'profileImageUrl': '',
+                'createdAt': Timestamp.now(),
+                'updatedAt': Timestamp.now(),
+                'location': '',
+                'bio': '',
+                'followersCount': 0,
+                'followingCount': 0,
+              });
+              print('Kullanıcı bilgileri Firestore\'a başarıyla kaydedildi.');
+            } catch (firestoreError) {
+              print('Firestore\'a kullanıcı bilgileri kaydedilirken HATA: $firestoreError');
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Kayıt başarılı, ancak profil kaydedilemedi: $firestoreError'),
+                  backgroundColor: Colors.orange,
+                ),
+              );
+            }
+          } else {
+            print('HATA: Kayıt başarılı ama kullanıcı nesnesi alınamadı.');
+          }
         }
       } on FirebaseAuthException catch (e) {
         String message = 'Bir hata oluştu, lütfen kontrol edin!';
@@ -151,8 +172,8 @@ class _AuthScreenState extends State<AuthScreen> {
                         if (value == null || value.isEmpty || value.length < 6) {
                           return 'Şifreniz en az 6 karakter olmalıdır.';
                         }
-                        return null;
-                      },
+                          return null;
+                        },
                       decoration: const InputDecoration(labelText: 'Şifre'),
                       obscureText: true,
                       onSaved: (value) {

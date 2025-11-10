@@ -6,11 +6,22 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'auth/auth_screen.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-  runApp(const MyApp());
+  // 1. Flutter widget'larının kullanıma hazır olduğundan emin ol
+  WidgetsFlutterBinding.ensureInitialized(); 
+  
+  // 2. Firebase initialize'ı bekle
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    print("Firebase başarıyla başlatıldı.");
+  } catch (e) {
+    print("HATA: Firebase başlatılamadı: $e");
+    // Eğer burada bir hata alırsak, uygulama Firebase hizmetlerini kullanamaz
+  }
+  
+  // 3. Uygulamayı çalıştır
+  runApp(const MyApp()); 
 }
 
 class MyApp extends StatelessWidget {
