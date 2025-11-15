@@ -64,12 +64,46 @@ class _ProfileScreenState extends State<ProfileScreen> {
         Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Çıkış yapılamadı. Lütfen tekrar deneyin.'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Çıkış yapılamadı. Lütfen tekrar deneyin.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  /// Eğer profil dokümanı yoksa, basit bir default profil oluşturur.
+  Future<void> _createDefaultProfile() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+        'email': user.email ?? '',
+        'username': user.displayName ?? 'Kullanıcı',
+        'profileImageUrl': '',
+        'createdAt': Timestamp.now(),
+        'updatedAt': Timestamp.now(),
+        'location': '',
+        'bio': '',
+        'followersCount': 0,
+        'followingCount': 0,
+      });
+      // Yeniden yükle
+      await _loadUserData();
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Profil oluşturulamadı: $e';
+      });
     }
   }
 
@@ -103,7 +137,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                         const SizedBox(height: 20),
                         ElevatedButton.icon(
-                          onPressed: _loadUserData,
+                          onPressed: _createDefaultProfile,
                           icon: const Icon(Icons.refresh),
                           label: const Text('Tekrar Dene'),
                         )

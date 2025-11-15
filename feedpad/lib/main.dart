@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:developer' as developer;
 import 'mapping/map_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
@@ -14,9 +15,9 @@ void main() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-    print("Firebase başarıyla başlatıldı.");
+    developer.log('Firebase başarıyla başlatıldı.');
   } catch (e) {
-    print("HATA: Firebase başlatılamadı: $e");
+    developer.log('HATA: Firebase başlatılamadı: $e');
     // Eğer burada bir hata alırsak, uygulama Firebase hizmetlerini kullanamaz
   }
   

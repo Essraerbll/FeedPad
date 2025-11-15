@@ -12,7 +12,7 @@ class MapScreen extends StatefulWidget {
 }
 
 class _MapScreenState extends State<MapScreen> {
-  MapController? mapController; // GoogleMapController yerine MapController
+  final MapController mapController = MapController(); // GoogleMapController yerine MapController
   // String? _mapError; // Artık kullanılmıyor
   final List<Marker> _markers = []; // Set<Marker> yerine List<Marker>
   // int _markerIdCounter = 0; // Artık kullanılmıyor
@@ -44,21 +44,26 @@ class _MapScreenState extends State<MapScreen> {
           ),
         ],
       ),
-      body: FlutterMap(
-        options: MapOptions(
-          initialCenter: _initialCenter, // 'center' yerine 'initialCenter'
-          initialZoom: _initialZoom, // 'zoom' yerine 'initialZoom'
-          onLongPress: _onMapLongPress,
+      body: SizedBox.expand(
+        child: FlutterMap(
+          mapController: mapController,
+          options: MapOptions(
+            initialCenter: _initialCenter, // 'center' yerine 'initialCenter'
+            initialZoom: _initialZoom, // 'zoom' yerine 'initialZoom'
+            onLongPress: _onMapLongPress,
+          ),
+          children: [
+            TileLayer(
+              // Use subdomains to improve tile loading and reduce missing tile blocks
+              urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+              subdomains: const ['a', 'b', 'c'],
+              userAgentPackageName: 'com.example.feedpad', // Uygulamanızın paket adı
+            ),
+            MarkerLayer(
+              markers: _markers,
+            ),
+          ],
         ),
-        children: [
-          TileLayer(
-            urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-            userAgentPackageName: 'com.example.feedpad', // Uygulamanızın paket adı
-          ),
-          MarkerLayer(
-            markers: _markers,
-          ),
-        ],
       ),
     );
   }
