@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:developer' as developer;
 
 class AuthScreen extends StatefulWidget {
@@ -14,7 +13,9 @@ class _AuthScreenState extends State<AuthScreen> {
   final _formKey = GlobalKey<FormState>();
   var _isLogin = true;
   var _userEmail = '';
-  var _userName = '';
+  var _userUsername = '';
+  var _userBio = '';
+  var _userLocation = '';
   var _userPassword = '';
 
   void _trySubmit() async {
@@ -32,48 +33,34 @@ class _AuthScreenState extends State<AuthScreen> {
           );
         } else {
           // Kayıt ol
-          
+          // NOT: Cloud Function (createUserProfile) otomatik olarak
+          // Firestore'a profil belgesi oluşturacak. İstemci burada yazmaya gerek yok.
           final UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
             email: _userEmail,
             password: _userPassword,
           );
           
-          // EN GÜVENİLİR YÖNTEM: Kullanıcı nesnesini doğrudan userCredential'dan al
-          final User? firebaseUser = userCredential.user; 
+          // Kullanıcı adını displayName olarak ayarla (Cloud Function bunu kullanır)
+          await userCredential.user?.updateDisplayName(_userUsername);
           
-          if (firebaseUser != null) {
+          // İlgili bilgileri Firestore'a kaydet (Cloud Function tarafından yapılan temel profili güncellemeliyiz)
+          // Kullanıcı bio ve location'ı sağladıysa, bunları Firestore'a yaz
+          if (_userBio.isNotEmpty || _userLocation.isNotEmpty) {
             try {
-              developer.log('Firestore\'a kaydedilen UID: ${firebaseUser.uid}');
-              // Kullanıcı ID'sini kullanarak profili otomatik kaydet
               await FirebaseFirestore.instance
                   .collection('users')
-                  .doc(firebaseUser.uid)
-                  .set({
-                'email': _userEmail,
-                'username': _userName,
-                'profileImageUrl': '',
-                'createdAt': Timestamp.now(),
-                'updatedAt': Timestamp.now(),
-                'location': '',
-                'bio': '',
-                'followersCount': 0,
-                'followingCount': 0,
+                  .doc(userCredential.user!.uid)
+                  .update({
+                'bio': _userBio,
+                'location': _userLocation,
               });
-              developer.log('Kullanıcı bilgileri Firestore\'a başarıyla kaydedildi.');
-            } catch (firestoreError) {
-              developer.log('Firestore\'a kullanıcı bilgileri kaydedilirken HATA: $firestoreError');
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Kayıt başarılı, ancak profil kaydedilemedi: $firestoreError'),
-                    backgroundColor: Colors.orange,
-                  ),
-                );
-              }
+            } catch (e) {
+              developer.log('Bio/Location güncellemesi başarısız: $e');
             }
-          } else {
-            developer.log('HATA: Kayıt başarılı ama kullanıcı nesnesi alınamadı.');
           }
+          
+          developer.log('Yeni kullanıcı kaydedildi: ${userCredential.user?.uid}');
+          developer.log('Cloud Function otomatik olarak Firestore\'a profil belgesi yazacak.');
         }
       } on FirebaseAuthException catch (e) {
         String message = 'Bir hata oluştu, lütfen kontrol edin!';
@@ -163,20 +150,6 @@ class _AuthScreenState extends State<AuthScreen> {
                         _userEmail = value!;
                       },
                     ),
-                    if (!_isLogin)
-                      TextFormField(
-                        key: const ValueKey('username'),
-                        validator: (value) {
-                          if (value == null || value.isEmpty || value.length < 4) {
-                            return 'Lütfen en az 4 karakterli bir kullanıcı adı girin.';
-                          }
-                          return null;
-                        },
-                        decoration: const InputDecoration(labelText: 'Kullanıcı Adı'),
-                        onSaved: (value) {
-                          _userName = value!;
-                        },
-                      ),
                     TextFormField(
                       key: const ValueKey('password'),
                       validator: (value) {
