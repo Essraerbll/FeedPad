@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:developer' as developer;
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -42,7 +43,7 @@ class _AuthScreenState extends State<AuthScreen> {
           
           if (firebaseUser != null) {
             try {
-              print('Firestore\'a kaydedilen UID: ${firebaseUser.uid}');
+              developer.log('Firestore\'a kaydedilen UID: ${firebaseUser.uid}');
               // Kullanıcı ID'sini kullanarak profili otomatik kaydet
               await FirebaseFirestore.instance
                   .collection('users')
@@ -58,18 +59,20 @@ class _AuthScreenState extends State<AuthScreen> {
                 'followersCount': 0,
                 'followingCount': 0,
               });
-              print('Kullanıcı bilgileri Firestore\'a başarıyla kaydedildi.');
+              developer.log('Kullanıcı bilgileri Firestore\'a başarıyla kaydedildi.');
             } catch (firestoreError) {
-              print('Firestore\'a kullanıcı bilgileri kaydedilirken HATA: $firestoreError');
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Kayıt başarılı, ancak profil kaydedilemedi: $firestoreError'),
-                  backgroundColor: Colors.orange,
-                ),
-              );
+              developer.log('Firestore\'a kullanıcı bilgileri kaydedilirken HATA: $firestoreError');
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Kayıt başarılı, ancak profil kaydedilemedi: $firestoreError'),
+                    backgroundColor: Colors.orange,
+                  ),
+                );
+              }
             }
           } else {
-            print('HATA: Kayıt başarılı ama kullanıcı nesnesi alınamadı.');
+            developer.log('HATA: Kayıt başarılı ama kullanıcı nesnesi alınamadı.');
           }
         }
       } on FirebaseAuthException catch (e) {
@@ -77,49 +80,57 @@ class _AuthScreenState extends State<AuthScreen> {
         if (e.message != null) {
           message = e.message!;
         }
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(message),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(message),
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+          );
+        }
       } catch (e) {
-        print(e);
+        developer.log(e.toString());
       }
     }
   }
 
   void _resetPassword() async {
     if (_userEmail.isEmpty || !_userEmail.contains('@')) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Lütfen geçerli bir e-posta adresi girin.'),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Lütfen geçerli bir e-posta adresi girin.'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
       return;
     }
     try {
       await FirebaseAuth.instance.sendPasswordResetEmail(email: _userEmail);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Şifre sıfırlama bağlantısı $_userEmail adresine gönderildi.'),
-          backgroundColor: Theme.of(context).colorScheme.primary,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Şifre sıfırlama bağlantısı $_userEmail adresine gönderildi.'),
+            backgroundColor: Theme.of(context).colorScheme.primary,
+          ),
+        );
+      }
     } on FirebaseAuthException catch (e) {
       String message = 'Şifre sıfırlama e-postası gönderilirken bir hata oluştu.';
       if (e.message != null) {
         message = e.message!;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
     } catch (e) {
-      print(e);
+      developer.log(e.toString());
     }
   }
 

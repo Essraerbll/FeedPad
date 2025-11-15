@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class ProfileScreen extends StatefulWidget { 
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
   @override
@@ -10,10 +10,10 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  User? _currentUser; 
-  Map<String, dynamic>? _userData; 
-  bool _isLoading = true; 
-  String? _errorMessage; // Hata mesajı için yeni değişken
+  User? _currentUser;
+  Map<String, dynamic>? _userData;
+  bool _isLoading = true;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -22,7 +22,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _loadUserData() async {
-    _currentUser = FirebaseAuth.instance.currentUser; 
+    _currentUser = FirebaseAuth.instance.currentUser;
 
     if (_currentUser != null) {
       try {
@@ -35,46 +35,46 @@ class _ProfileScreenState extends State<ProfileScreen> {
           setState(() {
             _userData = userDoc.data();
             _isLoading = false;
-            _errorMessage = null; // Başarılıysa hata mesajını temizle
+            _errorMessage = null;
           });
         } else {
-          // Firestore'da kullanıcı bilgisi bulunamadı (Auth'da var ama Firestore'da yok)
           setState(() {
             _isLoading = false;
             _errorMessage = 'Profil verisi henüz veritabanına kaydedilmemiş.';
           });
         }
       } catch (e) {
-        // Ağ hatası veya Güvenlik Kuralı hatası gibi bir sorun oluştu
-        print('Kullanıcı verileri çekilirken HATA OLUŞTU: $e');
         setState(() {
           _errorMessage = 'Veri çekme hatası! Güvenlik kurallarını veya ağ bağlantınızı kontrol edin.';
           _isLoading = false;
         });
       }
     } else {
-      // Kullanıcı oturum açmamış olmalı (bu normalde StreamBuilder sayesinde olmaz)
       setState(() {
         _isLoading = false;
         _errorMessage = 'Oturum açmış kullanıcı bulunamadı.';
       });
     }
   }
-  
-  // Çıkış (Logout) fonksiyonunu daha güvenli hale getirelim
+
   void _logout() async {
-    await FirebaseAuth.instance.signOut();
-    // Ana sayfaya dön ve tüm rotaları sil
-    if (mounted) {
-      Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+    try {
+      await FirebaseAuth.instance.signOut();
+      if (mounted) {
+        Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Çıkış yapılamadı. Lütfen tekrar deneyin.'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // E-posta bilgisini her zaman _currentUser nesnesinden çekelim, bu daha sağlamdır.
-    final String userEmail = _currentUser?.email ?? 'E-posta Yok';
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Profilim'),
@@ -86,7 +86,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator()) 
+          ? const Center(child: CircularProgressIndicator())
           : _errorMessage != null
               ? Center(
                   child: Padding(
@@ -97,7 +97,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         const Icon(Icons.error, color: Colors.red, size: 50),
                         const SizedBox(height: 10),
                         Text(
-                          _errorMessage!, // Hata mesajını kullanıcıya göster
+                          _errorMessage!,
                           textAlign: TextAlign.center,
                           style: const TextStyle(fontSize: 18, color: Colors.black54),
                         ),
@@ -116,28 +116,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     padding: const EdgeInsets.all(16.0),
                     child: Column(
                       children: [
-                        // Profil fotoğrafı (varsa)
                         CircleAvatar(
                           radius: 60,
-                          backgroundImage: _userData!['profileImageUrl'] != null &&
+                          backgroundImage: _userData?['profileImageUrl'] != null &&
                                   _userData!['profileImageUrl'].isNotEmpty
                               ? NetworkImage(_userData!['profileImageUrl'])
-                              : null, 
-                          child: _userData!['profileImageUrl'] == null ||
+                              : null,
+                          child: _userData?['profileImageUrl'] == null ||
                                   _userData!['profileImageUrl'].isEmpty
-                              ? const Icon(Icons.account_circle, size: 120, color: Colors.grey) 
+                              ? const Icon(Icons.account_circle, size: 120, color: Colors.grey)
                               : null,
                         ),
                         const SizedBox(height: 20),
                         Text(
-                          _userData!['username'] ?? 'Kullanıcı Adı Yok',
+                          _userData?['username'] ?? 'Kullanıcı Adı Yok',
                           style: const TextStyle(
                               fontSize: 24, fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 10),
-                        // E-posta bilgisini Auth'dan alınan bilgiyi kullanarak göster
                         Text(
-                          userEmail, 
+                          _currentUser?.email ?? 'E-posta Yok',
                           style: const TextStyle(fontSize: 16, color: Colors.grey),
                         ),
                         const SizedBox(height: 20),
