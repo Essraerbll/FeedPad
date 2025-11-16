@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; 
 import 'dart:developer' as developer;
 
 class AuthScreen extends StatefulWidget {
@@ -20,47 +21,56 @@ class _AuthScreenState extends State<AuthScreen> {
 
   void _trySubmit() async {
     final isValid = _formKey.currentState!.validate();
-    FocusScope.of(context).unfocus(); // Klavyeyi kapat
+    FocusScope.of(context).unfocus(); 
 
     if (isValid) {
       _formKey.currentState!.save();
+      
+      // Verinin yakalandığını gösteren log
+      developer.log('DEBUG: Form Values Saved -> Username: $_userUsername, Bio: $_userBio, Location: $_userLocation');
+
       try {
         if (_isLogin) {
-          // Giriş yap
           await FirebaseAuth.instance.signInWithEmailAndPassword(
             email: _userEmail,
             password: _userPassword,
           );
         } else {
           // Kayıt ol
-          // NOT: Cloud Function (createUserProfile) otomatik olarak
-          // Firestore'a profil belgesi oluşturacak. İstemci burada yazmaya gerek yok.
           final UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
             email: _userEmail,
             password: _userPassword,
           );
           
-          // Kullanıcı adını displayName olarak ayarla (Cloud Function bunu kullanır)
-          await userCredential.user?.updateDisplayName(_userUsername);
+          // Yerel, kesin String değişkenleri oluştur.
+          final String finalUsername = _userUsername.toString();
+          final String finalBio = _userBio.toString();
+          final String finalLocation = _userLocation.toString();
           
-          // İlgili bilgileri Firestore'a kaydet (Cloud Function tarafından yapılan temel profili güncellemeliyiz)
-          // Kullanıcı bio ve location'ı sağladıysa, bunları Firestore'a yaz
-          if (_userBio.isNotEmpty || _userLocation.isNotEmpty) {
-            try {
-              await FirebaseFirestore.instance
-                  .collection('users')
-                  .doc(userCredential.user!.uid)
-                  .update({
-                'bio': _userBio,
-                'location': _userLocation,
-              });
-            } catch (e) {
-              developer.log('Bio/Location güncellemesi başarısız: $e');
-            }
+          // 1. Kullanıcı adını Firebase Auth nesnesine ayarla (displayName güncellenir)
+          await userCredential.user?.updateDisplayName(finalUsername); 
+          
+          // 2. Firestore'a tüm özel verileri KAYDET
+          try {
+            await FirebaseFirestore.instance
+                .collection('users')
+                .doc(userCredential.user!.uid)
+                .set({
+              'email': _userEmail, 
+              'username': finalUsername, // Yerel final değeri kullan
+              'profileImageUrl': userCredential.user?.photoURL ?? '',
+              'createdAt': Timestamp.now(),
+              'updatedAt': Timestamp.now(),
+              'bio': finalBio, // Yerel final değeri kullan
+              'location': finalLocation, // Yerel final değeri kullan
+              'followersCount': 0,
+              'followingCount': 0,
+            });
+            // KRİTİK LOG: Yazma işleminin başarılı olduğunu gösterir.
+            developer.log('DEBUG: Firestore Write SUCCESS for user: ${userCredential.user!.uid}');
+          } catch (e) {
+            developer.log('HATA: Firestore\'a profil belgesi yazma başarısız: $e');
           }
-          
-          developer.log('Yeni kullanıcı kaydedildi: ${userCredential.user?.uid}');
-          developer.log('Cloud Function otomatik olarak Firestore\'a profil belgesi yazacak.');
         }
       } on FirebaseAuthException catch (e) {
         String message = 'Bir hata oluştu, lütfen kontrol edin!';
@@ -147,21 +157,57 @@ class _AuthScreenState extends State<AuthScreen> {
                       keyboardType: TextInputType.emailAddress,
                       decoration: const InputDecoration(labelText: 'E-posta adresi'),
                       onSaved: (value) {
-                        _userEmail = value!;
+                        _userEmail = value ?? ''; 
                       },
                     ),
+                    // --- Kayıt Olma Alanları ---
+                    if (!_isLogin) 
+                      TextFormField(
+                        key: const ValueKey('username'),
+                        validator: (value) {
+                          if (value == null || value.isEmpty || value.length < 4) {
+                            return 'Kullanıcı adı en az 4 karakter olmalıdır.';
+                          }
+                          return null;
+                        },
+                        keyboardType: TextInputType.text,
+                        decoration: const InputDecoration(labelText: 'Kullanıcı Adı'),
+                        onSaved: (value) {
+                          _userUsername = value ?? ''; 
+                        },
+                      ),
+                    if (!_isLogin) 
+                      TextFormField(
+                        key: const ValueKey('bio'),
+                        keyboardType: TextInputType.text
+                        ,
+                        decoration: const InputDecoration(labelText: 'Biyografi (Opsiyonel)'),
+                        onSaved: (value) {
+                          _userBio = value ?? ''; 
+                        },
+                      ),
+                    if (!_isLogin) 
+                      TextFormField(
+                        key: const ValueKey('location'),
+                        keyboardType: TextInputType.text,
+                        decoration: const InputDecoration(labelText: 'Konum (Opsiyonel)'),
+                        onSaved: (value) {
+                          _userLocation = value ?? ''; 
+                        },
+                      ),
+                    // --- Kayıt Olma Alanları Bitti ---
                     TextFormField(
                       key: const ValueKey('password'),
                       validator: (value) {
                         if (value == null || value.isEmpty || value.length < 6) {
-                          return 'Şifreniz en az 6 karakter olmalıdır.';
+                            return 'Şifreniz en az 6 karakter olmalıdır.';
                         }
                           return null;
                         },
                       decoration: const InputDecoration(labelText: 'Şifre'),
                       obscureText: true,
                       onSaved: (value) {
-                        _userPassword = value!;
+                        _userPassword = value ?? ''; 
                       },
                     ),
                     const SizedBox(height: 12),

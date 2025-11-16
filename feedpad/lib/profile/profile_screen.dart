@@ -21,6 +21,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _loadUserData();
   }
 
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
   Future<void> _loadUserData() async {
     _currentUser = FirebaseAuth.instance.currentUser;
 
@@ -32,28 +37,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
             .get();
 
         if (userDoc.exists) {
-          setState(() {
-            _userData = userDoc.data();
-            _isLoading = false;
-            _errorMessage = null;
-          });
+          if (mounted) { 
+            setState(() {
+              _userData = userDoc.data();
+              _isLoading = false;
+              _errorMessage = null;
+            });
+          }
         } else {
-          setState(() {
-            _isLoading = false;
-            _errorMessage = 'Profil verisi henüz veritabanına kaydedilmemiş.';
-          });
+          // Doküman yoksa, otomatik oluşturmayı durduruyoruz (Veri yarışını engeller)
+          if (mounted) { 
+            setState(() {
+              _isLoading = false;
+              _errorMessage = 'Profil verisi veritabanında bulunamadı. Lütfen "Tekrar Dene/Oluştur" butonuna basın.'; 
+            });
+          }
         }
       } catch (e) {
-        setState(() {
-          _errorMessage = 'Veri çekme hatası! Güvenlik kurallarını veya ağ bağlantınızı kontrol edin.';
-          _isLoading = false;
-        });
+        if (mounted) { 
+          setState(() {
+            _errorMessage = 'Veri çekme hatası! Güvenlik kurallarını veya ağ bağlantınızı kontrol edin.';
+            _isLoading = false;
+          });
+        }
       }
     } else {
-      setState(() {
-        _isLoading = false;
-        _errorMessage = 'Oturum açmış kullanıcı bulunamadı.';
-      });
+      if (mounted) { 
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'Oturum açmış kullanıcı bulunamadı.';
+        });
+      }
     }
   }
 
@@ -61,7 +75,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       await FirebaseAuth.instance.signOut();
       if (mounted) {
-        Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+        Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false); 
       }
     } catch (e) {
       if (mounted) {
@@ -80,30 +94,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+    if (mounted) { 
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+    }
 
     try {
+      // Bu metod, kullanıcı manuel olarak isterse boş bir şablon oluşturur.
+      // AuthScreen'den gelen username'i kullanır.
       await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
         'email': user.email ?? '',
         'username': user.displayName ?? 'Kullanıcı',
-        'profileImageUrl': '',
+        'profileImageUrl': user.photoURL ?? '', 
         'createdAt': Timestamp.now(),
         'updatedAt': Timestamp.now(),
         'location': '',
         'bio': '',
         'followersCount': 0,
         'followingCount': 0,
-      });
+      }, SetOptions(merge: true));
+
       // Yeniden yükle
       await _loadUserData();
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-        _errorMessage = 'Profil oluşturulamadı: $e';
-      });
+      if (mounted) { 
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'Profil oluşturulamadı: $e';
+        });
+      }
     }
   }
 
@@ -136,10 +157,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           style: const TextStyle(fontSize: 18, color: Colors.black54),
                         ),
                         const SizedBox(height: 20),
+                        // Tekrar Dene/Oluştur butonu
                         ElevatedButton.icon(
                           onPressed: _createDefaultProfile,
                           icon: const Icon(Icons.refresh),
-                          label: const Text('Tekrar Dene'),
+                          label: const Text('Tekrar Dene/Oluştur'),
                         )
                       ],
                     ),
@@ -163,7 +185,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                         const SizedBox(height: 20),
                         Text(
-                          _userData?['username'] ?? 'Kullanıcı Adı Yok',
+                          _userData?['username'] ?? 'Kullanıcı Adı Yok', 
                           style: const TextStyle(
                               fontSize: 24, fontWeight: FontWeight.bold),
                         ),
@@ -173,30 +195,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           style: const TextStyle(fontSize: 16, color: Colors.grey),
                         ),
                         const SizedBox(height: 20),
-                        // Diğer profil bilgileri (bio, location vb.)
+                        
+                        // Hakkımda (Biyografi) Kartı
                         Card(
                           margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                           child: ListTile(
                             leading: const Icon(Icons.info_outline),
                             title: const Text('Hakkımda'),
-                            subtitle: Text(_userData!['bio'] ?? 'Biyografi henüz eklenmedi.'),
+                            subtitle: Text(_userData?['bio'] ?? 'Biyografi henüz eklenmedi.'), 
                           ),
                         ),
+                        
+                        // Konum Kartı
                         Card(
                           margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                           child: ListTile(
                             leading: const Icon(Icons.location_on),
                             title: const Text('Konum'),
-                            subtitle: Text(_userData!['location'] ?? 'Konum bilgisi yok.'),
+                            subtitle: Text(_userData?['location'] ?? 'Konum bilgisi yok.'),
                           ),
                         ),
+                        
                         const SizedBox(height: 20),
                         // Katkı Özetleri
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
                           children: [
-                            _buildStatColumn('Takipçi', _userData!['followersCount'] ?? 0),
-                            _buildStatColumn('Takip Edilen', _userData!['followingCount'] ?? 0),
+                            _buildStatColumn('Takipçi', _userData?['followersCount'] ?? 0),
+                            _buildStatColumn('Takip Edilen', _userData?['followingCount'] ?? 0),
                           ],
                         ),
                       ],
