@@ -1,24 +1,14 @@
 import 'package:flutter/material.dart';
-import 'dart:developer' as developer;
-import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'auth/auth_screen.dart';
-import 'main_screen.dart'; 
+import 'database/firebase_service.dart';
+import 'main_screen.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized(); 
-  
-  try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-    developer.log('Firebase başarıyla başlatıldı.');
-  } catch (e) {
-    developer.log('HATA: Firebase başlatılamadı: $e');
-  }
-  
-  runApp(const MyApp()); 
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await FirebaseService.initializeFirebase();
+
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -27,20 +17,20 @@ class MyApp extends StatelessWidget {
   // Auth durumunu kontrol eden merkezi widget
   Widget _buildAuthGate() {
     return StreamBuilder(
-      stream: FirebaseAuth.instance.authStateChanges(),
+      stream: FirebaseService.authStateChanges(),
       builder: (ctx, userSnapshot) {
         if (userSnapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );
         }
-        
+
         if (userSnapshot.hasData) {
           // Oturum açmışsa MainScreen'e yönlendir
-          return const MainScreen(); 
+          return const MainScreen();
         }
         // Oturum açmamışsa Giriş ekranına yönlendir
-        return const AuthScreen(); 
+        return const AuthScreen();
       },
     );
   }
