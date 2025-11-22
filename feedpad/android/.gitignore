@@ -12,6 +12,3 @@ GeneratedPluginRegistrant.java
 key.properties
 **/*.keystore
 **/*.jks
-
-# Google Maps API Key - gradle.properties dosyası Git'e commit edilmemeli
-# API key'i local.properties dosyasına taşıyın veya gradle.properties'i ignore edin

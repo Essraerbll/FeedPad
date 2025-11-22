@@ -1,28 +1,16 @@
 plugins {
     id("com.android.application")
-    // START: FlutterFire Configuration
-    id("com.google.gms.google-services")
-    // END: FlutterFire Configuration
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
-}
-
-// local.properties dosyasından API key'i oku
-val mapsApiKey: String = run {
-    val localPropertiesFile = rootProject.file("local.properties")
-    if (localPropertiesFile.exists()) {
-        val lines = localPropertiesFile.readLines()
-        val apiKeyLine = lines.find { it.startsWith("MAPS_API_KEY=") }
-        apiKeyLine?.substringAfter("MAPS_API_KEY=")?.trim() ?: ""
-    } else {
-        ""
-    }
+    // Firebase Google Services
+    id("com.google.gms.google-services")
 }
 
 android {
-    namespace = "com.example.feedpad"
+    namespace = "com.example.pad_map"
     compileSdk = flutter.compileSdkVersion
+    ndkVersion = flutter.ndkVersion
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -35,16 +23,14 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.feedpad"
+        applicationId = "com.example.pad_map"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        minSdk = flutter.minSdkVersion  // Firebase için minimum SDK 21
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
-        
-        // Google Maps API Key'i manifest'e inject et
-        manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
+        multiDexEnabled = true  // Firebase için gerekli olabilir
     }
 
     buildTypes {
@@ -58,4 +44,21 @@ android {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // Firebase BoM (Bill of Materials) - tüm Firebase kütüphanelerinin uyumlu versiyonlarını yönetir
+    implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
+    
+    // Firebase Authentication
+    implementation("com.google.firebase:firebase-auth")
+    
+    // Firestore
+    implementation("com.google.firebase:firebase-firestore")
+    
+    // Firebase Analytics (opsiyonel ama önerilir)
+    implementation("com.google.firebase:firebase-analytics")
+    
+    // MultiDex support (gerekirse)
+    implementation("androidx.multidex:multidex:2.0.1")
 }
