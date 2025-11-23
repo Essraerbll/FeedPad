@@ -16,7 +16,7 @@ class AuthService extends ChangeNotifier {
     required String password,
     required String name,
     String? username,
-    String? phone,
+    String? location,
     required String userType,
   }) async {
     try {
@@ -46,10 +46,9 @@ class AuthService extends ChangeNotifier {
           'email': email,
           'name': name,
           'username': username ?? '',
-          'phone': phone ?? '',
+          'location': location ?? '',
           'userType': userType,
           'photoURL': '',
-          'bio': '',
           'isActive': true,
           'createdAt': FieldValue.serverTimestamp(),
           'lastLogin': FieldValue.serverTimestamp(),
@@ -109,8 +108,7 @@ class AuthService extends ChangeNotifier {
   Future<String?> updateUserProfile({
     required String uid,
     String? name,
-    String? phone,
-    String? bio,
+    String? location,
     String? photoURL,
   }) async {
     try {
@@ -119,8 +117,7 @@ class AuthService extends ChangeNotifier {
       };
 
       if (name != null) updates['name'] = name;
-      if (phone != null) updates['phone'] = phone;
-      if (bio != null) updates['bio'] = bio;
+      if (location != null) updates['location'] = location;
       if (photoURL != null) updates['photoURL'] = photoURL;
 
       await _firestore.collection('users').doc(uid).update(updates);

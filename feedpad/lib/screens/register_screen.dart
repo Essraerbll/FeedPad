@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
+import '../location/provinces.dart';
+import '../location/districts.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -13,7 +15,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _usernameController = TextEditingController();
-  final _phoneController = TextEditingController();
+  final _provinceTextController =
+      TextEditingController(); // Pet Shop Owner için province text field
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
@@ -21,12 +24,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   String? _userType; // 'user' or 'pet_shop_owner'
+  String? _province; // Selected province
+  String? _district; // Selected district
+
+  @override
+  void initState() {
+    super.initState();
+  }
 
   @override
   void dispose() {
     _nameController.dispose();
     _usernameController.dispose();
-    _phoneController.dispose();
+    _provinceTextController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
@@ -44,7 +54,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
       password: _passwordController.text,
       name: _nameController.text.trim(),
       username: _usernameController.text.trim(),
-      phone: _phoneController.text.trim(),
+      location: _userType == 'user'
+          ? (_province != null && _district != null
+              ? '$_province / $_district'
+              : _province ?? '')
+          : _provinceTextController.text.trim(),
       userType: _userType ?? '',
     );
 
@@ -207,41 +221,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                         const SizedBox(height: 16),
 
-                        // Location alanı
-                        TextFormField(
-                          controller: _phoneController,
-                          keyboardType: TextInputType.text,
-                          style: const TextStyle(color: Colors.black87),
-                          decoration: InputDecoration(
-                            labelText: 'Location',
-                            labelStyle: const TextStyle(color: Colors.grey),
-                            prefixIcon: const Icon(Icons.location_on,
-                                color: Colors.grey),
-                            filled: true,
-                            fillColor: Colors.grey[100],
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Colors.grey),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Colors.grey),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                  color: Colors.purple, width: 2),
-                            ),
-                          ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter your location';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 16),
-
                         // User Profile alanı
                         DropdownButtonFormField<String>(
                           value: _userType,
@@ -281,6 +260,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           onChanged: (String? value) {
                             setState(() {
                               _userType = value;
+                              // User profile değiştiğinde province ve district'i sıfırla
+                              if (value != 'user') {
+                                _province = null;
+                                _district = null;
+                              }
                             });
                           },
                           validator: (value) {
@@ -290,6 +274,147 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             return null;
                           },
                         ),
+                        const SizedBox(height: 16),
+
+                        // Province alanı
+                        _userType == 'user'
+                            ? DropdownButtonFormField<String>(
+                                value: _province,
+                                style: const TextStyle(color: Colors.black87),
+                                dropdownColor: Colors.white,
+                                decoration: InputDecoration(
+                                  labelText: 'Province',
+                                  labelStyle:
+                                      const TextStyle(color: Colors.grey),
+                                  prefixIcon: const Icon(Icons.location_on,
+                                      color: Colors.grey),
+                                  filled: true,
+                                  fillColor: Colors.grey[100],
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide:
+                                        const BorderSide(color: Colors.grey),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide:
+                                        const BorderSide(color: Colors.grey),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: const BorderSide(
+                                        color: Colors.purple, width: 2),
+                                  ),
+                                ),
+                                items: TurkeyProvinces.provinces
+                                    .map((String province) {
+                                  return DropdownMenuItem<String>(
+                                    value: province,
+                                    child: Text(province),
+                                  );
+                                }).toList(),
+                                onChanged: (String? value) {
+                                  setState(() {
+                                    _province = value;
+                                    _district =
+                                        null; // Province değiştiğinde district'i sıfırla
+                                  });
+                                },
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Please select a province';
+                                  }
+                                  return null;
+                                },
+                              )
+                            : TextFormField(
+                                controller: _provinceTextController,
+                                keyboardType: TextInputType.text,
+                                style: const TextStyle(color: Colors.black87),
+                                decoration: InputDecoration(
+                                  labelText: 'Province',
+                                  labelStyle:
+                                      const TextStyle(color: Colors.grey),
+                                  prefixIcon: const Icon(Icons.location_on,
+                                      color: Colors.grey),
+                                  filled: true,
+                                  fillColor: Colors.grey[100],
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide:
+                                        const BorderSide(color: Colors.grey),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide:
+                                        const BorderSide(color: Colors.grey),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: const BorderSide(
+                                        color: Colors.purple, width: 2),
+                                  ),
+                                ),
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Please enter your province';
+                                  }
+                                  return null;
+                                },
+                              ),
+                        // District alanı (sadece user seçildiyse ve province seçildiyse görünür)
+                        if (_userType == 'user' &&
+                            _province != null &&
+                            _province!.isNotEmpty) ...[
+                          const SizedBox(height: 16),
+                          DropdownButtonFormField<String>(
+                            value: _district,
+                            style: const TextStyle(color: Colors.black87),
+                            dropdownColor: Colors.white,
+                            decoration: InputDecoration(
+                              labelText: 'District',
+                              labelStyle: const TextStyle(color: Colors.grey),
+                              prefixIcon: const Icon(Icons.location_city,
+                                  color: Colors.grey),
+                              filled: true,
+                              fillColor: Colors.grey[100],
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide:
+                                    const BorderSide(color: Colors.grey),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide:
+                                    const BorderSide(color: Colors.grey),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                    color: Colors.purple, width: 2),
+                              ),
+                            ),
+                            items: TurkeyDistricts.getDistrictsForProvince(
+                                    _province)
+                                .map((String district) {
+                              return DropdownMenuItem<String>(
+                                value: district,
+                                child: Text(district),
+                              );
+                            }).toList(),
+                            onChanged: (String? value) {
+                              setState(() {
+                                _district = value;
+                              });
+                            },
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please select a district';
+                              }
+                              return null;
+                            },
+                          ),
+                        ],
                         const SizedBox(height: 16),
 
                         // E-posta alanı

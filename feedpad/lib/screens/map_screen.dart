@@ -4,6 +4,7 @@ import 'package:latlong2/latlong.dart';
 import 'dart:developer' as developer;
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
+import '../location/coordinates.dart';
 // import 'package:feedpad/profile/profile_screen.dart'; // Artık MainScreen'den yönetiliyor
 
 class MapScreen extends StatefulWidget {
@@ -20,6 +21,54 @@ class _MapScreenState extends State<MapScreen> {
   // Başlangıç konumu (İstanbul örnek olarak)
   static const LatLng _initialCenter = LatLng(41.0082, 28.9784);
   static const double _initialZoom = 12.0;
+  bool _isInitialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserLocation();
+  }
+
+  Future<void> _loadUserLocation() async {
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final user = authService.currentUser;
+
+    if (user != null && !_isInitialized) {
+      try {
+        final userData = await authService.getUserData(user.uid);
+        if (userData != null && userData['location'] != null) {
+          final location = userData['location'] as String;
+
+          // Location formatı: "Province / District" veya sadece "Province"
+          if (location.contains(' / ')) {
+            final parts = location.split(' / ');
+            final province = parts[0].trim();
+            final district = parts.length > 1 ? parts[1].trim() : null;
+
+            if (district != null) {
+              final coordinates = DistrictCoordinates.getDistrictCoordinates(
+                  province, district);
+              if (coordinates != null) {
+                // Kısa bir gecikme ile haritanın yüklenmesini bekle
+                await Future.delayed(const Duration(milliseconds: 500));
+                mapController.move(coordinates, 13.0);
+                setState(() {
+                  _isInitialized = true;
+                });
+                return;
+              }
+            }
+          }
+        }
+      } catch (e) {
+        developer.log('Kullanıcı konumu yüklenirken hata: $e');
+      }
+    }
+
+    setState(() {
+      _isInitialized = true;
+    });
+  }
 
   /// Haritada uzun basış (2 saniye) ile marker ekler
   void _onMapLongPress(TapPosition tapPosition, LatLng latlng) {
@@ -33,9 +82,6 @@ class _MapScreenState extends State<MapScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final authService = Provider.of<AuthService>(context);
-    final user = authService.currentUser;
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Harita'),

@@ -96,20 +96,20 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        // E-posta alanı
-                        TextFormField(
-                          controller: _emailController,
-                          keyboardType: TextInputType.emailAddress,
+                  // E-posta alanı
+                  TextFormField(
+                    controller: _emailController,
+                    keyboardType: TextInputType.emailAddress,
                           style: const TextStyle(color: Colors.black87),
-                          decoration: InputDecoration(
+                    decoration: InputDecoration(
                             labelText: 'Email',
                             labelStyle: const TextStyle(color: Colors.grey),
                             prefixIcon:
                                 const Icon(Icons.email, color: Colors.grey),
                             filled: true,
                             fillColor: Colors.grey[100],
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
                               borderSide: const BorderSide(color: Colors.grey),
                             ),
                             enabledBorder: OutlineInputBorder(
@@ -120,47 +120,47 @@ class _LoginScreenState extends State<LoginScreen> {
                               borderRadius: BorderRadius.circular(12),
                               borderSide: const BorderSide(
                                   color: Colors.purple, width: 2),
-                            ),
-                          ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
+                      ),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
                               return 'Please enter your email address';
-                            }
-                            if (!value.contains('@')) {
+                      }
+                      if (!value.contains('@')) {
                               return 'Please enter a valid email address';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 16),
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
 
-                        // Şifre alanı
-                        TextFormField(
-                          controller: _passwordController,
-                          obscureText: _obscurePassword,
+                  // Şifre alanı
+                  TextFormField(
+                    controller: _passwordController,
+                    obscureText: _obscurePassword,
                           style: const TextStyle(color: Colors.black87),
-                          decoration: InputDecoration(
+                    decoration: InputDecoration(
                             labelText: 'Password',
                             labelStyle: const TextStyle(color: Colors.grey),
                             prefixIcon:
                                 const Icon(Icons.lock, color: Colors.grey),
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _obscurePassword
-                                    ? Icons.visibility
-                                    : Icons.visibility_off,
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePassword
+                              ? Icons.visibility
+                              : Icons.visibility_off,
                                 color: Colors.grey,
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  _obscurePassword = !_obscurePassword;
-                                });
-                              },
-                            ),
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscurePassword = !_obscurePassword;
+                          });
+                        },
+                      ),
                             filled: true,
                             fillColor: Colors.grey[100],
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
                               borderSide: const BorderSide(color: Colors.grey),
                             ),
                             enabledBorder: OutlineInputBorder(
@@ -171,23 +171,23 @@ class _LoginScreenState extends State<LoginScreen> {
                               borderRadius: BorderRadius.circular(12),
                               borderSide: const BorderSide(
                                   color: Colors.purple, width: 2),
-                            ),
-                          ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
+                      ),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
                               return 'Please enter your password';
-                            }
-                            if (value.length < 6) {
+                      }
+                      if (value.length < 6) {
                               return 'Password must be at least 6 characters';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 24),
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 24),
 
-                        // Giriş butonu
-                        ElevatedButton(
-                          onPressed: _isLoading ? null : _signIn,
+                  // Giriş butonu
+                  ElevatedButton(
+                    onPressed: _isLoading ? null : _signIn,
                           style: ButtonStyle(
                             backgroundColor:
                                 MaterialStateProperty.resolveWith<Color?>(
@@ -219,41 +219,41 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                             shape: MaterialStateProperty.all(
                               RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(12),
                               ),
-                            ),
-                          ),
-                          child: _isLoading
+                      ),
+                    ),
+                    child: _isLoading
                               ? SizedBox(
-                                  height: 20,
-                                  width: 20,
+                            height: 20,
+                            width: 20,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
                                     color: Colors.purple[900],
                                   ),
-                                )
+                          )
                               : Text(
                                   'Login',
                                   style: TextStyle(
                                     fontSize: 16,
                                   ),
-                                ),
-                        ),
-                        const SizedBox(height: 16),
+                          ),
+                  ),
+                  const SizedBox(height: 16),
 
-                        // Kayıt ol butonu
-                        OutlinedButton(
-                          onPressed: _isLoading
-                              ? null
-                              : () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
+                  // Kayıt ol butonu
+                  OutlinedButton(
+                    onPressed: _isLoading
+                        ? null
+                        : () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
                                       builder: (context) =>
                                           const RegisterScreen(),
-                                    ),
-                                  );
-                                },
+                              ),
+                            );
+                          },
                           style: ButtonStyle(
                             backgroundColor:
                                 MaterialStateProperty.resolveWith<Color?>(
@@ -285,13 +285,13 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                             shape: MaterialStateProperty.all(
                               RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(12),
                               ),
-                            ),
-                          ),
-                          child: const Text(
+                      ),
+                    ),
+                    child: const Text(
                             'Sign Up',
-                            style: TextStyle(fontSize: 16),
+                      style: TextStyle(fontSize: 16),
                           ),
                         ),
                       ],
