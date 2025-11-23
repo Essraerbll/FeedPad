@@ -20,6 +20,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  String? _userType; // 'user' or 'pet_shop_owner'
 
   @override
   void dispose() {
@@ -44,6 +45,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       name: _nameController.text.trim(),
       username: _usernameController.text.trim(),
       phone: _phoneController.text.trim(),
+      userType: _userType ?? '',
     );
 
     setState(() => _isLoading = false);
@@ -56,14 +58,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
       );
     } else if (mounted) {
-      // Başarılı kayıt
-      Navigator.pop(context);
+      // Başarılı kayıt - önce çıkış yap
+      await authService.signOut();
+
+      // Yeşil popup göster
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Account created successfully!'),
+          content: Text('You have registered successfully :)'),
           backgroundColor: Colors.green,
+          duration: Duration(seconds: 5),
         ),
       );
+
+      // 5 saniye sonra login sayfasına yönlendir
+      await Future.delayed(const Duration(seconds: 5));
+
+      if (mounted) {
+        Navigator.pop(context);
+      }
     }
   }
 
@@ -154,7 +166,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                         const SizedBox(height: 16),
 
-                        // Kullanıcı adı alanı (opsiyonel)
+                        // Kullanıcı adı alanı
                         TextFormField(
                           controller: _usernameController,
                           style: const TextStyle(color: Colors.black87),
@@ -181,20 +193,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ),
                           ),
                           validator: (value) {
-                            if (value != null && value.isNotEmpty) {
-                              if (value.length < 3) {
-                                return 'Username must be at least 3 characters';
-                              }
-                              if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(value)) {
-                                return 'Use only letters, numbers and _';
-                              }
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter a username';
+                            }
+                            if (value.length < 3) {
+                              return 'Username must be at least 3 characters';
+                            }
+                            if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(value)) {
+                              return 'Use only letters, numbers and _';
                             }
                             return null;
                           },
                         ),
                         const SizedBox(height: 16),
 
-                        // Location alanı (opsiyonel)
+                        // Location alanı
                         TextFormField(
                           controller: _phoneController,
                           keyboardType: TextInputType.text,
@@ -221,7 +234,59 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ),
                           ),
                           validator: (value) {
-                            // Location is optional, no validation needed
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter your location';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+
+                        // User Profile alanı
+                        DropdownButtonFormField<String>(
+                          value: _userType,
+                          style: const TextStyle(color: Colors.black87),
+                          dropdownColor: Colors.white,
+                          decoration: InputDecoration(
+                            labelText: 'User Profile',
+                            labelStyle: const TextStyle(color: Colors.grey),
+                            prefixIcon: const Icon(Icons.person_outline,
+                                color: Colors.grey),
+                            filled: true,
+                            fillColor: Colors.grey[100],
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Colors.grey),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Colors.grey),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(
+                                  color: Colors.purple, width: 2),
+                            ),
+                          ),
+                          items: const [
+                            DropdownMenuItem<String>(
+                              value: 'user',
+                              child: Text('User'),
+                            ),
+                            DropdownMenuItem<String>(
+                              value: 'pet_shop_owner',
+                              child: Text('Pet Shop Owner'),
+                            ),
+                          ],
+                          onChanged: (String? value) {
+                            setState(() {
+                              _userType = value;
+                            });
+                          },
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please select a user profile';
+                            }
                             return null;
                           },
                         ),

@@ -17,6 +17,7 @@ class AuthService extends ChangeNotifier {
     required String name,
     String? username,
     String? phone,
+    required String userType,
   }) async {
     try {
       // Kullanıcı adı benzersizliğini kontrol et (eğer verilmişse)
@@ -46,6 +47,7 @@ class AuthService extends ChangeNotifier {
           'name': name,
           'username': username ?? '',
           'phone': phone ?? '',
+          'userType': userType,
           'photoURL': '',
           'bio': '',
           'isActive': true,
