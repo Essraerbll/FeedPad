@@ -21,7 +21,7 @@ class MyApp extends StatelessWidget {
     return ChangeNotifierProvider(
       create: (_) => AuthService(),
       child: MaterialApp(
-        title: 'Pad Map',
+        title: 'FeedPad',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),

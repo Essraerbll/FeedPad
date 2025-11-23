@@ -60,7 +60,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Hesap başarıyla oluşturuldu!'),
+          content: Text('Account created successfully!'),
           backgroundColor: Colors.green,
         ),
       );
@@ -70,207 +70,361 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Hesap Oluştur'),
-      ),
+      backgroundColor: Colors.purple[900],
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const SizedBox(height: 24),
-
-                // İsim alanı
-                TextFormField(
-                  controller: _nameController,
-                  textCapitalization: TextCapitalization.words,
-                  decoration: InputDecoration(
-                    labelText: 'Ad Soyad',
-                    hintText: 'Ahmet Yılmaz',
-                    prefixIcon: const Icon(Icons.person),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24.0),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Logo veya başlık
+                  Icon(
+                    Icons.map,
+                    size: 100,
+                    color: Colors.white,
                   ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Lütfen adınızı girin';
-                    }
-                    if (value.length < 2) {
-                      return 'Ad en az 2 karakter olmalı';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-
-                // Kullanıcı adı alanı (opsiyonel)
-                TextFormField(
-                  controller: _usernameController,
-                  decoration: InputDecoration(
-                    labelText: 'Kullanıcı Adı (opsiyonel)',
-                    hintText: 'ornek_kullanici',
-                    prefixIcon: const Icon(Icons.alternate_email),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    helperText: 'Benzersiz bir kullanıcı adı seçin',
-                  ),
-                  validator: (value) {
-                    if (value != null && value.isNotEmpty) {
-                      if (value.length < 3) {
-                        return 'Kullanıcı adı en az 3 karakter olmalı';
-                      }
-                      if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(value)) {
-                        return 'Sadece harf, rakam ve _ kullanın';
-                      }
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-
-                // Telefon alanı (opsiyonel)
-                TextFormField(
-                  controller: _phoneController,
-                  keyboardType: TextInputType.phone,
-                  decoration: InputDecoration(
-                    labelText: 'Telefon (opsiyonel)',
-                    hintText: '+90 555 123 4567',
-                    prefixIcon: const Icon(Icons.phone),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  validator: (value) {
-                    if (value != null && value.isNotEmpty) {
-                      // Sadece rakam ve + kontrolü
-                      if (!RegExp(r'^[+0-9\s]+$').hasMatch(value)) {
-                        return 'Geçerli bir telefon numarası girin';
-                      }
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-
-                // E-posta alanı
-                TextFormField(
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: InputDecoration(
-                    labelText: 'E-posta',
-                    prefixIcon: const Icon(Icons.email),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Lütfen e-posta adresinizi girin';
-                    }
-                    if (!value.contains('@')) {
-                      return 'Geçerli bir e-posta adresi girin';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-
-                // Şifre alanı
-                TextFormField(
-                  controller: _passwordController,
-                  obscureText: _obscurePassword,
-                  decoration: InputDecoration(
-                    labelText: 'Şifre',
-                    prefixIcon: const Icon(Icons.lock),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscurePassword
-                            ? Icons.visibility
-                            : Icons.visibility_off,
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          _obscurePassword = !_obscurePassword;
-                        });
-                      },
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Lütfen şifrenizi girin';
-                    }
-                    if (value.length < 6) {
-                      return 'Şifre en az 6 karakter olmalıdır';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-
-                // Şifre tekrar alanı
-                TextFormField(
-                  controller: _confirmPasswordController,
-                  obscureText: _obscureConfirmPassword,
-                  decoration: InputDecoration(
-                    labelText: 'Şifre Tekrar',
-                    prefixIcon: const Icon(Icons.lock_outline),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscureConfirmPassword
-                            ? Icons.visibility
-                            : Icons.visibility_off,
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          _obscureConfirmPassword = !_obscureConfirmPassword;
-                        });
-                      },
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Lütfen şifrenizi tekrar girin';
-                    }
-                    if (value != _passwordController.text) {
-                      return 'Şifreler eşleşmiyor';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 32),
-
-                // Kayıt ol butonu
-                ElevatedButton(
-                  onPressed: _isLoading ? null : _signUp,
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: _isLoading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text(
-                          'Kayıt Ol',
-                          style: TextStyle(fontSize: 16),
+                  const SizedBox(height: 16),
+                  Text(
+                    'FeedPad',
+                    style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
                         ),
-                ),
-              ],
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Create Your Account',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: Colors.white,
+                        ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 48),
+
+                  // Form alanları ve butonlar için beyaz çerçeve
+                  Container(
+                    padding: const EdgeInsets.all(24.0),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // İsim alanı
+                        TextFormField(
+                          controller: _nameController,
+                          textCapitalization: TextCapitalization.words,
+                          style: const TextStyle(color: Colors.black87),
+                          decoration: InputDecoration(
+                            labelText: 'Full Name',
+                            labelStyle: const TextStyle(color: Colors.grey),
+                            prefixIcon:
+                                const Icon(Icons.person, color: Colors.grey),
+                            filled: true,
+                            fillColor: Colors.grey[100],
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Colors.grey),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Colors.grey),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(
+                                  color: Colors.purple, width: 2),
+                            ),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter your name';
+                            }
+                            if (value.length < 2) {
+                              return 'Name must be at least 2 characters';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Kullanıcı adı alanı (opsiyonel)
+                        TextFormField(
+                          controller: _usernameController,
+                          style: const TextStyle(color: Colors.black87),
+                          decoration: InputDecoration(
+                            labelText: 'Username',
+                            labelStyle: const TextStyle(color: Colors.grey),
+                            prefixIcon: const Icon(Icons.alternate_email,
+                                color: Colors.grey),
+                            helperText: 'Choose a unique username',
+                            filled: true,
+                            fillColor: Colors.grey[100],
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Colors.grey),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Colors.grey),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(
+                                  color: Colors.purple, width: 2),
+                            ),
+                          ),
+                          validator: (value) {
+                            if (value != null && value.isNotEmpty) {
+                              if (value.length < 3) {
+                                return 'Username must be at least 3 characters';
+                              }
+                              if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(value)) {
+                                return 'Use only letters, numbers and _';
+                              }
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Location alanı (opsiyonel)
+                        TextFormField(
+                          controller: _phoneController,
+                          keyboardType: TextInputType.text,
+                          style: const TextStyle(color: Colors.black87),
+                          decoration: InputDecoration(
+                            labelText: 'Location',
+                            labelStyle: const TextStyle(color: Colors.grey),
+                            prefixIcon: const Icon(Icons.location_on,
+                                color: Colors.grey),
+                            filled: true,
+                            fillColor: Colors.grey[100],
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Colors.grey),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Colors.grey),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(
+                                  color: Colors.purple, width: 2),
+                            ),
+                          ),
+                          validator: (value) {
+                            // Location is optional, no validation needed
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+
+                        // E-posta alanı
+                        TextFormField(
+                          controller: _emailController,
+                          keyboardType: TextInputType.emailAddress,
+                          style: const TextStyle(color: Colors.black87),
+                          decoration: InputDecoration(
+                            labelText: 'Email',
+                            labelStyle: const TextStyle(color: Colors.grey),
+                            prefixIcon:
+                                const Icon(Icons.email, color: Colors.grey),
+                            filled: true,
+                            fillColor: Colors.grey[100],
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Colors.grey),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Colors.grey),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(
+                                  color: Colors.purple, width: 2),
+                            ),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter your email address';
+                            }
+                            if (!value.contains('@')) {
+                              return 'Please enter a valid email address';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Şifre alanı
+                        TextFormField(
+                          controller: _passwordController,
+                          obscureText: _obscurePassword,
+                          style: const TextStyle(color: Colors.black87),
+                          decoration: InputDecoration(
+                            labelText: 'Password',
+                            labelStyle: const TextStyle(color: Colors.grey),
+                            prefixIcon:
+                                const Icon(Icons.lock, color: Colors.grey),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscurePassword
+                                    ? Icons.visibility
+                                    : Icons.visibility_off,
+                                color: Colors.grey,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _obscurePassword = !_obscurePassword;
+                                });
+                              },
+                            ),
+                            filled: true,
+                            fillColor: Colors.grey[100],
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Colors.grey),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Colors.grey),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(
+                                  color: Colors.purple, width: 2),
+                            ),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter your password';
+                            }
+                            if (value.length < 6) {
+                              return 'Password must be at least 6 characters';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Şifre tekrar alanı
+                        TextFormField(
+                          controller: _confirmPasswordController,
+                          obscureText: _obscureConfirmPassword,
+                          style: const TextStyle(color: Colors.black87),
+                          decoration: InputDecoration(
+                            labelText: 'Confirm Password',
+                            labelStyle: const TextStyle(color: Colors.grey),
+                            prefixIcon: const Icon(Icons.lock_outline,
+                                color: Colors.grey),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscureConfirmPassword
+                                    ? Icons.visibility
+                                    : Icons.visibility_off,
+                                color: Colors.grey,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _obscureConfirmPassword =
+                                      !_obscureConfirmPassword;
+                                });
+                              },
+                            ),
+                            filled: true,
+                            fillColor: Colors.grey[100],
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Colors.grey),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Colors.grey),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(
+                                  color: Colors.purple, width: 2),
+                            ),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please confirm your password';
+                            }
+                            if (value != _passwordController.text) {
+                              return 'Passwords do not match';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 24),
+
+                        // Kayıt ol butonu
+                        ElevatedButton(
+                          onPressed: _isLoading ? null : _signUp,
+                          style: ButtonStyle(
+                            backgroundColor:
+                                MaterialStateProperty.resolveWith<Color?>(
+                              (Set<MaterialState> states) {
+                                if (states.contains(MaterialState.pressed)) {
+                                  return Colors.purple[900];
+                                }
+                                return Colors.grey[200];
+                              },
+                            ),
+                            foregroundColor:
+                                MaterialStateProperty.resolveWith<Color?>(
+                              (Set<MaterialState> states) {
+                                if (states.contains(MaterialState.pressed)) {
+                                  return Colors.white;
+                                }
+                                return Colors.purple[900];
+                              },
+                            ),
+                            side: MaterialStateProperty.all(
+                              BorderSide(color: Colors.purple[900]!, width: 2),
+                            ),
+                            padding: MaterialStateProperty.all(
+                              const EdgeInsets.symmetric(
+                                  vertical: 20, horizontal: 24),
+                            ),
+                            minimumSize: MaterialStateProperty.all(
+                              const Size(double.infinity, 56),
+                            ),
+                            shape: MaterialStateProperty.all(
+                              RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
+                          child: _isLoading
+                              ? SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.purple[900],
+                                  ),
+                                )
+                              : const Text(
+                                  'Sign Up',
+                                  style: TextStyle(fontSize: 16),
+                                ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -278,4 +432,3 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 }
-
