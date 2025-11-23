@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "400800415762",
+    "project_id": "pad-map-88c00",
+    "storage_bucket": "pad-map-88c00.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:400800415762:android:c4d8b089a1aaa165f218cb",
+        "android_client_info": {
+          "package_name": "com.example.pad_map"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDzCqwqvqpkKev2HrmfWQqf5blKziD1wyg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
