@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'add_marker_screen.dart';
 
 class FeedMapScreen extends StatefulWidget {
   const FeedMapScreen({super.key});
@@ -100,9 +101,26 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
     }
   }
 
-  /// Haritada uzun basış (2 saniye) ile marker ekler
-  void _onMapLongPress(TapPosition tapPosition, LatLng latlng) {
-    _addMarker(latlng);
+  /// Haritada uzun basış ile marker ekleme formunu açar
+  void _onMapLongPress(TapPosition tapPosition, LatLng latlng) async {
+    // Marker ekleme formunu popup olarak aç
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (context) => AddMarkerScreen(position: latlng),
+    );
+
+    // Eğer form başarıyla tamamlandıysa marker ekle
+    if (result != null) {
+      final type = result['type'] as String;
+      final position = result['position'] as LatLng;
+      final petType = result['petType'] as String?;
+      final waterLiters = result['waterLiters'] as double?;
+      final isWaterEnough = result['isWaterEnough'] as String?;
+      _addMarker(position, type,
+          petType: petType,
+          waterLiters: waterLiters,
+          isWaterEnough: isWaterEnough);
+    }
   }
 
   @override
@@ -117,7 +135,7 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
         ),
         children: [
           TileLayer(
-            // OpenStreetMap tile layer
+            // OpenStreetMap - Renkli harita, dükkan isimleri görünür
             urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
             subdomains: const ['a', 'b', 'c'],
             userAgentPackageName: 'com.example.feedpad',
@@ -133,22 +151,66 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
   }
 
   /// Belirtilen konuma yeni bir marker ekler
-  void _addMarker(LatLng position) {
+  void _addMarker(
+    LatLng position,
+    String type, {
+    String? petType,
+    double? waterLiters,
+    String? isWaterEnough,
+  }) {
     setState(() {
+      Color markerColor;
+      IconData iconData;
+
+      if (type == 'food' && petType != null) {
+        // Food + Cat/Dog için: Yes = yeşil, Maybe = turuncu
+        markerColor = isWaterEnough == 'yes' ? Colors.green : Colors.orange;
+        // Cat için kedi patisi, Dog için donut ikonu
+        if (petType == 'cat') {
+          iconData = Icons.pets; // Kedi patisi için pets ikonu
+        } else if (petType == 'dog') {
+          iconData = Icons.donut_large; // Köpek için donut ikonu
+        } else {
+          iconData = Icons.restaurant;
+        }
+      } else if (type == 'water') {
+        // Water için: Yes = yeşil, Maybe = turuncu
+        markerColor = isWaterEnough == 'yes' ? Colors.green : Colors.orange;
+        iconData = Icons.water_drop;
+      } else if (type == 'food') {
+        // Food seçildi ama pet type seçilmedi (eski durum için)
+        markerColor = Colors.orange;
+        iconData = Icons.restaurant;
+      } else {
+        // Varsayılan
+        markerColor = Colors.blue;
+        iconData = Icons.location_on;
+      }
+
       final newMarker = Marker(
         point: position,
-        width: 80.0,
-        height: 80.0,
-        child: const Icon(
-          Icons.location_on,
-          color: Colors.red,
-          size: 40.0,
+        width: 50.0,
+        height: 50.0,
+        child: Container(
+          decoration: BoxDecoration(
+            color: markerColor,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: Colors.white,
+              width: 2.0,
+            ),
+          ),
+          child: Icon(
+            iconData,
+            color: Colors.white,
+            size: 25.0,
+          ),
         ),
       );
       _markers.add(newMarker);
     });
     print(
-        'Marker eklendi: ${position.latitude}, ${position.longitude} - Toplam marker sayısı: ${_markers.length}');
+        'Marker eklendi: ${position.latitude}, ${position.longitude} - Type: $type - Toplam marker sayısı: ${_markers.length}');
   }
 
   @override
