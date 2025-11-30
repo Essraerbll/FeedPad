@@ -1,25 +1,29 @@
 name: pad_map
 description: Flutter mobil uygulama - Kullanıcı girişi ve harita
-publish_to: 'none'
+publish_to: "none"
 version: 1.0.0+1
 
 environment:
-  sdk: '>=3.0.0 <4.0.0'
+  sdk: ">=3.0.0 <4.0.0"
 
 dependencies:
   flutter:
     sdk: flutter
-  
+
   # HTTP Client
   http: ^1.1.0
-  
+
   # State Management
   provider: ^6.1.2
-  
-  # Google Maps
+
+  # Maps
   flutter_map: ^8.2.2
   latlong2: ^0.9.1
-  
+
+  # Location
+  geolocator: ^12.0.0
+  permission_handler: ^11.3.1
+
   # UI
   cupertino_icons: ^1.0.6
 
@@ -30,4 +34,3 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-
