@@ -7,7 +7,7 @@ class ApiService {
   // Gerçek cihaz için IP adresi (bilgisayarınızın yerel IP'si)
   // Eğer IP değişirse burayı güncelleyin
   static const String realDeviceIp = '192.168.1.108';
-  
+
   // Backend URL - platforma göre otomatik seçilir
   static String get baseUrl {
     if (kIsWeb) {
@@ -90,6 +90,112 @@ class ApiService {
     } catch (e) {
       throw Exception('İstek başarısız: $e');
     }
+  }
+
+  // PUT isteği
+  Future<Map<String, dynamic>> put(
+    String endpoint,
+    Map<String, dynamic> body,
+  ) async {
+    try {
+      final url = Uri.parse('${baseUrl}$endpoint');
+      final response = await http.put(
+        url,
+        headers: _headers,
+        body: jsonEncode(body),
+      );
+
+      final responseData = jsonDecode(response.body) as Map<String, dynamic>;
+      return responseData;
+    } on SocketException {
+      throw Exception('Sunucuya bağlanılamadı. Backend çalışıyor mu?');
+    } catch (e) {
+      throw Exception('İstek başarısız: $e');
+    }
+  }
+
+  // DELETE isteği
+  Future<Map<String, dynamic>> delete(String endpoint) async {
+    try {
+      final url = Uri.parse('${baseUrl}$endpoint');
+      final response = await http.delete(url, headers: _headers);
+
+      final responseData = jsonDecode(response.body) as Map<String, dynamic>;
+      return responseData;
+    } on SocketException {
+      throw Exception('Sunucuya bağlanılamadı. Backend çalışıyor mu?');
+    } catch (e) {
+      throw Exception('İstek başarısız: $e');
+    }
+  }
+
+  // Marker oluştur
+  Future<Map<String, dynamic>> createMarker({
+    required String type,
+    required double latitude,
+    required double longitude,
+    String? petType,
+    double? waterLiters,
+    String? isWaterEnough,
+  }) async {
+    final body = {
+      'type': type,
+      'latitude': latitude,
+      'longitude': longitude,
+      if (petType != null) 'petType': petType,
+      if (waterLiters != null) 'waterLiters': waterLiters,
+      if (isWaterEnough != null) 'isWaterEnough': isWaterEnough,
+    };
+    return await post('/markers', body);
+  }
+
+  // Tüm marker'ları getir
+  Future<Map<String, dynamic>> getMarkers({
+    double? latitude,
+    double? longitude,
+    double? radius,
+  }) async {
+    String endpoint = '/markers';
+    if (latitude != null && longitude != null && radius != null) {
+      endpoint += '?latitude=$latitude&longitude=$longitude&radius=$radius';
+    }
+    return await get(endpoint);
+  }
+
+  // Kullanıcının marker'larını getir
+  Future<Map<String, dynamic>> getMyMarkers() async {
+    return await get('/markers/my-markers');
+  }
+
+  // Marker getir (ID ile)
+  Future<Map<String, dynamic>> getMarker(String id) async {
+    return await get('/markers/$id');
+  }
+
+  // Marker güncelle
+  Future<Map<String, dynamic>> updateMarker(
+    String id, {
+    String? type,
+    double? latitude,
+    double? longitude,
+    String? petType,
+    double? waterLiters,
+    String? isWaterEnough,
+  }) async {
+    final body = {
+      if (type != null) 'type': type,
+      if (latitude != null) 'latitude': latitude,
+      if (longitude != null) 'longitude': longitude,
+      if (petType != null) 'petType': petType,
+      if (waterLiters != null) 'waterLiters': waterLiters,
+      if (isWaterEnough != null) 'isWaterEnough': isWaterEnough,
+    };
+    return await put('/markers/$id', body);
+  }
+
+  // Marker sil
+  Future<Map<String, dynamic>> deleteMarker(String id) async {
+    return await delete('/markers/$id');
   }
 
   // Session'ı temizle

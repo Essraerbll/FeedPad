@@ -4,6 +4,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'add_marker_screen.dart';
+import '../services/api_service.dart';
 
 class FeedMapScreen extends StatefulWidget {
   const FeedMapScreen({super.key});
@@ -15,7 +16,9 @@ class FeedMapScreen extends StatefulWidget {
 class _FeedMapScreenState extends State<FeedMapScreen> {
   final MapController mapController = MapController();
   final List<Marker> _markers = [];
+  final ApiService _apiService = ApiService();
   bool _isLocationLoaded = false;
+  bool _isMarkersLoaded = false;
 
   // Başlangıç konumu (İstanbul örnek olarak)
   static const LatLng _initialCenter = LatLng(41.0082, 28.9784);
@@ -26,6 +29,7 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
   void initState() {
     super.initState();
     _requestLocationPermission();
+    _loadMarkers();
   }
 
   /// Konum izni iste ve konum al
@@ -101,6 +105,40 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
     }
   }
 
+  /// Backend'den marker'ları yükle
+  Future<void> _loadMarkers() async {
+    if (_isMarkersLoaded) return;
+
+    try {
+      final response = await _apiService.getMarkers();
+
+      if (response['success'] == true && mounted) {
+        final markersData = response['markers'] as List<dynamic>;
+
+        setState(() {
+          _markers.clear();
+          for (var markerData in markersData) {
+            final position = LatLng(
+              markerData['latitude'] as double,
+              markerData['longitude'] as double,
+            );
+            _addMarkerToMap(
+              position,
+              markerData['type'] as String,
+              petType: markerData['petType'] as String?,
+              waterLiters: markerData['waterLiters'] as double?,
+              isWaterEnough: markerData['isWaterEnough'] as String?,
+            );
+          }
+          _isMarkersLoaded = true;
+        });
+      }
+    } catch (e) {
+      print('Marker yükleme hatası: $e');
+      // Hata durumunda sessizce devam et
+    }
+  }
+
   /// Haritada uzun basış ile marker ekleme formunu açar
   void _onMapLongPress(TapPosition tapPosition, LatLng latlng) async {
     // Marker ekleme formunu popup olarak aç
@@ -116,10 +154,69 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
       final petType = result['petType'] as String?;
       final waterLiters = result['waterLiters'] as double?;
       final isWaterEnough = result['isWaterEnough'] as String?;
-      _addMarker(position, type,
+
+      // Backend'e kaydet
+      try {
+        final response = await _apiService.createMarker(
+          type: type,
+          latitude: position.latitude,
+          longitude: position.longitude,
           petType: petType,
           waterLiters: waterLiters,
-          isWaterEnough: isWaterEnough);
+          isWaterEnough: isWaterEnough,
+        );
+
+        if (response['success'] == true && mounted) {
+          // Başarılı olursa haritaya ekle
+          _addMarkerToMap(position, type,
+              petType: petType,
+              waterLiters: waterLiters,
+              isWaterEnough: isWaterEnough);
+
+          // Başarı mesajı göster
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text(
+                  'Marker added successfully',
+                  style: TextStyle(color: Colors.white),
+                ),
+                backgroundColor: Colors.green,
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          }
+        } else {
+          // Hata mesajı göster
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  response['message'] ??
+                      'An error occurred while adding marker',
+                  style: const TextStyle(color: Colors.white),
+                ),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 3),
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        print('Marker kaydetme hatası: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'An error occurred while adding marker: $e',
+                style: const TextStyle(color: Colors.white),
+              ),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      }
     }
   }
 
@@ -150,8 +247,8 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
     );
   }
 
-  /// Belirtilen konuma yeni bir marker ekler
-  void _addMarker(
+  /// Belirtilen konuma yeni bir marker ekler (sadece haritaya, backend'e kaydetmez)
+  void _addMarkerToMap(
     LatLng position,
     String type, {
     String? petType,

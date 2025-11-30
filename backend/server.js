@@ -22,6 +22,9 @@ app.use(cookieParser());
 const authRoutes = require('./routes/auth.routes');
 app.use('/api/auth', authRoutes);
 
+const markerRoutes = require('./routes/marker.routes');
+app.use('/api/markers', markerRoutes);
+
 // Diğer route'lar (varsa)
 try {
   const locationRoutes = require('./routes/location.routes');
@@ -39,8 +42,8 @@ try {
 
 // Health check
 app.get('/api/health', (req, res) => {
-  res.status(200).json({ 
-    status: 'OK', 
+  res.status(200).json({
+    status: 'OK',
     message: 'FeedPad API is running',
     timestamp: new Date().toISOString()
   });
@@ -48,9 +51,9 @@ app.get('/api/health', (req, res) => {
 
 // 404 handler
 app.use((req, res) => {
-  res.status(404).json({ 
-    success: false, 
-    message: 'Route not found' 
+  res.status(404).json({
+    success: false,
+    message: 'Route not found'
   });
 });
 

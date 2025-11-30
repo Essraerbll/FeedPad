@@ -46,8 +46,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
       email: _emailController.text.trim(),
       password: _passwordController.text,
       name: _nameController.text.trim(),
-      username: _usernameController.text.trim().isEmpty 
-          ? null 
+      username: _usernameController.text.trim().isEmpty
+          ? null
           : _usernameController.text.trim(),
       userType: _userType ?? '',
     );
@@ -57,7 +57,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (error != null && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(error),
+          content: Text(
+            error,
+            style: const TextStyle(color: Colors.white),
+          ),
           backgroundColor: Colors.red,
         ),
       );
@@ -65,7 +68,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
       // Başarılı kayıt
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Kayıt başarılı! Giriş yapabilirsiniz.'),
+          content: Text(
+            'Registration successful! You can now sign in.',
+            style: TextStyle(color: Colors.white),
+          ),
           backgroundColor: Colors.green,
           duration: Duration(seconds: 3),
         ),

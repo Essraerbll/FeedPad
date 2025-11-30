@@ -71,10 +71,10 @@ class AuthService extends ChangeNotifier {
           if (errors.isNotEmpty) {
             return errors[0]['msg'] as String? ??
                 response['message'] as String? ??
-                'Kayıt başarısız';
+                'Registration failed';
           }
         }
-        return response['message'] as String? ?? 'Kayıt başarısız';
+        return response['message'] as String? ?? 'Registration failed';
       }
     } catch (e) {
       _isLoading = false;
@@ -111,10 +111,10 @@ class AuthService extends ChangeNotifier {
           if (errors.isNotEmpty) {
             return errors[0]['msg'] as String? ??
                 response['message'] as String? ??
-                'Giriş başarısız';
+                'Login failed';
           }
         }
-        return response['message'] as String? ?? 'Giriş başarısız';
+        return response['message'] as String? ?? 'Login failed';
       }
     } catch (e) {
       _isLoading = false;
