@@ -10,17 +10,15 @@ dependencies:
   flutter:
     sdk: flutter
   
-  # Firebase - Güncellenmiş ve uyumlu versiyonlar
-  firebase_core: ^2.27.1
-  firebase_auth: ^4.17.9
-  cloud_firestore: ^4.15.10
+  # HTTP Client
+  http: ^1.1.0
+  
+  # State Management
+  provider: ^6.1.2
   
   # Google Maps
   flutter_map: ^8.2.2
   latlong2: ^0.9.1
-  
-  # State Management
-  provider: ^6.1.2
   
   # UI
   cupertino_icons: ^1.0.6

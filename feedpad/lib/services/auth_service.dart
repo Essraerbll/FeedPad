@@ -1,192 +1,159 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'api_service.dart';
+
+class User {
+  final String id;
+  final String email;
+  final String name;
+  final String username;
+  final String userType;
+
+  User({
+    required this.id,
+    required this.email,
+    required this.name,
+    required this.username,
+    required this.userType,
+  });
+
+  factory User.fromJson(Map<String, dynamic> json) {
+    return User(
+      id: json['id'] as String,
+      email: json['email'] as String,
+      name: json['name'] as String,
+      username: json['username'] as String? ?? '',
+      userType: json['userType'] as String,
+    );
+  }
+}
 
 class AuthService extends ChangeNotifier {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final ApiService _apiService = ApiService();
+  User? _currentUser;
+  bool _isLoading = false;
 
-  User? get currentUser => _auth.currentUser;
-  
-  Stream<User?> get authStateChanges => _auth.authStateChanges();
+  User? get currentUser => _currentUser;
+  bool get isLoading => _isLoading;
+  bool get isAuthenticated => _currentUser != null;
 
-  // E-posta ile kayıt ol
-  Future<String?> signUpWithEmail({
+  // Kayıt ol
+  Future<String?> signUp({
     required String email,
     required String password,
     required String name,
     String? username,
-    String? location,
     required String userType,
   }) async {
     try {
-      // Kullanıcı adı benzersizliğini kontrol et (eğer verilmişse)
-      if (username != null && username.isNotEmpty) {
-        final usernameExists = await _checkUsernameExists(username);
-        if (usernameExists) {
-          return 'Bu kullanıcı adı zaten kullanılıyor.';
-        }
-      }
-
-      UserCredential result = await _auth.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-
-      User? user = result.user;
-      
-      // Kullanıcı bilgilerini Firestore'a kaydet
-      if (user != null) {
-        // Firebase Auth profil güncelleme (displayName)
-        await user.updateDisplayName(name);
-        
-        // Firestore'a detaylı kullanıcı bilgilerini kaydet
-        await _firestore.collection('users').doc(user.uid).set({
-          'uid': user.uid,
-          'email': email,
-          'name': name,
-          'username': username ?? '',
-          'location': location ?? '',
-          'userType': userType,
-          'photoURL': '',
-          'isActive': true,
-          'createdAt': FieldValue.serverTimestamp(),
-          'lastLogin': FieldValue.serverTimestamp(),
-        });
-
-        // Eğer username varsa, ayrı bir koleksiyonda sakla (hızlı arama için)
-        if (username != null && username.isNotEmpty) {
-          await _firestore.collection('usernames').doc(username.toLowerCase()).set({
-            'uid': user.uid,
-            'username': username,
-          });
-        }
-      }
-
+      _isLoading = true;
       notifyListeners();
-      return null; // Başarılı
-    } on FirebaseAuthException catch (e) {
-      switch (e.code) {
-        case 'weak-password':
-          return 'Şifre çok zayıf.';
-        case 'email-already-in-use':
-          return 'Bu e-posta adresi zaten kullanımda.';
-        case 'invalid-email':
-          return 'Geçersiz e-posta adresi.';
-        default:
-          return 'Bir hata oluştu: ${e.message}';
-      }
-    } catch (e) {
-      return 'Beklenmeyen bir hata oluştu: $e';
-    }
-  }
 
-  // Kullanıcı adının benzersiz olup olmadığını kontrol et
-  Future<bool> _checkUsernameExists(String username) async {
-    try {
-      final doc = await _firestore
-          .collection('usernames')
-          .doc(username.toLowerCase())
-          .get();
-      return doc.exists;
-    } catch (e) {
-      return false;
-    }
-  }
+      final response = await _apiService.post('/auth/register', {
+        'email': email,
+        'password': password,
+        'name': name,
+        'username': username ?? '',
+        'userType': userType,
+      });
 
-  // Kullanıcı bilgilerini getir
-  Future<Map<String, dynamic>?> getUserData(String uid) async {
-    try {
-      final doc = await _firestore.collection('users').doc(uid).get();
-      return doc.data();
-    } catch (e) {
-      return null;
-    }
-  }
-
-  // Kullanıcı profilini güncelle
-  Future<String?> updateUserProfile({
-    required String uid,
-    String? name,
-    String? location,
-    String? photoURL,
-  }) async {
-    try {
-      Map<String, dynamic> updates = {
-        'updatedAt': FieldValue.serverTimestamp(),
-      };
-
-      if (name != null) updates['name'] = name;
-      if (location != null) updates['location'] = location;
-      if (photoURL != null) updates['photoURL'] = photoURL;
-
-      await _firestore.collection('users').doc(uid).update(updates);
-      
-      // Firebase Auth displayName güncelle
-      if (name != null && currentUser != null) {
-        await currentUser!.updateDisplayName(name);
-      }
-
+      _isLoading = false;
       notifyListeners();
-      return null; // Başarılı
+
+      if (response['success'] == true) {
+        // Kayıt başarılı ama otomatik giriş yapılmıyor
+        // Kullanıcıyı null bırak, login ekranına yönlendirilecek
+        _currentUser = null;
+        return null; // Başarılı
+      } else {
+        // Validation hatalarını kontrol et
+        if (response['errors'] != null) {
+          final errors = response['errors'] as List;
+          if (errors.isNotEmpty) {
+            return errors[0]['msg'] as String? ??
+                response['message'] as String? ??
+                'Kayıt başarısız';
+          }
+        }
+        return response['message'] as String? ?? 'Kayıt başarısız';
+      }
     } catch (e) {
-      return 'Profil güncellenemedi: $e';
+      _isLoading = false;
+      notifyListeners();
+      return e.toString().replaceAll('Exception: ', '');
     }
   }
 
-  // E-posta ile giriş yap
-  Future<String?> signInWithEmail({
+  // Giriş yap
+  Future<String?> signIn({
     required String email,
     required String password,
   }) async {
     try {
-      await _auth.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+      _isLoading = true;
       notifyListeners();
-      return null; // Başarılı
-    } on FirebaseAuthException catch (e) {
-      switch (e.code) {
-        case 'user-not-found':
-          return 'Kullanıcı bulunamadı.';
-        case 'wrong-password':
-          return 'Hatalı şifre.';
-        case 'invalid-email':
-          return 'Geçersiz e-posta adresi.';
-        case 'user-disabled':
-          return 'Bu hesap devre dışı bırakılmış.';
-        default:
-          return 'Giriş yapılamadı: ${e.message}';
+
+      final response = await _apiService.post('/auth/login', {
+        'email': email,
+        'password': password,
+      });
+
+      _isLoading = false;
+      notifyListeners();
+
+      if (response['success'] == true) {
+        _currentUser = User.fromJson(response['user']);
+        notifyListeners();
+        return null; // Başarılı
+      } else {
+        // Validation hatalarını kontrol et
+        if (response['errors'] != null) {
+          final errors = response['errors'] as List;
+          if (errors.isNotEmpty) {
+            return errors[0]['msg'] as String? ??
+                response['message'] as String? ??
+                'Giriş başarısız';
+          }
+        }
+        return response['message'] as String? ?? 'Giriş başarısız';
       }
     } catch (e) {
-      return 'Beklenmeyen bir hata oluştu.';
+      _isLoading = false;
+      notifyListeners();
+      return e.toString().replaceAll('Exception: ', '');
     }
   }
 
   // Çıkış yap
   Future<void> signOut() async {
-    await _auth.signOut();
-    notifyListeners();
+    try {
+      await _apiService.post('/auth/logout', {});
+    } catch (e) {
+      // Hata olsa bile çıkış yap
+      print('Logout error: $e');
+    } finally {
+      _currentUser = null;
+      _apiService.clearSession();
+      notifyListeners();
+    }
   }
 
-  // Şifre sıfırlama e-postası gönder
-  Future<String?> resetPassword(String email) async {
+  // Mevcut kullanıcı bilgilerini getir
+  Future<void> getCurrentUser() async {
     try {
-      await _auth.sendPasswordResetEmail(email: email);
-      return null; // Başarılı
-    } on FirebaseAuthException catch (e) {
-      switch (e.code) {
-        case 'invalid-email':
-          return 'Geçersiz e-posta adresi.';
-        case 'user-not-found':
-          return 'Kullanıcı bulunamadı.';
-        default:
-          return 'Bir hata oluştu: ${e.message}';
+      final response = await _apiService.get('/auth/me');
+
+      if (response['success'] == true) {
+        _currentUser = User.fromJson(response['user']);
+        notifyListeners();
+      } else {
+        _currentUser = null;
+        _apiService.clearSession();
+        notifyListeners();
       }
     } catch (e) {
-      return 'Beklenmeyen bir hata oluştu.';
+      _currentUser = null;
+      _apiService.clearSession();
+      notifyListeners();
     }
   }
 }
-
