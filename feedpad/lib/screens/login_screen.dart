@@ -36,7 +36,9 @@ class _LoginScreenState extends State<LoginScreen> {
       password: _passwordController.text,
     );
 
-    setState(() => _isLoading = false);
+    if (mounted) {
+      setState(() => _isLoading = false);
+    }
 
     if (error != null && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
