@@ -14,11 +14,9 @@ class ApiService {
       // Web için
       return 'http://localhost:3000/api';
     } else if (Platform.isAndroid) {
-      // Android için: Emulator ise 10.0.2.2, gerçek cihaz ise yerel IP
-      // Gerçek cihaz kullanıyorsanız aşağıdaki satırı kullanın:
-      return 'http://$realDeviceIp:3000/api';
-      // Emulator için (yukarıdaki satırı yorum yapıp bunu açın):
-      // return 'http://10.0.2.2:3000/api';
+      // Android için (emülatör): Android emülatörü host makineyi 10.0.2.2 ile görür.
+      // Gerçek cihaz kullanıyorsanız değiştirin: 'http://<PC_IP>:3000/api'
+      return 'http://10.0.2.2:3000/api';
     } else if (Platform.isIOS) {
       // iOS için: Simulator ise localhost, gerçek cihaz ise yerel IP
       // Gerçek cihaz kullanıyorsanız aşağıdaki satırı kullanın:
