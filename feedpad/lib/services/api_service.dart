@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 class ApiService {
   // Gerçek cihaz için IP adresi (bilgisayarınızın yerel IP'si)
   // Eğer IP değişirse burayı güncelleyin
-  static const String realDeviceIp = '192.168.1.108';
+  static const String realDeviceIp = '192.168.1.3';
 
   // Backend URL - platforma göre otomatik seçilir
   static String get baseUrl {
@@ -181,6 +181,9 @@ class ApiService {
     String? petType,
     double? waterLiters,
     String? isWaterEnough,
+    double? addedAmount,
+    String? addedByUserId,
+    String? isEnoughNow,
   }) async {
     final body = {
       if (type != null) 'type': type,
@@ -189,6 +192,9 @@ class ApiService {
       if (petType != null) 'petType': petType,
       if (waterLiters != null) 'waterLiters': waterLiters,
       if (isWaterEnough != null) 'isWaterEnough': isWaterEnough,
+      if (addedAmount != null) 'addedAmount': addedAmount,
+      if (addedByUserId != null) 'addedByUserId': addedByUserId,
+      if (isEnoughNow != null) 'isEnoughNow': isEnoughNow,
     };
     return await put('/markers/$id', body);
   }

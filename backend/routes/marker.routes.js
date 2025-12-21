@@ -116,6 +116,7 @@ router.post('/', authenticateUser, [
       message: 'Marker başarıyla oluşturuldu',
       marker: {
         id: markerData.id,
+        userId: markerData.userId,
         type: markerData.type,
         latitude: markerData.latitude,
         longitude: markerData.longitude,
@@ -175,12 +176,16 @@ router.get('/', async (req, res) => {
           if (distance <= parseFloat(radius)) {
             markers.push({
               id: marker.id,
+              userId: marker.userId,
               type: marker.type,
               latitude: marker.latitude,
               longitude: marker.longitude,
               petType: marker.petType,
               waterLiters: marker.waterLiters,
               isWaterEnough: marker.isWaterEnough,
+              addedAmount: marker.addedAmount || null,
+              addedByUserId: marker.addedByUserId || null,
+              isEnoughNow: marker.isEnoughNow || null,
               createdAt: marker.createdAt,
             });
           }
@@ -188,12 +193,16 @@ router.get('/', async (req, res) => {
           // Filtre yoksa tüm marker'ları ekle
           markers.push({
             id: marker.id,
+            userId: marker.userId,
             type: marker.type,
             latitude: marker.latitude,
             longitude: marker.longitude,
             petType: marker.petType,
             waterLiters: marker.waterLiters,
             isWaterEnough: marker.isWaterEnough,
+            addedAmount: marker.addedAmount || null,
+            addedByUserId: marker.addedByUserId || null,
+            isEnoughNow: marker.isEnoughNow || null,
             createdAt: marker.createdAt,
           });
         }
@@ -243,12 +252,16 @@ router.get('/my-markers', authenticateUser, async (req, res) => {
         const marker = JSON.parse(markerData);
         markers.push({
           id: marker.id,
+          userId: marker.userId,
           type: marker.type,
           latitude: marker.latitude,
           longitude: marker.longitude,
           petType: marker.petType,
           waterLiters: marker.waterLiters,
           isWaterEnough: marker.isWaterEnough,
+          addedAmount: marker.addedAmount || null,
+          addedByUserId: marker.addedByUserId || null,
+          isEnoughNow: marker.isEnoughNow || null,
           createdAt: marker.createdAt,
         });
       }
@@ -292,12 +305,16 @@ router.get('/:id', async (req, res) => {
       success: true,
       marker: {
         id: marker.id,
+        userId: marker.userId,
         type: marker.type,
         latitude: marker.latitude,
         longitude: marker.longitude,
         petType: marker.petType,
         waterLiters: marker.waterLiters,
         isWaterEnough: marker.isWaterEnough,
+        addedAmount: marker.addedAmount || null,
+        addedByUserId: marker.addedByUserId || null,
+        isEnoughNow: marker.isEnoughNow || null,
         createdAt: marker.createdAt,
       }
     });
@@ -317,7 +334,10 @@ router.put('/:id', authenticateUser, [
   body('longitude').optional().isFloat({ min: -180, max: 180 }).withMessage('Geçersiz boylam'),
   body('petType').optional().isIn(['cat', 'dog']).withMessage('Geçersiz pet tipi'),
   body('waterLiters').optional().isFloat({ min: 0 }).withMessage('Geçersiz su miktarı'),
-  body('isWaterEnough').optional().isIn(['yes', 'maybe']).withMessage('Geçersiz yeterlilik durumu'),
+  body('isWaterEnough').optional().isIn(['yes', 'maybe', 'no']).withMessage('Geçersiz yeterlilik durumu'),
+  body('addedAmount').optional().isFloat({ min: 0 }).withMessage('Geçersiz eklenen miktar'),
+  body('addedByUserId').optional().isString().withMessage('Geçersiz kullanıcı ID'),
+  body('isEnoughNow').optional().isIn(['yes', 'maybe']).withMessage('Geçersiz yeterlilik durumu'),
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -350,13 +370,9 @@ router.put('/:id', authenticateUser, [
 
     const marker = JSON.parse(markerData);
     
-    // Kullanıcı kontrolü
-    if (marker.userId !== userId) {
-      return res.status(403).json({
-        success: false,
-        message: 'Bu marker\'ı güncelleme yetkiniz yok'
-      });
-    }
+    // Kullanıcı kontrolü - sadece marker sahibi değil, herkes güncelleyebilir (opinion için)
+    // Ancak bazı alanlar sadece sahibi tarafından güncellenebilir
+    const isOwner = marker.userId === userId;
 
     // Güncelleme verilerini hazırla
     const updateData = {
@@ -364,12 +380,17 @@ router.put('/:id', authenticateUser, [
       updatedAt: new Date().toISOString(),
     };
 
-    if (req.body.type !== undefined) updateData.type = req.body.type;
-    if (req.body.latitude !== undefined) updateData.latitude = parseFloat(req.body.latitude);
-    if (req.body.longitude !== undefined) updateData.longitude = parseFloat(req.body.longitude);
-    if (req.body.petType !== undefined) updateData.petType = req.body.petType || null;
-    if (req.body.waterLiters !== undefined) updateData.waterLiters = req.body.waterLiters ? parseFloat(req.body.waterLiters) : null;
+    if (req.body.type !== undefined && isOwner) updateData.type = req.body.type;
+    if (req.body.latitude !== undefined && isOwner) updateData.latitude = parseFloat(req.body.latitude);
+    if (req.body.longitude !== undefined && isOwner) updateData.longitude = parseFloat(req.body.longitude);
+    if (req.body.petType !== undefined && isOwner) updateData.petType = req.body.petType || null;
+    if (req.body.waterLiters !== undefined && isOwner) updateData.waterLiters = req.body.waterLiters ? parseFloat(req.body.waterLiters) : null;
+    
+    // Opinion ve ekleme işlemleri herkes tarafından yapılabilir
     if (req.body.isWaterEnough !== undefined) updateData.isWaterEnough = req.body.isWaterEnough || null;
+    if (req.body.addedAmount !== undefined) updateData.addedAmount = req.body.addedAmount ? parseFloat(req.body.addedAmount) : null;
+    if (req.body.addedByUserId !== undefined) updateData.addedByUserId = req.body.addedByUserId || null;
+    if (req.body.isEnoughNow !== undefined) updateData.isEnoughNow = req.body.isEnoughNow || null;
 
     // Redis'e kaydet
     await redisClient.set(`marker:${id}`, JSON.stringify(updateData));
@@ -379,12 +400,16 @@ router.put('/:id', authenticateUser, [
       message: 'Marker başarıyla güncellendi',
       marker: {
         id: updateData.id,
+        userId: updateData.userId,
         type: updateData.type,
         latitude: updateData.latitude,
         longitude: updateData.longitude,
         petType: updateData.petType,
         waterLiters: updateData.waterLiters,
         isWaterEnough: updateData.isWaterEnough,
+        addedAmount: updateData.addedAmount || null,
+        addedByUserId: updateData.addedByUserId || null,
+        isEnoughNow: updateData.isEnoughNow || null,
         createdAt: updateData.createdAt,
         updatedAt: updateData.updatedAt,
       }

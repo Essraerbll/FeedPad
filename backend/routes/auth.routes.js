@@ -24,7 +24,7 @@ async function findUserByEmail(email) {
     const userKey = `user:email:${email.toLowerCase()}`;
     const userId = await redisClient.get(userKey);
     if (!userId) return null;
-    
+
     const userData = await redisClient.get(`user:${userId}`);
     return userData ? JSON.parse(userData) : null;
   } catch (error) {
@@ -43,7 +43,7 @@ async function findUserByUsername(username) {
     const usernameKey = `user:username:${username.toLowerCase()}`;
     const userId = await redisClient.get(usernameKey);
     if (!userId) return null;
-    
+
     const userData = await redisClient.get(`user:${userId}`);
     return userData ? JSON.parse(userData) : null;
   } catch (error) {
@@ -61,7 +61,7 @@ async function verifySession(sessionId) {
     }
     const sessionData = await redisClient.get(`session:${sessionId}`);
     if (!sessionData) return null;
-    
+
     const session = JSON.parse(sessionData);
     const userData = await redisClient.get(`user:${session.userId}`);
     return userData ? JSON.parse(userData) : null;
@@ -134,7 +134,7 @@ router.post('/register', [
     // Redis'e kaydet
     await redisClient.set(`user:${userId}`, JSON.stringify(userData));
     await redisClient.set(`user:email:${email.toLowerCase()}`, userId);
-    
+
     if (username) {
       await redisClient.set(`user:username:${username.toLowerCase()}`, userId);
     }
@@ -212,7 +212,7 @@ router.post('/login', [
 
     // Session'ı Redis'e kaydet (24 saat geçerli)
     await redisClient.setEx(`session:${sessionId}`, 86400, JSON.stringify(sessionData));
-    
+
     // Last login güncelle
     user.lastLogin = new Date().toISOString();
     await redisClient.set(`user:${user.id}`, JSON.stringify(user));
@@ -249,7 +249,7 @@ router.post('/login', [
 router.post('/logout', async (req, res) => {
   try {
     const sessionId = req.cookies?.sessionId;
-    
+
     if (sessionId) {
       await redisClient.del(`session:${sessionId}`);
     }
@@ -272,7 +272,7 @@ router.post('/logout', async (req, res) => {
 router.get('/me', async (req, res) => {
   try {
     const sessionId = req.cookies?.sessionId;
-    
+
     if (!sessionId) {
       return res.status(401).json({
         success: false,
@@ -300,6 +300,46 @@ router.get('/me', async (req, res) => {
     });
   } catch (error) {
     console.error('Get user error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Kullanıcı bilgileri alınamadı'
+    });
+  }
+});
+
+// Kullanıcı bilgilerini getir (userId ile)
+router.get('/user/:userId', async (req, res) => {
+  try {
+    if (!checkRedisConnection()) {
+      return res.status(503).json({
+        success: false,
+        message: 'Veritabanı bağlantısı yok'
+      });
+    }
+
+    const { userId } = req.params;
+    const userData = await redisClient.get(`user:${userId}`);
+
+    if (!userData) {
+      return res.status(404).json({
+        success: false,
+        message: 'Kullanıcı bulunamadı'
+      });
+    }
+
+    const user = JSON.parse(userData);
+    res.json({
+      success: true,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        username: user.username,
+        userType: user.userType,
+      }
+    });
+  } catch (error) {
+    console.error('Get user by ID error:', error);
     res.status(500).json({
       success: false,
       message: 'Kullanıcı bilgileri alınamadı'

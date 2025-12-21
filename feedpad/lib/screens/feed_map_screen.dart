@@ -4,6 +4,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'add_marker_screen.dart';
+import 'marker_detail_screen.dart';
 import '../services/api_service.dart';
 
 class FeedMapScreen extends StatefulWidget {
@@ -16,9 +17,12 @@ class FeedMapScreen extends StatefulWidget {
 class _FeedMapScreenState extends State<FeedMapScreen> {
   final MapController mapController = MapController();
   final List<Marker> _markers = [];
+  final Map<String, Map<String, dynamic>> _markerDataMap =
+      {}; // markerId -> markerData
+  final Map<String, int> _markerIndexMap =
+      {}; // markerId -> marker index in _markers list
   final ApiService _apiService = ApiService();
   bool _isLocationLoaded = false;
-  bool _isMarkersLoaded = false;
 
   // Başlangıç konumu (İstanbul örnek olarak)
   static const LatLng _initialCenter = LatLng(41.0082, 28.9784);
@@ -107,35 +111,131 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
 
   /// Backend'den marker'ları yükle
   Future<void> _loadMarkers() async {
-    if (_isMarkersLoaded) return;
-
     try {
+      print('Marker yükleme başlatılıyor...');
       final response = await _apiService.getMarkers();
+      print('Marker yükleme response: $response');
 
       if (response['success'] == true && mounted) {
         final markersData = response['markers'] as List<dynamic>;
+        print('Yüklenen marker sayısı: ${markersData.length}');
 
         setState(() {
           _markers.clear();
+          _markerDataMap.clear();
+          _markerIndexMap.clear();
           for (var markerData in markersData) {
-            final position = LatLng(
-              markerData['latitude'] as double,
-              markerData['longitude'] as double,
-            );
+            final markerId = markerData['id'] as String;
+
+            // Güvenli double dönüşümü (int veya double olabilir)
+            final latitude = (markerData['latitude'] is int)
+                ? (markerData['latitude'] as int).toDouble()
+                : (markerData['latitude'] as num).toDouble();
+            final longitude = (markerData['longitude'] is int)
+                ? (markerData['longitude'] as int).toDouble()
+                : (markerData['longitude'] as num).toDouble();
+
+            final position = LatLng(latitude, longitude);
+
+            // waterLiters için güvenli dönüşüm
+            double? waterLiters;
+            if (markerData['waterLiters'] != null) {
+              waterLiters = (markerData['waterLiters'] is int)
+                  ? (markerData['waterLiters'] as int).toDouble()
+                  : (markerData['waterLiters'] as num).toDouble();
+            }
+
+            // addedAmount için güvenli dönüşüm
+            double? addedAmount;
+            if (markerData['addedAmount'] != null) {
+              addedAmount = (markerData['addedAmount'] is int)
+                  ? (markerData['addedAmount'] as int).toDouble()
+                  : (markerData['addedAmount'] as num).toDouble();
+            }
+
+            // Marker verilerini sakla
+            _markerDataMap[markerId] = {
+              'id': markerId,
+              'userId': markerData['userId'] as String?,
+              'type': markerData['type'] as String,
+              'petType': markerData['petType'] as String?,
+              'waterLiters': waterLiters,
+              'isWaterEnough': markerData['isWaterEnough'] as String?,
+              'addedAmount': addedAmount,
+              'addedByUserId': markerData['addedByUserId'] as String?,
+              'isEnoughNow': markerData['isEnoughNow'] as String?,
+              'latitude': latitude,
+              'longitude': longitude,
+            };
+
             _addMarkerToMap(
               position,
               markerData['type'] as String,
+              markerId: markerId,
               petType: markerData['petType'] as String?,
-              waterLiters: markerData['waterLiters'] as double?,
+              waterLiters: waterLiters,
               isWaterEnough: markerData['isWaterEnough'] as String?,
             );
           }
-          _isMarkersLoaded = true;
         });
+        print('Marker yükleme tamamlandı. Toplam marker: ${_markers.length}');
+      } else {
+        print(
+            'Marker yükleme başarısız: ${response['message'] ?? 'Bilinmeyen hata'}');
       }
     } catch (e) {
       print('Marker yükleme hatası: $e');
-      // Hata durumunda sessizce devam et
+    }
+  }
+
+  /// Haritada tıklama ile marker detay popup'ını açar
+  void _onMapTap(TapPosition tapPosition, LatLng latlng) async {
+    // Tıklanan noktaya en yakın marker'ı bul
+    String? closestMarkerId;
+    double minDistance = double.infinity;
+
+    for (var entry in _markerDataMap.entries) {
+      final markerData = entry.value;
+      final markerPosition = LatLng(
+        markerData['latitude'] as double,
+        markerData['longitude'] as double,
+      );
+
+      // Basit mesafe hesaplama (Haversine yerine basit Euclidean)
+      final distance = (latlng.latitude - markerPosition.latitude).abs() +
+          (latlng.longitude - markerPosition.longitude).abs();
+
+      // Eğer marker'a yakınsa (yaklaşık 0.001 derece = ~100m)
+      if (distance < 0.001 && distance < minDistance) {
+        minDistance = distance;
+        closestMarkerId = entry.key;
+      }
+    }
+
+    if (closestMarkerId != null &&
+        _markerDataMap.containsKey(closestMarkerId)) {
+      // Marker detay popup'ını aç
+      final result = await showDialog<Map<String, dynamic>>(
+        context: context,
+        builder: (context) => MarkerDetailScreen(
+          markerId: closestMarkerId!,
+          markerData: _markerDataMap[closestMarkerId]!,
+        ),
+      );
+
+      // Eğer opinion submit edildiyse marker'ı güncelle
+      if (result != null && mounted) {
+        final markerId = result['markerId'] as String?;
+        final newIsEnough = result['isWaterEnough'] as String?;
+
+        if (markerId != null && _markerDataMap.containsKey(markerId)) {
+          // Marker verisini güncelle
+          _markerDataMap[markerId]!['isWaterEnough'] = newIsEnough;
+
+          // Marker'ı haritada güncelle (isWaterEnough'a göre renk hesaplanacak)
+          _updateMarkerColor(markerId);
+        }
+      }
     }
   }
 
@@ -168,10 +268,33 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
 
         if (response['success'] == true && mounted) {
           // Başarılı olursa haritaya ekle
-          _addMarkerToMap(position, type,
-              petType: petType,
-              waterLiters: waterLiters,
-              isWaterEnough: isWaterEnough);
+          final markerId = response['marker']?['id'] as String?;
+          if (markerId != null) {
+            // Marker verilerini sakla
+            final markerResponse = response['marker'] as Map<String, dynamic>?;
+            _markerDataMap[markerId] = {
+              'id': markerId,
+              'userId': markerResponse?['userId'] as String?,
+              'type': type,
+              'petType': petType,
+              'waterLiters': waterLiters,
+              'isWaterEnough': isWaterEnough,
+              'latitude': position.latitude,
+              'longitude': position.longitude,
+            };
+          }
+
+          _addMarkerToMap(
+            position,
+            type,
+            markerId: markerId,
+            petType: petType,
+            waterLiters: waterLiters,
+            isWaterEnough: isWaterEnough,
+          );
+
+          // Marker'ları tekrar yükle (backend'den güncel listeyi al)
+          await _loadMarkers();
 
           // Başarı mesajı göster
           if (mounted) {
@@ -229,6 +352,7 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
           initialCenter: _initialCenter,
           initialZoom: _initialZoom,
           onLongPress: _onMapLongPress,
+          onTap: _onMapTap,
         ),
         children: [
           TileLayer(
@@ -251,6 +375,7 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
   void _addMarkerToMap(
     LatLng position,
     String type, {
+    String? markerId,
     String? petType,
     double? waterLiters,
     String? isWaterEnough,
@@ -260,8 +385,12 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
       IconData iconData;
 
       if (type == 'food' && petType != null) {
-        // Food + Cat/Dog için: Yes = yeşil, Maybe = turuncu
-        markerColor = isWaterEnough == 'yes' ? Colors.green : Colors.orange;
+        // Food + Cat/Dog için: Yes = yeşil, Maybe = turuncu, No = kırmızı
+        markerColor = isWaterEnough == 'yes'
+            ? Colors.green
+            : isWaterEnough == 'maybe'
+                ? Colors.orange
+                : Colors.red;
         // Cat için kedi patisi, Dog için donut ikonu
         if (petType == 'cat') {
           iconData = Icons.pets; // Kedi patisi için pets ikonu
@@ -271,8 +400,12 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
           iconData = Icons.restaurant;
         }
       } else if (type == 'water') {
-        // Water için: Yes = yeşil, Maybe = turuncu
-        markerColor = isWaterEnough == 'yes' ? Colors.green : Colors.orange;
+        // Water için: Yes = yeşil, Maybe = turuncu, No = kırmızı
+        markerColor = isWaterEnough == 'yes'
+            ? Colors.green
+            : isWaterEnough == 'maybe'
+                ? Colors.orange
+                : Colors.red;
         iconData = Icons.water_drop;
       } else if (type == 'food') {
         // Food seçildi ama pet type seçilmedi (eski durum için)
@@ -288,26 +421,220 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
         point: position,
         width: 50.0,
         height: 50.0,
-        child: Container(
-          decoration: BoxDecoration(
-            color: markerColor,
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: Colors.white,
-              width: 2.0,
-            ),
-          ),
-          child: Icon(
-            iconData,
-            color: Colors.white,
-            size: 25.0,
-          ),
-        ),
+        child: markerId != null
+            ? GestureDetector(
+                onTap: () async {
+                  // Marker detay popup'ını aç
+                  if (_markerDataMap.containsKey(markerId)) {
+                    final result = await showDialog<Map<String, dynamic>>(
+                      context: context,
+                      builder: (context) => MarkerDetailScreen(
+                        markerId: markerId,
+                        markerData: _markerDataMap[markerId]!,
+                      ),
+                    );
+
+                    // Eğer opinion submit edildiyse marker'ı güncelle
+                    if (result != null && mounted) {
+                      final updatedMarkerId = result['markerId'] as String?;
+                      final newIsEnough = result['isWaterEnough'] as String?;
+
+                      if (updatedMarkerId != null &&
+                          _markerDataMap.containsKey(updatedMarkerId)) {
+                        // Marker verisini güncelle
+                        _markerDataMap[updatedMarkerId]!['isWaterEnough'] =
+                            newIsEnough;
+
+                        // Yeni alanları da güncelle
+                        if (result['addedAmount'] != null) {
+                          _markerDataMap[updatedMarkerId]!['addedAmount'] =
+                              result['addedAmount'];
+                        } else {
+                          // Eğer null ise de güncelle (temizleme için)
+                          _markerDataMap[updatedMarkerId]!['addedAmount'] =
+                              null;
+                        }
+                        if (result['addedByUserId'] != null) {
+                          _markerDataMap[updatedMarkerId]!['addedByUserId'] =
+                              result['addedByUserId'];
+                        } else {
+                          // Eğer null ise de güncelle (temizleme için)
+                          _markerDataMap[updatedMarkerId]!['addedByUserId'] =
+                              null;
+                        }
+                        if (result['isEnoughNow'] != null) {
+                          _markerDataMap[updatedMarkerId]!['isEnoughNow'] =
+                              result['isEnoughNow'];
+                        } else {
+                          // Eğer null ise de güncelle (temizleme için)
+                          _markerDataMap[updatedMarkerId]!['isEnoughNow'] =
+                              null;
+                        }
+
+                        // Marker'ı haritada güncelle (isWaterEnough veya isEnoughNow'e göre renk hesaplanacak)
+                        _updateMarkerColor(updatedMarkerId);
+                      }
+                    }
+                  }
+                },
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: markerColor,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Colors.white,
+                      width: 2.0,
+                    ),
+                  ),
+                  child: Icon(
+                    iconData,
+                    color: Colors.white,
+                    size: 25.0,
+                  ),
+                ),
+              )
+            : Container(
+                decoration: BoxDecoration(
+                  color: markerColor,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.white,
+                    width: 2.0,
+                  ),
+                ),
+                child: Icon(
+                  iconData,
+                  color: Colors.white,
+                  size: 25.0,
+                ),
+              ),
       );
       _markers.add(newMarker);
+
+      // Marker index'ini sakla
+      if (markerId != null) {
+        _markerIndexMap[markerId] = _markers.length - 1;
+      }
     });
     print(
         'Marker eklendi: ${position.latitude}, ${position.longitude} - Type: $type - Toplam marker sayısı: ${_markers.length}');
+  }
+
+  /// Marker'ın rengini güncelle
+  void _updateMarkerColor(String markerId) {
+    if (!_markerIndexMap.containsKey(markerId) ||
+        !_markerDataMap.containsKey(markerId)) {
+      return;
+    }
+
+    final markerIndex = _markerIndexMap[markerId]!;
+    final markerData = _markerDataMap[markerId]!;
+    final position = LatLng(
+      markerData['latitude'] as double,
+      markerData['longitude'] as double,
+    );
+    final type = markerData['type'] as String;
+    final petType = markerData['petType'] as String?;
+    final isWaterEnough = markerData['isWaterEnough'] as String?;
+    final isEnoughNow = markerData['isEnoughNow'] as String?;
+
+    // Renk belirleme: isEnoughNow varsa onu kullan, yoksa isWaterEnough'u kullan
+    // Yes = yeşil, Maybe = turuncu, No = kırmızı
+    final statusToUse = isEnoughNow ?? isWaterEnough;
+    Color markerColor;
+    if (type == 'food' && petType != null) {
+      markerColor = statusToUse == 'yes'
+          ? Colors.green
+          : statusToUse == 'maybe'
+              ? Colors.orange
+              : Colors.red;
+    } else if (type == 'water') {
+      markerColor = statusToUse == 'yes'
+          ? Colors.green
+          : statusToUse == 'maybe'
+              ? Colors.orange
+              : Colors.red;
+    } else if (type == 'food') {
+      markerColor = statusToUse == 'yes'
+          ? Colors.green
+          : statusToUse == 'maybe'
+              ? Colors.orange
+              : Colors.red;
+    } else {
+      markerColor = Colors.blue;
+    }
+
+    // Icon'u belirle
+    IconData iconData;
+    if (type == 'food' && petType != null) {
+      if (petType == 'cat') {
+        iconData = Icons.pets;
+      } else if (petType == 'dog') {
+        iconData = Icons.donut_large;
+      } else {
+        iconData = Icons.restaurant;
+      }
+    } else if (type == 'water') {
+      iconData = Icons.water_drop;
+    } else if (type == 'food') {
+      iconData = Icons.restaurant;
+    } else {
+      iconData = Icons.location_on;
+    }
+
+    setState(() {
+      // Marker'ı güncelle
+      _markers[markerIndex] = Marker(
+        point: position,
+        width: 50.0,
+        height: 50.0,
+        child: GestureDetector(
+          onTap: () async {
+            // Marker detay popup'ını aç
+            if (_markerDataMap.containsKey(markerId)) {
+              final result = await showDialog<Map<String, dynamic>>(
+                context: context,
+                builder: (context) => MarkerDetailScreen(
+                  markerId: markerId,
+                  markerData: _markerDataMap[markerId]!,
+                ),
+              );
+
+              // Eğer opinion submit edildiyse marker'ı güncelle
+              if (result != null && mounted) {
+                final updatedMarkerId = result['markerId'] as String?;
+                final newIsEnough = result['isWaterEnough'] as String?;
+
+                if (updatedMarkerId != null &&
+                    _markerDataMap.containsKey(updatedMarkerId)) {
+                  // Marker verisini güncelle
+                  _markerDataMap[updatedMarkerId]!['isWaterEnough'] =
+                      newIsEnough;
+
+                  // Marker'ı haritada güncelle (isWaterEnough'a göre renk hesaplanacak)
+                  _updateMarkerColor(updatedMarkerId);
+                }
+              }
+            }
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              color: markerColor,
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: Colors.white,
+                width: 2.0,
+              ),
+            ),
+            child: Icon(
+              iconData,
+              color: Colors.white,
+              size: 25.0,
+            ),
+          ),
+        ),
+      );
+    });
   }
 
   @override
