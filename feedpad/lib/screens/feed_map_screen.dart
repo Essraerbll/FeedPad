@@ -3,9 +3,11 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:provider/provider.dart';
 import 'add_marker_screen.dart';
 import 'marker_detail_screen.dart';
 import '../services/api_service.dart';
+import '../services/auth_service.dart';
 
 class FeedMapScreen extends StatefulWidget {
   const FeedMapScreen({super.key});
@@ -120,6 +122,35 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
         final markersData = response['markers'] as List<dynamic>;
         print('Yüklenen marker sayısı: ${markersData.length}');
 
+        // Tüm unique userId'leri topla
+        final Set<String> uniqueUserIds = {};
+        for (var markerData in markersData) {
+          final userId = markerData['userId'] as String?;
+          if (userId != null) {
+            uniqueUserIds.add(userId);
+          }
+        }
+
+        // Tüm kullanıcı bilgilerini paralel olarak al
+        final Map<String, String> userIdToUserTypeMap = {};
+        final List<Future<void>> userInfoFutures = [];
+        
+        for (var userId in uniqueUserIds) {
+          userInfoFutures.add(
+            _apiService.get('/auth/user/$userId').then((userResponse) {
+              if (userResponse['success'] == true && userResponse['user'] != null) {
+                final user = userResponse['user'] as Map<String, dynamic>;
+                userIdToUserTypeMap[userId] = user['userType'] as String? ?? 'user';
+              }
+            }).catchError((e) {
+              print('User info loading error for $userId: $e');
+            })
+          );
+        }
+
+        // Tüm kullanıcı bilgilerinin yüklenmesini bekle
+        await Future.wait(userInfoFutures);
+
         setState(() {
           _markers.clear();
           _markerDataMap.clear();
@@ -153,10 +184,16 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
                   : (markerData['addedAmount'] as num).toDouble();
             }
 
-            // Marker verilerini sakla
+            // Pet shop owner kontrolü - marker'ın userId'sine bakarak kontrol et
+            final markerUserId = markerData['userId'] as String?;
+            final userType = markerUserId != null ? userIdToUserTypeMap[markerUserId] : null;
+            final isPetShopOwnerMarker = userType == 'pet_shop_owner';
+
+            // Marker verilerini sakla (userType bilgisini de ekle)
             _markerDataMap[markerId] = {
               'id': markerId,
               'userId': markerData['userId'] as String?,
+              'userType': userType, // userType bilgisini sakla
               'type': markerData['type'] as String,
               'petType': markerData['petType'] as String?,
               'waterLiters': waterLiters,
@@ -175,6 +212,7 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
               petType: markerData['petType'] as String?,
               waterLiters: waterLiters,
               isWaterEnough: markerData['isWaterEnough'] as String?,
+              isPetShopOwnerMarker: isPetShopOwnerMarker,
             );
           }
         });
@@ -229,8 +267,12 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
         final newIsEnough = result['isWaterEnough'] as String?;
 
         if (markerId != null && _markerDataMap.containsKey(markerId)) {
-          // Marker verisini güncelle
+          // Marker verisini güncelle (userType bilgisini koru)
+          final existingUserType = _markerDataMap[markerId]!['userType'];
           _markerDataMap[markerId]!['isWaterEnough'] = newIsEnough;
+          if (existingUserType != null) {
+            _markerDataMap[markerId]!['userType'] = existingUserType;
+          }
 
           // Marker'ı haritada güncelle (isWaterEnough'a göre renk hesaplanacak)
           _updateMarkerColor(markerId);
@@ -241,14 +283,36 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
 
   /// Haritada uzun basış ile marker ekleme formunu açar
   void _onMapLongPress(TapPosition tapPosition, LatLng latlng) async {
+    // Pet shop owner kontrolü
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final currentUser = authService.currentUser;
+    final isPetShopOwner = currentUser?.userType == 'pet_shop_owner';
+
     // Marker ekleme formunu popup olarak aç
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (context) => AddMarkerScreen(position: latlng),
     );
 
+    // Eğer pet shop owner exact location'ı reddettiyse hata mesajı göster
+    if (result != null && result['exactLocationDenied'] == true) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Sorry, you can only add your exact location.',
+              style: TextStyle(color: Colors.white),
+            ),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+      return; // Marker eklenmesin
+    }
+
     // Eğer form başarıyla tamamlandıysa marker ekle
-    if (result != null) {
+    if (result != null && result['exactLocationDenied'] != true) {
       final type = result['type'] as String;
       final position = result['position'] as LatLng;
       final petType = result['petType'] as String?;
@@ -272,9 +336,26 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
           if (markerId != null) {
             // Marker verilerini sakla
             final markerResponse = response['marker'] as Map<String, dynamic>?;
+            final markerUserId = markerResponse?['userId'] as String?;
+            
+            // Pet shop owner kontrolü için kullanıcı bilgisini al
+            String? userType;
+            if (markerUserId != null) {
+              try {
+                final userResponse = await _apiService.get('/auth/user/$markerUserId');
+                if (userResponse['success'] == true && userResponse['user'] != null) {
+                  final user = userResponse['user'] as Map<String, dynamic>;
+                  userType = user['userType'] as String?;
+                }
+              } catch (e) {
+                print('User info loading error for new marker: $e');
+              }
+            }
+            
             _markerDataMap[markerId] = {
               'id': markerId,
-              'userId': markerResponse?['userId'] as String?,
+              'userId': markerUserId,
+              'userType': userType, // userType bilgisini sakla
               'type': type,
               'petType': petType,
               'waterLiters': waterLiters,
@@ -291,6 +372,7 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
             petType: petType,
             waterLiters: waterLiters,
             isWaterEnough: isWaterEnough,
+            isPetShopOwnerMarker: isPetShopOwner,
           );
 
           // Marker'ları tekrar yükle (backend'den güncel listeyi al)
@@ -379,12 +461,20 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
     String? petType,
     double? waterLiters,
     String? isWaterEnough,
+    bool? isPetShopOwnerMarker,
   }) {
     setState(() {
       Color markerColor;
       IconData iconData;
+      bool isHouseShape = false;
 
-      if (type == 'food' && petType != null) {
+      // Pet shop owner marker kontrolü
+      if (isPetShopOwnerMarker == true) {
+        isHouseShape = true;
+        iconData = Icons.home;
+        // Pet shop owner marker'ları için varsayılan renk
+        markerColor = Colors.blue;
+      } else if (type == 'food' && petType != null) {
         // Food + Cat/Dog için: Yes = yeşil, Maybe = turuncu, No = kırmızı
         markerColor = isWaterEnough == 'yes'
             ? Colors.green
@@ -441,7 +531,8 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
 
                       if (updatedMarkerId != null &&
                           _markerDataMap.containsKey(updatedMarkerId)) {
-                        // Marker verisini güncelle
+                        // Marker verisini güncelle (userType bilgisini koru)
+                        final existingUserType = _markerDataMap[updatedMarkerId]!['userType'];
                         _markerDataMap[updatedMarkerId]!['isWaterEnough'] =
                             newIsEnough;
 
@@ -470,6 +561,10 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
                           _markerDataMap[updatedMarkerId]!['isEnoughNow'] =
                               null;
                         }
+                        // userType bilgisini koru
+                        if (existingUserType != null) {
+                          _markerDataMap[updatedMarkerId]!['userType'] = existingUserType;
+                        }
 
                         // Marker'ı haritada güncelle (isWaterEnough veya isEnoughNow'e göre renk hesaplanacak)
                         _updateMarkerColor(updatedMarkerId);
@@ -480,7 +575,8 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
                 child: Container(
                   decoration: BoxDecoration(
                     color: markerColor,
-                    shape: BoxShape.circle,
+                    shape: isHouseShape ? BoxShape.rectangle : BoxShape.circle,
+                    borderRadius: isHouseShape ? BorderRadius.circular(8) : null,
                     border: Border.all(
                       color: Colors.white,
                       width: 2.0,
@@ -496,7 +592,8 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
             : Container(
                 decoration: BoxDecoration(
                   color: markerColor,
-                  shape: BoxShape.circle,
+                  shape: isHouseShape ? BoxShape.rectangle : BoxShape.circle,
+                  borderRadius: isHouseShape ? BorderRadius.circular(8) : null,
                   border: Border.all(
                     color: Colors.white,
                     width: 2.0,
@@ -538,11 +635,20 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
     final isWaterEnough = markerData['isWaterEnough'] as String?;
     final isEnoughNow = markerData['isEnoughNow'] as String?;
 
+    // Pet shop owner kontrolü - marker verisinden userType'ı al
+    final userType = markerData['userType'] as String?;
+    final isPetShopOwnerMarker = userType == 'pet_shop_owner';
+
     // Renk belirleme: isEnoughNow varsa onu kullan, yoksa isWaterEnough'u kullan
     // Yes = yeşil, Maybe = turuncu, No = kırmızı
     final statusToUse = isEnoughNow ?? isWaterEnough;
     Color markerColor;
-    if (type == 'food' && petType != null) {
+    bool isHouseShape = false;
+    
+    if (isPetShopOwnerMarker) {
+      isHouseShape = true;
+      markerColor = Colors.blue; // Pet shop owner marker'ları için varsayılan renk
+    } else if (type == 'food' && petType != null) {
       markerColor = statusToUse == 'yes'
           ? Colors.green
           : statusToUse == 'maybe'
@@ -566,7 +672,9 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
 
     // Icon'u belirle
     IconData iconData;
-    if (type == 'food' && petType != null) {
+    if (isPetShopOwnerMarker) {
+      iconData = Icons.home;
+    } else if (type == 'food' && petType != null) {
       if (petType == 'cat') {
         iconData = Icons.pets;
       } else if (petType == 'dog') {
@@ -607,9 +715,13 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
 
                 if (updatedMarkerId != null &&
                     _markerDataMap.containsKey(updatedMarkerId)) {
-                  // Marker verisini güncelle
+                  // Marker verisini güncelle (userType bilgisini koru)
+                  final existingUserType = _markerDataMap[updatedMarkerId]!['userType'];
                   _markerDataMap[updatedMarkerId]!['isWaterEnough'] =
                       newIsEnough;
+                  if (existingUserType != null) {
+                    _markerDataMap[updatedMarkerId]!['userType'] = existingUserType;
+                  }
 
                   // Marker'ı haritada güncelle (isWaterEnough'a göre renk hesaplanacak)
                   _updateMarkerColor(updatedMarkerId);
@@ -620,7 +732,8 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
           child: Container(
             decoration: BoxDecoration(
               color: markerColor,
-              shape: BoxShape.circle,
+              shape: isHouseShape ? BoxShape.rectangle : BoxShape.circle,
+              borderRadius: isHouseShape ? BorderRadius.circular(8) : null,
               border: Border.all(
                 color: Colors.white,
                 width: 2.0,

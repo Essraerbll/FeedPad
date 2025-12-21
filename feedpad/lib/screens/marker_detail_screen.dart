@@ -24,6 +24,7 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
   String? _wouldLikeToAdd; // 'yes' or 'no' (sadece Maybe/No seçildiğinde)
   final TextEditingController _addedAmountController = TextEditingController();
   String? _isEnoughNow; // 'yes' or 'maybe' (sadece ekleme yapıldığında)
+  String? _wouldLikeToDonate; // 'yes' or 'no' (sadece pet shop owner kendi marker'ı için)
   bool _isLoading = false;
   String? _username;
   String? _addedByUsername; // Son ekleme yapan kişinin kullanıcı adı
@@ -227,8 +228,22 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
       // Mevcut kullanıcı bilgisini al
       final authService = Provider.of<AuthService>(context, listen: false);
       final currentUser = authService.currentUser;
+      final isPetShopOwner = currentUser?.userType == 'pet_shop_owner';
+      final markerUserId = markerData['userId'] as String?;
+      final markerUserType = markerData['userType'] as String?;
+      final isMarkerOwnerPetShopOwner = markerUserType == 'pet_shop_owner';
+      final isCurrentUserMarkerOwner = currentUser?.id == markerUserId;
+      final shouldShowDonateQuestion = isMarkerOwnerPetShopOwner && isCurrentUserMarkerOwner;
       
-      if (_userOpinion == 'yes') {
+      // Pet shop owner kendi marker'ı için "Would you like to donate?" kontrolü
+      if (shouldShowDonateQuestion) {
+        // Donate sorusu için özel işlem yapılabilir (şimdilik sadece kaydediyoruz)
+        // Burada donate işlemi backend'e gönderilebilir
+        newIsEnough = currentIsEnough; // Marker durumunu değiştirme
+      } else if (isPetShopOwner) {
+        // Pet shop owner başka marker'lara dokunduğunda (normal opinion)
+        newIsEnough = _userOpinion; // Direkt opinion'ı kaydet
+      } else if (_userOpinion == 'yes') {
         // Yes seçildi: Marker'ın arka planı turuncu/kırmızıysa yeşile çevir
         if (currentColor == Colors.orange || currentColor == Colors.red) {
           newIsEnough = 'yes';
@@ -267,6 +282,20 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
         }
       } else {
         newIsEnough = currentIsEnough;
+      }
+      
+      // Pet shop owner için sadece isWaterEnough güncelle, diğer alanları null yap
+      // Ama donate sorusu için özel işlem yapma
+      if (isPetShopOwner && !shouldShowDonateQuestion) {
+        addedAmount = null;
+        addedByUserId = null;
+        isEnoughNow = null;
+      }
+      if (shouldShowDonateQuestion) {
+        addedAmount = null;
+        addedByUserId = null;
+        isEnoughNow = null;
+        newIsEnough = currentIsEnough; // Marker durumunu değiştirme
       }
       
       // Backend'e marker'ı güncelle
@@ -346,6 +375,19 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
     final isWaterEnough = markerData['isWaterEnough'] as String?;
     final hasAddedBy = markerData['addedByUserId'] != null;
     final addedAmount = markerData['addedAmount'];
+
+    // Pet shop owner kontrolü
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final currentUser = authService.currentUser;
+    final isPetShopOwner = currentUser?.userType == 'pet_shop_owner';
+    
+    // Marker'ın sahibinin pet shop owner olup olmadığını ve mevcut kullanıcının marker sahibi olup olmadığını kontrol et
+    final markerUserId = markerData['userId'] as String?;
+    final markerUserType = markerData['userType'] as String?;
+    final isMarkerOwnerPetShopOwner = markerUserType == 'pet_shop_owner';
+    final isCurrentUserMarkerOwner = currentUser?.id == markerUserId;
+    final shouldShowDonateQuestion = isMarkerOwnerPetShopOwner && isCurrentUserMarkerOwner;
+    final shouldShowOpinionSection = !isMarkerOwnerPetShopOwner || isCurrentUserMarkerOwner;
 
     return Dialog(
       backgroundColor: Colors.transparent,
@@ -531,89 +573,149 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
                         ),
                       if (isWaterEnough != null) const SizedBox(height: 20),
 
-                      // Ayırıcı
-                      const Divider(
-                        thickness: 1,
-                        color: Colors.grey,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Your Opinion',
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                              color: Colors.grey[700],
-                              fontWeight: FontWeight.bold,
-                            ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Opinion sorusu
-                      Text(
-                        markerType == 'water'
-                            ? 'Is Water Enough?'
-                            : 'Is Food Enough?',
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                              color: Colors.black87,
-                              fontWeight: FontWeight.w500,
-                            ),
-                      ),
-                      const SizedBox(height: 8),
-                      DropdownButtonFormField<String>(
-                        value: _userOpinion,
-                        style: const TextStyle(color: Colors.black87),
-                        dropdownColor: Colors.white,
-                        decoration: InputDecoration(
-                          labelText: 'Select an option',
-                          labelStyle: const TextStyle(color: Colors.grey),
-                          prefixIcon:
-                              const Icon(Icons.rate_review, color: Colors.grey),
-                          filled: true,
-                          fillColor: Colors.grey[100],
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Colors.grey),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Colors.grey),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(
-                                color: Colors.purple, width: 2),
-                          ),
+                      // Pet shop owner marker'ı için özel durumlar
+                      if (shouldShowOpinionSection) ...[
+                        // Ayırıcı
+                        const Divider(
+                          thickness: 1,
+                          color: Colors.grey,
                         ),
-                        items: const [
-                          DropdownMenuItem<String>(
-                            value: 'yes',
-                            child: Text('Yes'),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Your Opinion',
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                color: Colors.grey[700],
+                                fontWeight: FontWeight.bold,
+                              ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Pet shop owner kendi marker'ı için "Would you like to donate?" sorusu
+                        if (shouldShowDonateQuestion) ...[
+                          Text(
+                            'Would you like to donate?',
+                            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                  color: Colors.black87,
+                                  fontWeight: FontWeight.w500,
+                                ),
                           ),
-                          DropdownMenuItem<String>(
-                            value: 'maybe',
-                            child: Text('Maybe'),
+                          const SizedBox(height: 8),
+                          DropdownButtonFormField<String>(
+                            value: _wouldLikeToDonate,
+                            style: const TextStyle(color: Colors.black87),
+                            dropdownColor: Colors.white,
+                            decoration: InputDecoration(
+                              labelText: 'Select an option',
+                              labelStyle: const TextStyle(color: Colors.grey),
+                              prefixIcon: const Icon(Icons.favorite, color: Colors.grey),
+                              filled: true,
+                              fillColor: Colors.grey[100],
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(color: Colors.grey),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(color: Colors.grey),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                    color: Colors.purple, width: 2),
+                              ),
+                            ),
+                            items: const [
+                              DropdownMenuItem<String>(
+                                value: 'yes',
+                                child: Text('Yes'),
+                              ),
+                              DropdownMenuItem<String>(
+                                value: 'no',
+                                child: Text('No'),
+                              ),
+                            ],
+                            onChanged: (String? value) {
+                              setState(() {
+                                _wouldLikeToDonate = value;
+                              });
+                            },
+                            validator: (value) {
+                              if (shouldShowDonateQuestion && (value == null || value.isEmpty)) {
+                                return 'Please select an option';
+                              }
+                              return null;
+                            },
                           ),
-                          DropdownMenuItem<String>(
-                            value: 'no',
-                            child: Text('No'),
+                        ] else ...[
+                          // Normal kullanıcılar için opinion sorusu
+                          // Opinion sorusu
+                          Text(
+                            markerType == 'water'
+                                ? 'Is Water Enough?'
+                                : 'Is Food Enough?',
+                            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                  color: Colors.black87,
+                                  fontWeight: FontWeight.w500,
+                                ),
                           ),
-                        ],
-                        onChanged: (String? value) {
-                          setState(() {
-                            _userOpinion = value;
-                            // Maybe veya No seçilmediyse wouldLikeToAdd'ı sıfırla
-                            if (value != 'maybe' && value != 'no') {
-                              _wouldLikeToAdd = null;
-                            }
-                          });
-                        },
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please select an option';
-                          }
-                          return null;
-                        },
-                      ),
-                      // "Would you like to add?" sorusu (sadece Maybe veya No seçildiğinde)
-                      if (_userOpinion == 'maybe' || _userOpinion == 'no') ...[
+                          const SizedBox(height: 8),
+                          DropdownButtonFormField<String>(
+                            value: _userOpinion,
+                            style: const TextStyle(color: Colors.black87),
+                            dropdownColor: Colors.white,
+                            decoration: InputDecoration(
+                              labelText: 'Select an option',
+                              labelStyle: const TextStyle(color: Colors.grey),
+                              prefixIcon:
+                                  const Icon(Icons.rate_review, color: Colors.grey),
+                              filled: true,
+                              fillColor: Colors.grey[100],
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(color: Colors.grey),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(color: Colors.grey),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                    color: Colors.purple, width: 2),
+                              ),
+                            ),
+                            items: const [
+                              DropdownMenuItem<String>(
+                                value: 'yes',
+                                child: Text('Yes'),
+                              ),
+                              DropdownMenuItem<String>(
+                                value: 'maybe',
+                                child: Text('Maybe'),
+                              ),
+                              DropdownMenuItem<String>(
+                                value: 'no',
+                                child: Text('No'),
+                              ),
+                            ],
+                            onChanged: (String? value) {
+                              setState(() {
+                                _userOpinion = value;
+                                // Pet shop owner değilse ve Maybe veya No seçilmediyse wouldLikeToAdd'ı sıfırla
+                                if (!isPetShopOwner && value != 'maybe' && value != 'no') {
+                                  _wouldLikeToAdd = null;
+                                }
+                              });
+                            },
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please select an option';
+                              }
+                              return null;
+                            },
+                          ),
+                          // "Would you like to add?" sorusu (sadece Maybe veya No seçildiğinde ve pet shop owner değilse)
+                          if (!isPetShopOwner && (_userOpinion == 'maybe' || _userOpinion == 'no')) ...[
                         const SizedBox(height: 16),
                         Text(
                           'Would you like to add?',
@@ -796,11 +898,14 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
                           ),
                         ],
                       ],
+                      ],
+                      ],
                       const SizedBox(height: 24),
 
-                      // Submit butonu
-                      ElevatedButton(
-                        onPressed: _isLoading ? null : _submitOpinion,
+                      // Submit butonu (sadece opinion section gösteriliyorsa)
+                      if (shouldShowOpinionSection)
+                        ElevatedButton(
+                          onPressed: _isLoading ? null : _submitOpinion,
                         style: ButtonStyle(
                           backgroundColor:
                               MaterialStateProperty.all(Colors.blue),
@@ -831,12 +936,12 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
                                   color: Colors.white,
                                 ),
                               )
-                            : const Text(
-                                'Submit Opinion',
-                                style: TextStyle(fontSize: 16),
+                            : Text(
+                                shouldShowDonateQuestion ? 'Submit' : 'Submit Opinion',
+                                style: const TextStyle(fontSize: 16),
                               ),
-                      ),
-                      const SizedBox(height: 16),
+                        ),
+                      if (shouldShowOpinionSection) const SizedBox(height: 16),
 
                       // Cancel butonu
                       OutlinedButton(

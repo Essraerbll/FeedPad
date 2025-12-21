@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 class ApiService {
   // Gerçek cihaz için IP adresi (bilgisayarınızın yerel IP'si)
   // Eğer IP değişirse burayı güncelleyin
-  static const String realDeviceIp = '192.168.1.3';
+  static const String realDeviceIp = '192.168.1.10';
 
   // Backend URL - platforma göre otomatik seçilir
   static String get baseUrl {

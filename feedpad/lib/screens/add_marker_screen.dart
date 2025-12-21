@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:provider/provider.dart';
+import '../services/auth_service.dart';
 
 class AddMarkerScreen extends StatefulWidget {
   final LatLng position;
@@ -19,6 +21,7 @@ class _AddMarkerScreenState extends State<AddMarkerScreen> {
   String? _markerType; // 'food' or 'water'
   String? _petType; // 'cat' or 'dog' (sadece food seçildiğinde)
   String? _isWaterEnough; // 'yes' or 'maybe' (sadece water seçildiğinde)
+  String? _isExactLocation; // 'yes' or 'no' (sadece pet shop owner için)
 
   @override
   void dispose() {
@@ -28,6 +31,11 @@ class _AddMarkerScreenState extends State<AddMarkerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Pet shop owner kontrolü
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final currentUser = authService.currentUser;
+    final isPetShopOwner = currentUser?.userType == 'pet_shop_owner';
+
     return Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.all(24.0),
@@ -61,7 +69,9 @@ class _AddMarkerScreenState extends State<AddMarkerScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Select marker type',
+                  isPetShopOwner
+                      ? 'Add your pet shop location'
+                      : 'Select marker type',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         color: Colors.white,
                       ),
@@ -79,8 +89,67 @@ class _AddMarkerScreenState extends State<AddMarkerScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // Food or Water seçimi
-                      DropdownButtonFormField<String>(
+                      // Pet shop owner için exact location sorusu
+                      if (isPetShopOwner) ...[
+                        Text(
+                          'Is this the exact location of your pet shop?',
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                color: Colors.black87,
+                                fontWeight: FontWeight.w500,
+                              ),
+                        ),
+                        const SizedBox(height: 8),
+                        DropdownButtonFormField<String>(
+                          value: _isExactLocation,
+                          style: const TextStyle(color: Colors.black87),
+                          dropdownColor: Colors.white,
+                          decoration: InputDecoration(
+                            labelText: 'Select an option',
+                            labelStyle: const TextStyle(color: Colors.grey),
+                            prefixIcon: const Icon(Icons.location_on, color: Colors.grey),
+                            filled: true,
+                            fillColor: Colors.grey[100],
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Colors.grey),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: Colors.grey),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(
+                                  color: Colors.purple, width: 2),
+                            ),
+                          ),
+                          items: const [
+                            DropdownMenuItem<String>(
+                              value: 'yes',
+                              child: Text('Yes'),
+                            ),
+                            DropdownMenuItem<String>(
+                              value: 'no',
+                              child: Text('No'),
+                            ),
+                          ],
+                          onChanged: (String? value) {
+                            setState(() {
+                              _isExactLocation = value;
+                            });
+                          },
+                          validator: (value) {
+                            if (isPetShopOwner && (value == null || value.isEmpty)) {
+                              return 'Please select an option';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+                      // Food or Water seçimi (sadece normal kullanıcılar için)
+                      if (!isPetShopOwner)
+                        DropdownButtonFormField<String>(
                         value: _markerType,
                         style: const TextStyle(color: Colors.black87),
                         dropdownColor: Colors.white,
@@ -130,14 +199,14 @@ class _AddMarkerScreenState extends State<AddMarkerScreen> {
                           });
                         },
                         validator: (value) {
-                          if (value == null || value.isEmpty) {
+                          if (!isPetShopOwner && (value == null || value.isEmpty)) {
                             return 'Please select a marker type';
                           }
                           return null;
                         },
                       ),
-                      // Cat or Dog seçimi (sadece Food seçildiğinde)
-                      if (_markerType == 'food') ...[
+                      // Cat or Dog seçimi (sadece Food seçildiğinde ve normal kullanıcılar için)
+                      if (!isPetShopOwner && _markerType == 'food') ...[
                         const SizedBox(height: 16),
                         DropdownButtonFormField<String>(
                           value: _petType,
@@ -185,7 +254,7 @@ class _AddMarkerScreenState extends State<AddMarkerScreen> {
                             });
                           },
                           validator: (value) {
-                            if (_markerType == 'food' &&
+                            if (!isPetShopOwner && _markerType == 'food' &&
                                 (value == null || value.isEmpty)) {
                               return 'Please select a pet type';
                             }
@@ -193,9 +262,9 @@ class _AddMarkerScreenState extends State<AddMarkerScreen> {
                           },
                         ),
                       ],
-                      // Water alanları (Water seçildiğinde veya Food + Cat/Dog seçildiğinde)
-                      if (_markerType == 'water' ||
-                          (_markerType == 'food' && _petType != null)) ...[
+                      // Water alanları (Water seçildiğinde veya Food + Cat/Dog seçildiğinde, sadece normal kullanıcılar için)
+                      if (!isPetShopOwner && (_markerType == 'water' ||
+                          (_markerType == 'food' && _petType != null))) ...[
                         const SizedBox(height: 16),
                         TextFormField(
                           controller: _waterLitersController,
@@ -230,7 +299,7 @@ class _AddMarkerScreenState extends State<AddMarkerScreen> {
                             ),
                           ),
                           validator: (value) {
-                            if ((_markerType == 'water' ||
+                            if (!isPetShopOwner && (_markerType == 'water' ||
                                     (_markerType == 'food' &&
                                         _petType != null)) &&
                                 (value == null || value.isEmpty)) {
@@ -291,7 +360,7 @@ class _AddMarkerScreenState extends State<AddMarkerScreen> {
                             });
                           },
                           validator: (value) {
-                            if ((_markerType == 'water' ||
+                            if (!isPetShopOwner && (_markerType == 'water' ||
                                     (_markerType == 'food' &&
                                         _petType != null)) &&
                                 (value == null || value.isEmpty)) {
@@ -307,7 +376,31 @@ class _AddMarkerScreenState extends State<AddMarkerScreen> {
                       ElevatedButton(
                         onPressed: () {
                           if (_formKey.currentState!.validate()) {
-                            // Water liters'ı float'a çevir
+                            // Pet shop owner için exact location kontrolü
+                            if (isPetShopOwner) {
+                              if (_isExactLocation == 'no') {
+                                // No seçildiyse dialog'u kapat ve özel bir değer döndür
+                                Navigator.pop(context, {
+                                  'exactLocationDenied': true,
+                                });
+                                return;
+                              } else if (_isExactLocation != 'yes') {
+                                // Henüz seçim yapılmadıysa
+                                return;
+                              }
+                              
+                              // Pet shop owner için marker ekle (diğer alanlar null)
+                              Navigator.pop(context, {
+                                'type': 'water', // Varsayılan type
+                                'petType': null,
+                                'waterLiters': null,
+                                'isWaterEnough': null,
+                                'position': widget.position,
+                              });
+                              return;
+                            }
+
+                            // Normal kullanıcılar için Water liters'ı float'a çevir
                             double? waterLiters;
                             if ((_markerType == 'water' ||
                                     (_markerType == 'food' &&
