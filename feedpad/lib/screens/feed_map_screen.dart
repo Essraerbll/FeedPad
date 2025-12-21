@@ -7,7 +7,7 @@ import 'add_marker_screen.dart';
 import '../services/api_service.dart';
 
 class FeedMapScreen extends StatefulWidget {
-  const FeedMapScreen({super.key});
+  const FeedMapScreen({Key? key}) : super(key: key);
 
   @override
   State<FeedMapScreen> createState() => _FeedMapScreenState();
@@ -181,7 +181,7 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
                   'Marker added successfully',
                   style: TextStyle(color: Colors.white),
                 ),
-                backgroundColor: Colors.green,
+                backgroundColor: const Color(0xFF9DB8E8),
                 duration: const Duration(seconds: 2),
               ),
             );
@@ -196,7 +196,7 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
                       'An error occurred while adding marker',
                   style: const TextStyle(color: Colors.white),
                 ),
-                backgroundColor: Colors.red,
+                backgroundColor: const Color(0xFF7BA4D9),
                 duration: const Duration(seconds: 3),
               ),
             );
@@ -211,7 +211,7 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
                 'An error occurred while adding marker: $e',
                 style: const TextStyle(color: Colors.white),
               ),
-              backgroundColor: Colors.red,
+              backgroundColor: const Color(0xFF7BA4D9),
               duration: const Duration(seconds: 3),
             ),
           );

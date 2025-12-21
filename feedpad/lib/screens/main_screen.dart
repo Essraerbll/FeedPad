@@ -7,7 +7,7 @@ import 'feed_map_screen.dart';
 import 'profile_screen.dart';
 
 class MainScreen extends StatefulWidget {
-  const MainScreen({super.key});
+  const MainScreen({Key? key}) : super(key: key);
 
   @override
   State<MainScreen> createState() => _MainScreenState();
@@ -23,8 +23,8 @@ class _MainScreenState extends State<MainScreen> {
   ];
 
   final List<String> _titles = [
-    'FeedBlog',
-    'FeedMap',
+    'Feed Blog',
+    'Feed Map',
     'Profile',
   ];
 
@@ -43,18 +43,25 @@ class _MainScreenState extends State<MainScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.purple[900],
-        title: Text(
-          _titles[_currentIndex],
-          style: const TextStyle(color: Colors.white),
+        backgroundColor: const Color(0xFF9DB8E8), // Pastel mavi
+        elevation: 0,
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Icon(Icons.pets, size: 24, color: Colors.white),
+            Text(
+              _titles[_currentIndex],
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+            const Icon(Icons.pets, size: 24, color: Colors.white),
+          ],
         ),
         actions: [
           Container(
             margin: const EdgeInsets.only(right: 8),
             decoration: BoxDecoration(
-              color: Colors.red,
+              color: const Color(0xFF7BA4D9), // Daha koyu mavi
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.red, width: 2),
             ),
             child: IconButton(
               icon: const Icon(Icons.logout, color: Colors.white),
@@ -63,20 +70,20 @@ class _MainScreenState extends State<MainScreen> {
                 final confirm = await showDialog<bool>(
                   context: context,
                   builder: (context) => AlertDialog(
-                    backgroundColor: Colors.purple[900],
+                    backgroundColor: const Color(0xFFF5F8FA),
                     title: const Text(
                       'Sign Out',
-                      style: TextStyle(color: Colors.white),
+                      style: TextStyle(color: Color(0xFF5A7FA1)),
                     ),
                     content: const Text(
                       'Are you sure you want to sign out?',
-                      style: TextStyle(color: Colors.white),
+                      style: TextStyle(color: Colors.black87),
                     ),
                     actions: [
                       Container(
                         margin: const EdgeInsets.only(right: 8),
                         decoration: BoxDecoration(
-                          color: Colors.blue,
+                          color: const Color(0xFF9DB8E8),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: TextButton(
@@ -89,7 +96,7 @@ class _MainScreenState extends State<MainScreen> {
                       ),
                       Container(
                         decoration: BoxDecoration(
-                          color: Colors.red,
+                          color: const Color(0xFF7BA4D9),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: TextButton(
@@ -115,7 +122,7 @@ class _MainScreenState extends State<MainScreen> {
       body: _screens[_currentIndex],
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: Colors.purple[900],
+          color: const Color(0xFFD4E5F7), // Açık pastel mavi nav
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.1),
@@ -131,9 +138,9 @@ class _MainScreenState extends State<MainScreen> {
               _currentIndex = index;
             });
           },
-          backgroundColor: Colors.purple[900],
-          selectedItemColor: Colors.white,
-          unselectedItemColor: Colors.white70,
+          backgroundColor: const Color(0xFFD4E5F7),
+          selectedItemColor: const Color(0xFF5A7FA1),
+          unselectedItemColor: const Color(0xFF9DB8E8),
           selectedLabelStyle: const TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 14,
@@ -145,14 +152,14 @@ class _MainScreenState extends State<MainScreen> {
           items: const [
             BottomNavigationBarItem(
               icon: Icon(Icons.article),
-              label: 'FeedBlog',
+              label: 'Feed Blog',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.map),
-              label: 'FeedMap',
+              icon: Icon(Icons.location_on),
+              label: 'Feed Map',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.person),
+              icon: Icon(Icons.pets),
               label: 'Profile',
             ),
           ],
