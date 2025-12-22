@@ -7,7 +7,7 @@ import 'add_marker_screen.dart';
 import '../services/api_service.dart';
 
 class FeedMapScreen extends StatefulWidget {
-  const FeedMapScreen({Key? key}) : super(key: key);
+  const FeedMapScreen({super.key});
 
   @override
   State<FeedMapScreen> createState() => _FeedMapScreenState();
@@ -53,7 +53,7 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
         _zoomToIstanbul();
       }
     } catch (e) {
-      print('Konum izni hatası: $e');
+      debugPrint('Konum izni hatası: $e');
       _zoomToIstanbul();
     }
   }
@@ -86,7 +86,7 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
         });
       }
     } catch (e) {
-      print('Konum alma hatası: $e');
+      debugPrint('Konum alma hatası: $e');
       _zoomToIstanbul();
     }
   }
@@ -134,7 +134,7 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
         });
       }
     } catch (e) {
-      print('Marker yükleme hatası: $e');
+      debugPrint('Marker yükleme hatası: $e');
       // Hata durumunda sessizce devam et
     }
   }
@@ -176,13 +176,13 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
           // Başarı mesajı göster
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: const Text(
+              const SnackBar(
+                content: Text(
                   'Marker added successfully',
                   style: TextStyle(color: Colors.white),
                 ),
-                backgroundColor: const Color(0xFF9DB8E8),
-                duration: const Duration(seconds: 2),
+                backgroundColor: Color(0xFF9DB8E8),
+                duration: Duration(seconds: 2),
               ),
             );
           }
@@ -203,7 +203,7 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
           }
         }
       } catch (e) {
-        print('Marker kaydetme hatası: $e');
+        debugPrint('Marker kaydetme hatası: $e');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -306,7 +306,7 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
       );
       _markers.add(newMarker);
     });
-    print(
+    debugPrint(
         'Marker eklendi: ${position.latitude}, ${position.longitude} - Type: $type - Toplam marker sayısı: ${_markers.length}');
   }
 

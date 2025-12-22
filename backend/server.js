@@ -25,6 +25,9 @@ app.use('/api/auth', authRoutes);
 const markerRoutes = require('./routes/marker.routes');
 app.use('/api/markers', markerRoutes);
 
+const postsRoutes = require('./routes/posts.routes');
+app.use('/api/posts', postsRoutes);
+
 // Diğer route'lar (varsa)
 try {
   const locationRoutes = require('./routes/location.routes');
@@ -68,7 +71,7 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 3000;
-const HOST = process.env.HOST || '0.0.0.0'; // Tüm ağ arayüzlerinden gelen istekleri kabul et
+const HOST = process.env.HOST || 'localhost'; // Localhost ve ağdan dinle
 
 app.listen(PORT, HOST, () => {
   console.log(`🚀 Server is running on http://${HOST}:${PORT}`);

@@ -81,7 +81,7 @@ class _AddMarkerScreenState extends State<AddMarkerScreen> {
                     children: [
                       // Food or Water seçimi
                       DropdownButtonFormField<String>(
-                        value: _markerType,
+                        initialValue: _markerType,
                         style: const TextStyle(color: Colors.black87),
                         dropdownColor: Colors.white,
                         decoration: InputDecoration(
@@ -140,7 +140,7 @@ class _AddMarkerScreenState extends State<AddMarkerScreen> {
                       if (_markerType == 'food') ...[
                         const SizedBox(height: 16),
                         DropdownButtonFormField<String>(
-                          value: _petType,
+                          initialValue: _petType,
                           style: const TextStyle(color: Colors.black87),
                           dropdownColor: Colors.white,
                           decoration: InputDecoration(
@@ -249,7 +249,7 @@ class _AddMarkerScreenState extends State<AddMarkerScreen> {
                         ),
                         const SizedBox(height: 16),
                         DropdownButtonFormField<String>(
-                          value: _isWaterEnough,
+                          initialValue: _isWaterEnough,
                           style: const TextStyle(color: Colors.black87),
                           dropdownColor: Colors.white,
                           decoration: InputDecoration(
@@ -328,20 +328,20 @@ class _AddMarkerScreenState extends State<AddMarkerScreen> {
                         },
                         style: ButtonStyle(
                           backgroundColor:
-                              MaterialStateProperty.all(Colors.blue),
+                              WidgetStateProperty.all(Colors.blue),
                           foregroundColor:
-                              MaterialStateProperty.all(Colors.white),
-                          side: MaterialStateProperty.all(
-                            BorderSide(color: Colors.blue, width: 2),
+                              WidgetStateProperty.all(Colors.white),
+                          side: WidgetStateProperty.all(
+                            const BorderSide(color: Colors.blue, width: 2),
                           ),
-                          padding: MaterialStateProperty.all(
+                          padding: WidgetStateProperty.all(
                             const EdgeInsets.symmetric(
                                 vertical: 20, horizontal: 24),
                           ),
-                          minimumSize: MaterialStateProperty.all(
+                          minimumSize: WidgetStateProperty.all(
                             const Size(double.infinity, 56),
                           ),
-                          shape: MaterialStateProperty.all(
+                          shape: WidgetStateProperty.all(
                             RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
@@ -361,20 +361,20 @@ class _AddMarkerScreenState extends State<AddMarkerScreen> {
                         },
                         style: ButtonStyle(
                           backgroundColor:
-                              MaterialStateProperty.all(Colors.red),
+                              WidgetStateProperty.all(Colors.red),
                           foregroundColor:
-                              MaterialStateProperty.all(Colors.white),
-                          side: MaterialStateProperty.all(
-                            BorderSide(color: Colors.red, width: 2),
+                              WidgetStateProperty.all(Colors.white),
+                          side: WidgetStateProperty.all(
+                            const BorderSide(color: Colors.red, width: 2),
                           ),
-                          padding: MaterialStateProperty.all(
+                          padding: WidgetStateProperty.all(
                             const EdgeInsets.symmetric(
                                 vertical: 20, horizontal: 24),
                           ),
-                          minimumSize: MaterialStateProperty.all(
+                          minimumSize: WidgetStateProperty.all(
                             const Size(double.infinity, 56),
                           ),
-                          shape: MaterialStateProperty.all(
+                          shape: WidgetStateProperty.all(
                             RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),

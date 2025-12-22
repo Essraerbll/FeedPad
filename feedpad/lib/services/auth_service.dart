@@ -129,7 +129,7 @@ class AuthService extends ChangeNotifier {
       await _apiService.post('/auth/logout', {});
     } catch (e) {
       // Hata olsa bile çıkış yap
-      print('Logout error: $e');
+      debugPrint('Logout error: $e');
     } finally {
       _currentUser = null;
       _apiService.clearSession();

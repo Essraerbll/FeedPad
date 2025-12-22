@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 
 class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({Key? key}) : super(key: key);
+  const RegisterScreen({super.key});
 
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
@@ -109,15 +109,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // Logo veya başlık
-                  Icon(
+                  const Icon(
                     Icons.pets,
                     size: 80,
-                    color: const Color(0xFF9DB8E8),
+                    color: Color(0xFF9DB8E8),
                   ),
                   const SizedBox(height: 16),
-                  Text(
+                  const Text(
                     'Create Account',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
                       color: Color(0xFF5A7FA1),
@@ -125,9 +125,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 8),
-                  Text(
+                  const Text(
                     'Join FeedPad community',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       color: Color(0xFF6B7FA8),
                     ),
@@ -227,7 +227,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                         // User Profile alanı
                         DropdownButtonFormField<String>(
-                          value: _userType,
+                          initialValue: _userType,
                           style: const TextStyle(color: Color(0xFF2C3E50), fontSize: 16, fontWeight: FontWeight.w500),
                           dropdownColor: Colors.white,
                           icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF9DB8E8)),
@@ -252,14 +252,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   color: Color(0xFF9DB8E8), width: 2),
                             ),
                           ),
-                          items: [
+                          items: const [
                             DropdownMenuItem<String>(
                               value: 'user',
                               child: Row(
                                 children: [
                                   Icon(Icons.person, color: Color(0xFF9DB8E8), size: 20),
-                                  const SizedBox(width: 12),
-                                  const Text(
+                                  SizedBox(width: 12),
+                                  Text(
                                     'User', 
                                     style: TextStyle(
                                       color: Color(0xFF2C3E50), 
@@ -275,8 +275,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               child: Row(
                                 children: [
                                   Icon(Icons.store, color: Color(0xFF9DB8E8), size: 20),
-                                  const SizedBox(width: 12),
-                                  const Text(
+                                  SizedBox(width: 12),
+                                  Text(
                                     'Pet Shop Owner', 
                                     style: TextStyle(
                                       color: Color(0xFF2C3E50), 

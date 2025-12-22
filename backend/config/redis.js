@@ -11,7 +11,7 @@ function createRedisClient() {
   redisClient = redis.createClient({
     socket: {
       host: process.env.REDIS_HOST || 'localhost',
-      port: process.env.REDIS_PORT || 6379,
+      port: process.env.REDIS_PORT || 6380,
       reconnectStrategy: (retries) => {
         if (retries > 10) {
           console.error('❌ Redis: Too many reconnection attempts, giving up');

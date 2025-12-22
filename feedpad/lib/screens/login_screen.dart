@@ -5,7 +5,7 @@ import 'register_screen.dart';
 import 'main_screen.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({Key? key}) : super(key: key);
+  const LoginScreen({super.key});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -73,10 +73,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // Logo veya başlık - Kedi teması
-                  Icon(
+                  const Icon(
                     Icons.pets,
                     size: 80,
-                    color: const Color(0xFF9DB8E8), // Pastel mavi
+                    color: Color(0xFF9DB8E8), // Pastel mavi
                   ),
                   const SizedBox(height: 16),
                   Text(

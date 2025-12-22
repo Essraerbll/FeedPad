@@ -44,7 +44,7 @@ class ApiService {
     Map<String, dynamic> body,
   ) async {
     try {
-      final url = Uri.parse('${baseUrl}$endpoint');
+      final url = Uri.parse('$baseUrl$endpoint');
       final response = await http.post(
         url,
         headers: _headers,
@@ -78,7 +78,7 @@ class ApiService {
   // GET isteği
   Future<Map<String, dynamic>> get(String endpoint) async {
     try {
-      final url = Uri.parse('${baseUrl}$endpoint');
+      final url = Uri.parse('$baseUrl$endpoint');
       final response = await http.get(url, headers: _headers);
 
       final responseData = jsonDecode(response.body) as Map<String, dynamic>;
@@ -96,7 +96,7 @@ class ApiService {
     Map<String, dynamic> body,
   ) async {
     try {
-      final url = Uri.parse('${baseUrl}$endpoint');
+      final url = Uri.parse('$baseUrl$endpoint');
       final response = await http.put(
         url,
         headers: _headers,
@@ -115,7 +115,7 @@ class ApiService {
   // DELETE isteği
   Future<Map<String, dynamic>> delete(String endpoint) async {
     try {
-      final url = Uri.parse('${baseUrl}$endpoint');
+      final url = Uri.parse('$baseUrl$endpoint');
       final response = await http.delete(url, headers: _headers);
 
       final responseData = jsonDecode(response.body) as Map<String, dynamic>;

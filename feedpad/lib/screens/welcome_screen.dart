@@ -4,7 +4,7 @@ import 'login_screen.dart';
 class WelcomeScreen extends StatefulWidget {
   final VoidCallback? onGetStarted;
   
-  const WelcomeScreen({Key? key, this.onGetStarted}) : super(key: key);
+  const WelcomeScreen({super.key, this.onGetStarted});
 
   @override
   State<WelcomeScreen> createState() => _WelcomeScreenState();
@@ -48,7 +48,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
             child: Icon(
               Icons.pets,
               size: 100,
-              color: const Color(0xFFC5D9F1).withOpacity(0.4),
+              color: const Color(0xFFC5D9F1).withValues(alpha: 0.4),
             ),
           ),
           Positioned(
@@ -57,7 +57,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
             child: Icon(
               Icons.pets,
               size: 120,
-              color: const Color(0xFFC5D9F1).withOpacity(0.3),
+              color: const Color(0xFFC5D9F1).withValues(alpha: 0.3),
             ),
           ),
           // Main content
@@ -84,7 +84,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
                               child: Icon(
                                 Icons.pets,
                                 size: 40,
-                                color: const Color(0xFFC5D9F1).withOpacity(0.6),
+                                color: const Color(0xFFC5D9F1).withValues(alpha: 0.6),
                               ),
                             ),
                             // Right paw
@@ -94,7 +94,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
                               child: Icon(
                                 Icons.pets,
                                 size: 40,
-                                color: const Color(0xFFC5D9F1).withOpacity(0.6),
+                                color: const Color(0xFFC5D9F1).withValues(alpha: 0.6),
                               ),
                             ),
                             // Left bottom paw
@@ -104,7 +104,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
                               child: Icon(
                                 Icons.pets,
                                 size: 35,
-                                color: const Color(0xFFC5D9F1).withOpacity(0.5),
+                                color: const Color(0xFFC5D9F1).withValues(alpha: 0.5),
                               ),
                             ),
                             // Right bottom paw
@@ -114,7 +114,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
                               child: Icon(
                                 Icons.pets,
                                 size: 35,
-                                color: const Color(0xFFC5D9F1).withOpacity(0.5),
+                                color: const Color(0xFFC5D9F1).withValues(alpha: 0.5),
                               ),
                             ),
                             // Main image
