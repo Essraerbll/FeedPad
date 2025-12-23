@@ -956,7 +956,7 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Gönderi'),
+        title: const Text('Post'),
         elevation: 0,
         backgroundColor: const Color(0xFF64B5F6),
       ),
@@ -1051,7 +1051,7 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 4),
                     child: Text(
-                      'Yorumlar (${_comments.length})',
+                      'Comments (${_comments.length})',
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -1067,7 +1067,7 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                         padding: EdgeInsets.all(16.0),
                         child: Center(
                           child: Text(
-                            'Henüz yorum yok',
+                            'No comments yet',
                             style: TextStyle(color: Colors.grey, fontSize: 14),
                           ),
                         ),
@@ -1095,7 +1095,7 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                                   : null,
                             ),
                             title: Text(
-                              comment['userName'] ?? 'Anonim',
+                              comment['userName'] ?? 'Anonymous',
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 13,
@@ -1127,7 +1127,7 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                       controller: _commentController,
                       enabled: !_isSubmitting,
                       decoration: InputDecoration(
-                        hintText: 'Yorum yazın...',
+                        hintText: 'Write a comment...',
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(24),
