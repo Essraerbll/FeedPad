@@ -6,20 +6,78 @@ const redisClient = require('../config/redis');
 router.get('/user/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
-    const postsKey = `user:${userId}:posts`;
+    // Resolve canonical userId (UUID) from email
+    let canonicalUserId = userId;
+    try {
+      const resolvedUserId = await redisClient.get(`user:email:${userId.toLowerCase()}`);
+      if (resolvedUserId) {
+        canonicalUserId = resolvedUserId;
+      }
+    } catch {}
+
+    const postsKeyUuid = `user:${canonicalUserId}:posts`;
+    const postsKeyEmail = `user:${userId}:posts`;
     
-    const postIds = await redisClient.lRange(postsKey, 0, -1);
+    // Merge posts from both potential keys to avoid lost data
+    const postIdsSet = new Set();
+    const postIdsUuid = await redisClient.lRange(postsKeyUuid, 0, -1).catch(() => []);
+    const postIdsEmail = await redisClient.lRange(postsKeyEmail, 0, -1).catch(() => []);
+    for (const id of postIdsUuid) postIdsSet.add(id);
+    for (const id of postIdsEmail) postIdsSet.add(id);
+    const postIds = Array.from(postIdsSet);
     const posts = [];
     
     for (const postId of postIds) {
       const postData = await redisClient.hGetAll(`post:${postId}`);
-      if (postData && Object.keys(postData).length > 0) {
+      if (postData && Object.keys(postData).length > 0 && (postData.userId || '') !== '') {
+        // Get comments for this post
+        const commentsIds = await redisClient.lRange(`post:${postId}:comments`, 0, -1);
+        const comments = [];
+        
+        for (const commentId of commentsIds) {
+          const commentData = await redisClient.hGetAll(`comment:${commentId}`);
+          if (commentData && Object.keys(commentData).length > 0) {
+            comments.push({
+              id: commentId,
+              ...commentData,
+              timestamp: parseInt(commentData.timestamp)
+            });
+          }
+        }
+        
+        // Get user info for the post
+        // Get user info - try email lookup first
+        let userIdKey = postData.userId || '';
+        try {
+          if (typeof userIdKey === 'string' && userIdKey.length > 0) {
+            const emailKey = `user:email:${userIdKey.toLowerCase()}`;
+            const userIdByEmail = await redisClient.get(emailKey);
+            if (userIdByEmail) {
+              userIdKey = userIdByEmail;
+            }
+          }
+        } catch {}
+        
+        let userData = {};
+        try {
+          userData = await redisClient.hGetAll(`user:${userIdKey}`);
+          if (!userData || Object.keys(userData).length === 0) {
+            const userJson = await redisClient.get(`user:${userIdKey}`);
+            userData = userJson ? JSON.parse(userJson) : {};
+          }
+        } catch {}
+        
         posts.push({
           id: postId,
           ...postData,
           likes: parseInt(postData.likes) || 0,
-          comments: parseInt(postData.comments) || 0,
-          timestamp: parseInt(postData.timestamp)
+          comments: comments,
+          timestamp: parseInt(postData.timestamp),
+          user: {
+            name: userData.name || 'Unknown',
+            username: userData.username || 'user',
+            profileImage: userData.profileImage || null
+          }
         });
       }
     }
@@ -46,8 +104,24 @@ router.post('/create', async (req, res) => {
     const postId = `post_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const timestamp = Date.now();
     
+    // Resolve canonical userId (UUID) from email if needed and fetch user info
+    let canonicalUserId = userId;
+    let userData = {};
+    try {
+      const resolvedUserId = await redisClient.get(`user:email:${userId.toLowerCase()}`);
+      if (resolvedUserId) {
+        canonicalUserId = resolvedUserId;
+      }
+      const userJson = await redisClient.get(`user:${canonicalUserId}`);
+      if (userJson) {
+        userData = JSON.parse(userJson);
+      }
+    } catch (e) {
+      console.log('Could not fetch user data:', e);
+    }
+    
     // Save post data - Redis expects key-value pairs as separate arguments
-    await redisClient.hSet(`post:${postId}`, 'userId', userId);
+    await redisClient.hSet(`post:${postId}`, 'userId', canonicalUserId);
     await redisClient.hSet(`post:${postId}`, 'caption', caption);
     await redisClient.hSet(`post:${postId}`, 'imageUrl', imageUrl || '');
     await redisClient.hSet(`post:${postId}`, 'location', location || '');
@@ -56,17 +130,22 @@ router.post('/create', async (req, res) => {
     await redisClient.hSet(`post:${postId}`, 'timestamp', timestamp.toString());
     
     const postData = {
-      userId,
+      userId: canonicalUserId,
       caption,
       imageUrl: imageUrl || '',
       location: location || '',
       likes: 0,
       comments: 0,
-      timestamp
+      timestamp,
+      user: {
+        name: userData.name || 'Unknown',
+        username: userData.username || 'user',
+        profileImage: userData.profileImage || null
+      }
     };
     
     // Add to user's posts list
-    await redisClient.lPush(`user:${userId}:posts`, postId);
+    await redisClient.lPush(`user:${canonicalUserId}:posts`, postId);
     
     // Add to global feed
     await redisClient.lPush('feed:global', postId);
@@ -88,19 +167,49 @@ router.get('/feed', async (req, res) => {
     
     for (const postId of postIds) {
       const postData = await redisClient.hGetAll(`post:${postId}`);
-      if (postData && Object.keys(postData).length > 0) {
-        // Get user info
-        let userData = await redisClient.hGetAll(`user:${postData.userId}`);
-        if (!userData || Object.keys(userData).length === 0) {
-          const userJson = await redisClient.get(`user:${postData.userId}`);
-          userData = userJson ? JSON.parse(userJson) : {};
+      if (postData && Object.keys(postData).length > 0 && (postData.userId || '') !== '') {
+        // Get comments for this post
+        const commentsIds = await redisClient.lRange(`post:${postId}:comments`, 0, -1);
+        const comments = [];
+        
+        for (const commentId of commentsIds) {
+          const commentData = await redisClient.hGetAll(`comment:${commentId}`);
+          if (commentData && Object.keys(commentData).length > 0) {
+            comments.push({
+              id: commentId,
+              ...commentData,
+              timestamp: parseInt(commentData.timestamp)
+            });
+          }
         }
+        
+        // Get user info
+        // Get user info - try email lookup first
+        let userIdKey = postData.userId || '';
+        try {
+          if (typeof userIdKey === 'string' && userIdKey.length > 0) {
+            const emailKey = `user:email:${userIdKey.toLowerCase()}`;
+            const userIdByEmail = await redisClient.get(emailKey);
+            if (userIdByEmail) {
+              userIdKey = userIdByEmail;
+            }
+          }
+        } catch {}
+        
+        let userData = {};
+        try {
+          userData = await redisClient.hGetAll(`user:${userIdKey}`);
+          if (!userData || Object.keys(userData).length === 0) {
+            const userJson = await redisClient.get(`user:${userIdKey}`);
+            userData = userJson ? JSON.parse(userJson) : {};
+          }
+        } catch {}
 
         posts.push({
           id: postId,
           ...postData,
           likes: parseInt(postData.likes) || 0,
-          comments: parseInt(postData.comments) || 0,
+          comments: comments,
           timestamp: parseInt(postData.timestamp),
           user: {
             name: userData.name || 'Unknown',
@@ -237,6 +346,104 @@ router.put('/profile', async (req, res) => {
   } catch (error) {
     console.error('Update profile error:', error);
     res.status(500).json({ success: false, message: 'Failed to update profile' });
+  }
+});
+
+// Add comment to post
+router.post('/comment', async (req, res) => {
+  try {
+    const { postId, userId, userName, text } = req.body;
+    
+    if (!postId || !userId || !text) {
+      return res.status(400).json({ success: false, message: 'Post ID, User ID, and text required' });
+    }
+    
+    // Get user profile data
+    let userProfileImage = null;
+    try {
+      const userDataStr = await redisClient.get(`user:${userId}`);
+      if (userDataStr) {
+        const userData = JSON.parse(userDataStr);
+        userProfileImage = userData.profileImage || null;
+      }
+    } catch (e) {
+      console.log('Could not fetch user profile image:', e);
+    }
+    
+    const commentId = `comment_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const timestamp = Date.now();
+    
+    // Save comment with full user info
+    const commentKey = `comment:${commentId}`;
+    await redisClient.hSet(commentKey, 'userId', userId);
+    await redisClient.hSet(commentKey, 'userName', userName || 'Anonymous');
+    await redisClient.hSet(commentKey, 'userProfileImage', userProfileImage || '');
+    await redisClient.hSet(commentKey, 'text', text);
+    await redisClient.hSet(commentKey, 'timestamp', timestamp.toString());
+    
+    // Add comment to post's comments list
+    const postCommentsKey = `post:${postId}:comments`;
+    await redisClient.lPush(postCommentsKey, commentId);
+    
+    // Increment post's comment count
+    await redisClient.hIncrBy(`post:${postId}`, 'comments', 1);
+    
+    res.json({ 
+      success: true, 
+      commentId,
+      comment: {
+        id: commentId,
+        userId,
+        userName: userName || 'Anonymous',
+        userProfileImage: userProfileImage || null,
+        text,
+        timestamp
+      }
+    });
+  } catch (error) {
+    console.error('Add comment error:', error);
+    res.status(500).json({ success: false, message: 'Failed to add comment' });
+  }
+});
+
+// Migrate a user's posts from email-based list to UUID-based list
+router.post('/migrate/user-post-keys', async (req, res) => {
+  try {
+    const { userId } = req.body; // may be email
+    if (!userId) {
+      return res.status(400).json({ success: false, message: 'User ID (email) required' });
+    }
+
+    // Resolve canonical UUID
+    let canonicalUserId = userId;
+    const resolvedUserId = await redisClient.get(`user:email:${String(userId).toLowerCase()}`);
+    if (resolvedUserId) canonicalUserId = resolvedUserId;
+
+    const postsKeyUuid = `user:${canonicalUserId}:posts`;
+    const postsKeyEmail = `user:${userId}:posts`;
+
+    const postIdsUuid = await redisClient.lRange(postsKeyUuid, 0, -1).catch(() => []);
+    const postIdsEmail = await redisClient.lRange(postsKeyEmail, 0, -1).catch(() => []);
+
+    const uuidSet = new Set(postIdsUuid);
+    let migrated = 0;
+    for (const id of postIdsEmail) {
+      if (!uuidSet.has(id)) {
+        await redisClient.lPush(postsKeyUuid, id);
+        uuidSet.add(id);
+        migrated++;
+      }
+      // Ensure post userId is canonical
+      await redisClient.hSet(`post:${id}`, 'userId', canonicalUserId);
+    }
+
+    // Optionally, remove the email-based list (leave it for safety)
+    // await redisClient.del(postsKeyEmail);
+
+    res.json({ success: true, migrated, canonicalUserId, postsTotal: uuidSet.size });
+  } catch (error) {
+    console.error('Migrate user post keys error:', error);
+    res.status(500).json({ success: false, message: 'Failed to migrate user post keys' });
   }
 });
 

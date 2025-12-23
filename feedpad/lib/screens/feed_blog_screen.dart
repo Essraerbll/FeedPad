@@ -77,43 +77,6 @@ class _FeedBlogScreenState extends State<FeedBlogScreen> {
     }
   }
 
-  Widget _buildStoryChip(Map<String, dynamic> post) {
-    final user = post['user'] ?? {};
-    final display = (user['name'] ?? 'User') as String;
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(3),
-          decoration: const BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: LinearGradient(
-              colors: [Color(0xFF64B5F6), Color(0xFF42A5F5)],
-            ),
-          ),
-          child: CircleAvatar(
-            radius: 26,
-            backgroundColor: const Color(0xFFE3F2FD),
-            child: Text(
-              display.isNotEmpty ? display[0].toUpperCase() : 'U',
-              style: const TextStyle(color: Color(0xFF1E88E5), fontWeight: FontWeight.bold),
-            ),
-          ),
-        ),
-        const SizedBox(height: 6),
-        SizedBox(
-          width: 60,
-          child: Text(
-            display,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 12, color: Color(0xFF546E7A)),
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildImage(String imageUrl) {
     Widget fallback = Container(
       height: 220,
@@ -148,7 +111,7 @@ class _FeedBlogScreenState extends State<FeedBlogScreen> {
 
   Widget _buildPostCard(Map<String, dynamic> post) {
     final user = post['user'] ?? {};
-    final name = user['name'] ?? 'User';
+    final name = user['name'] ?? post['userName'] ?? user['username'] ?? 'Bilinmiyor';
     final username = user['username'] ?? '';
     final caption = post['caption'] ?? '';
     final imageUrl = post['imageUrl'] ?? '';
@@ -226,11 +189,23 @@ class _FeedBlogScreenState extends State<FeedBlogScreen> {
                 ),
                 Text('$likes', style: const TextStyle(color: Color(0xFF546E7A))),
                 const SizedBox(width: 12),
-                const Icon(Icons.comment_bank_outlined, size: 20, color: Color(0xFF90A4AE)),
+                IconButton(
+                  icon: const Icon(Icons.comment_bank_outlined, size: 20, color: Colors.orange),
+                  onPressed: () => _openPostDetails(post),
+                ),
               ],
             )
           ],
         ),
+      ),
+    );
+  }
+
+  void _openPostDetails(Map<String, dynamic> post) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PostDetailsScreen(post: post, apiService: _apiService),
       ),
     );
   }
@@ -244,29 +219,266 @@ class _FeedBlogScreenState extends State<FeedBlogScreen> {
           onRefresh: _loadFeed,
           child: _isLoading
               ? const Center(child: CircularProgressIndicator(color: Color(0xFF64B5F6)))
-              : ListView(
-                  children: [
-                    const SizedBox(height: 12),
-                    // Stories style row
-                    SizedBox(
-                      height: 110,
-                      child: ListView.separated(
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        itemBuilder: (context, index) {
-                          final item = _posts.isNotEmpty ? _posts[index % _posts.length] : {'user': {'name': 'Story'}};
-                          return _buildStoryChip(item);
-                        },
-                        separatorBuilder: (_, __) => const SizedBox(width: 12),
-                        itemCount: _posts.isEmpty ? 5 : (_posts.length > 10 ? 10 : _posts.length),
+              : ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: _posts.length,
+                  itemBuilder: (context, index) {
+                    final post = _posts[index];
+                    final user = post['user'] ?? {};
+                    final userName = user['name'] ?? post['userName'] ?? user['username'] ?? 'Bilinmiyor';
+                    final userProfileImage = user['profileImage'] ?? post['userProfileImage'] ?? '';
+
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ListTile(
+                            leading: CircleAvatar(
+                              backgroundImage: userProfileImage.isNotEmpty
+                                  ? NetworkImage(userProfileImage)
+                                  : null,
+                              child: userProfileImage.isEmpty
+                                  ? const Icon(Icons.person, color: Colors.white)
+                                  : null,
+                            ),
+                            title: Text(userName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Text(post['caption'] ?? '', style: const TextStyle(fontSize: 16)),
+                          ),
+                          if (post['imageUrl'] != null && (post['imageUrl'] as String).isNotEmpty)
+                            Image.network(
+                              post['imageUrl'],
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  height: 200,
+                                  color: Colors.grey[200],
+                                  child: const Center(
+                                    child: Icon(Icons.broken_image, size: 50, color: Colors.grey),
+                                  ),
+                                );
+                              },
+                            ),
+                          Row(
+                            children: [
+                              IconButton(
+                                icon: Icon(
+                                  post['liked'] == true ? Icons.favorite : Icons.favorite_border,
+                                  size: 20,
+                                  color: Colors.red,
+                                ),
+                                onPressed: () => _toggleLike(post),
+                              ),
+                              Text('${post['likes'] ?? 0}', style: const TextStyle(color: Color(0xFF546E7A))),
+                              const SizedBox(width: 12),
+                              IconButton(
+                                icon: const Icon(Icons.comment_bank_outlined, size: 20, color: Colors.orange),
+                                onPressed: () => _openPostDetails(post),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    // Feed list
-                    ..._posts.map(_buildPostCard),
-                    const SizedBox(height: 24),
-                  ],
+                    );
+                  },
                 ),
+        ),
+      ),
+    );
+  }
+}
+
+class PostDetailsScreen extends StatefulWidget {
+  final Map<String, dynamic> post;
+  final ApiService apiService;
+
+  const PostDetailsScreen({Key? key, required this.post, required this.apiService}) : super(key: key);
+
+  @override
+  State<PostDetailsScreen> createState() => _PostDetailsScreenState();
+}
+
+class _PostDetailsScreenState extends State<PostDetailsScreen> {
+  late TextEditingController _commentController;
+  late List<Map<String, dynamic>> _comments;
+  bool _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _commentController = TextEditingController();
+    _comments = widget.post['comments'] is List ? List<Map<String, dynamic>>.from(widget.post['comments']) : [];
+  }
+
+  @override
+  void dispose() {
+    _commentController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submitComment() async {
+    if (_commentController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Yorum yazınız')),
+      );
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+
+    try {
+      final auth = Provider.of<AuthService>(context, listen: false);
+      final userId = auth.currentUser?.email;
+      final userName = auth.currentUser?.name ?? 'Anonymous';
+
+      if (userId == null) {
+        throw Exception('Kullanıcı bilgisi bulunamadı');
+      }
+
+      final response = await widget.apiService.post('/posts/comment', {
+        'postId': widget.post['id'],
+        'userId': userId,
+        'userName': userName,
+        'text': _commentController.text,
+      });
+
+      if (response['success'] == true) {
+        setState(() {
+          _comments.add({
+            'userId': userId,
+            'userName': userName,
+            'text': _commentController.text,
+            'userProfileImage': null,
+          });
+          _commentController.clear();
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Yorum eklendi!'),
+              backgroundColor: Color(0xFF66BB6A),
+            ),
+          );
+        }
+      } else {
+        throw Exception(response['message'] ?? 'Yorum eklenemedi');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Hata: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      setState(() => _isSubmitting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final user = widget.post['user'] ?? {};
+    final senderName = user['name'] ?? widget.post['userName'] ?? user['username'] ?? 'Bilinmiyor';
+    final caption = widget.post['caption'] ?? widget.post['content'] ?? '';
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Post Detayları')),
+      body: Container(
+        color: Colors.blue.shade50,
+        child: Column(
+          children: [
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  if (widget.post['imageUrl'] != null && (widget.post['imageUrl'] as String).isNotEmpty)
+                    Image.network(
+                      widget.post['imageUrl'],
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          height: 200,
+                          color: Colors.grey[200],
+                          child: const Center(
+                            child: Icon(Icons.broken_image, size: 50, color: Colors.grey),
+                          ),
+                        );
+                      },
+                    ),
+                  const SizedBox(height: 20),
+                  if (caption.isNotEmpty)
+                    Text(caption, style: const TextStyle(fontSize: 16)),
+                  const SizedBox(height: 20),
+                  Text('Paylaşan: $senderName', style: const TextStyle(fontSize: 14, fontStyle: FontStyle.italic)),
+                  const SizedBox(height: 20),
+                  const Text('Yorumlar:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  if (_comments.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Text('Henüz yorum yok', style: TextStyle(color: Colors.grey)),
+                    )
+                  else
+                    ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: _comments.length,
+                      itemBuilder: (context, index) {
+                        final comment = _comments[index];
+                        return ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: const Color(0xFF64B5F6),
+                            backgroundImage: comment['userProfileImage'] != null && 
+                                (comment['userProfileImage'] as String?)?.isNotEmpty == true
+                                ? NetworkImage(comment['userProfileImage'])
+                                : null,
+                            child: comment['userProfileImage'] == null || 
+                                (comment['userProfileImage'] as String?)?.isEmpty != false
+                                ? const Icon(Icons.person, color: Colors.white)
+                                : null,
+                          ),
+                          title: Text(comment['userName'] ?? 'Unknown'),
+                          subtitle: Text(comment['text'] ?? ''),
+                        );
+                      },
+                    ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _commentController,
+                      enabled: !_isSubmitting,
+                      decoration: const InputDecoration(
+                        hintText: 'Yorum yazın...',
+                        border: OutlineInputBorder(),
+                      ),
+                      onSubmitted: _isSubmitting ? null : (_) => _submitComment(),
+                    ),
+                  ),
+                  IconButton(
+                    icon: _isSubmitting
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.send, color: Colors.blue),
+                    onPressed: _isSubmitting ? null : _submitComment,
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

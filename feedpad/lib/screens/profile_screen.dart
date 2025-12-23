@@ -26,7 +26,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
   
   // Posts from API
   List<Map<String, dynamic>> _posts = [];
+  Future<void> _toggleLike(Map<String, dynamic> post) async {
+    final auth = Provider.of<AuthService>(context, listen: false);
+    final userId = auth.currentUser?.email;
+    if (userId == null) return;
 
+    final postId = post['id'] ?? '';
+    final isLiked = post['liked'] == true;
+
+    // Optimistic update
+    setState(() {
+      post['liked'] = !isLiked;
+      final currentLikes = post['likes'] ?? 0;
+      post['likes'] = isLiked ? (currentLikes - 1).clamp(0, 1 << 31) : currentLikes + 1;
+    });
+
+    try {
+      await _apiService.post('/posts/like', {
+        'postId': postId,
+        'userId': userId,
+      });
+    } catch (e) {
+      // rollback on failure
+      setState(() {
+        post['liked'] = isLiked;
+        post['likes'] = isLiked ? (post['likes'] ?? 1) + 1 : (post['likes'] ?? 0) - 1;
+      });
+    }
+  }
   @override
   void initState() {
     super.initState();
@@ -87,7 +114,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Icon(Icons.add_photo_alternate, color: Color(0xFF64B5F6)),
             SizedBox(width: 8),
             Text(
-              'Create Post',
+              'Post Oluştur',
               style: TextStyle(color: Color(0xFF1976D2), fontWeight: FontWeight.bold),
             ),
           ],
@@ -124,7 +151,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             children: [
                               Icon(Icons.add_a_photo, size: 48, color: Color(0xFF64B5F6)),
                               SizedBox(height: 8),
-                              Text('Add Photo', style: TextStyle(color: Color(0xFF1976D2))),
+                              Text('Fotoğraf Ekle', style: TextStyle(color: Color(0xFF1976D2))),
                             ],
                           )
                         : ClipRRect(
@@ -148,14 +175,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              // Caption
+              // Başlık
               TextField(
                 controller: captionController,
                 maxLines: 3,
                 decoration: InputDecoration(
-                  labelText: 'Caption',
+                  labelText: 'Başlık',
                   labelStyle: const TextStyle(color: Color(0xFF1976D2)),
-                  hintText: 'Write something about this...',
+                  hintText: 'Bunu paylaş...',
                   prefixIcon: const Icon(Icons.edit, color: Color(0xFF64B5F6)),
                   filled: true,
                   fillColor: Colors.white,
@@ -174,13 +201,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              // Location
+              // Konum
               TextField(
                 controller: locationController,
                 decoration: InputDecoration(
-                  labelText: 'Location (optional)',
+                  labelText: 'Konum (opsiyonel)',
                   labelStyle: const TextStyle(color: Color(0xFF1976D2)),
-                  hintText: 'Add location...',
+                  hintText: 'Konum ekle...',
                   prefixIcon: const Icon(Icons.location_on, color: Color(0xFF64B5F6)),
                   filled: true,
                   fillColor: Colors.white,
@@ -212,7 +239,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('Please write a caption'),
+                      content: Text('Lütfen bir başlık yazınız'),
                       backgroundColor: Color(0xFF64B5F6),
                     ),
                   );
@@ -222,6 +249,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
               
               final authService = Provider.of<AuthService>(context, listen: false);
               final userId = authService.currentUser?.email;
+              
+              if (userId == null) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('User bilgisi bulunamadı'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+                return;
+              }
+              
               String? imageDataUrl;
               if (imageBytes != null) {
                 final ext = (imageName?.split('.').last ?? 'png').toLowerCase();
@@ -230,30 +270,51 @@ class _ProfileScreenState extends State<ProfileScreen> {
               }
               
               try {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Paylaşılıyor...'),
+                      backgroundColor: Color(0xFF64B5F6),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                }
+                
                 final response = await _apiService.post('/posts/create', {
                   'userId': userId,
                   'caption': captionController.text,
-                  'location': locationController.text,
-                  'imageUrl': imageDataUrl,
+                  'location': locationController.text.isNotEmpty ? locationController.text : '',
+                  'imageUrl': imageDataUrl ?? '',
                 });
                 
-                if (response['success']) {
+                if (response['success'] == true) {
                   if (mounted) {
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('Post created!'),
+                        content: Text('Post başarıyla paylaşıldı!'),
                         backgroundColor: Color(0xFF66BB6A),
                       ),
                     );
+                    // Reload user data to show new post
+                    _loadUserData();
                   }
-                  _loadUserData(); // Reload
+                } else {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Hata: ${response['message'] ?? 'Bilinmeyen hata'}'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
                 }
               } catch (e) {
+                debugPrint('Post creation error: $e');
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Error: $e'),
+                      content: Text('Paylaşma hatası: $e'),
                       backgroundColor: Colors.red,
                     ),
                   );
@@ -264,7 +325,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               backgroundColor: const Color(0xFF64B5F6),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
-            child: const Text('Post', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: const Text('Paylaş', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -302,10 +363,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   CircleAvatar(
                     radius: 50,
                     backgroundColor: const Color(0xFF64B5F6),
-                    backgroundImage: _profileImageUrl != null 
+                    backgroundImage: _profileImageUrl != null && _profileImageUrl!.isNotEmpty
                         ? NetworkImage(_profileImageUrl!) 
                         : null,
-                    child: _profileImageUrl == null 
+                    child: _profileImageUrl == null || _profileImageUrl!.isEmpty
                         ? const Icon(Icons.pets, size: 50, color: Colors.white)
                         : null,
                   ),
@@ -441,6 +502,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  void _openCommentsSection() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CommentsScreen(),
+      ),
+    );
+  }
+
+  void _openPostDetails(Map<String, dynamic> post) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PostDetailsScreen(post: post, apiService: _apiService),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
@@ -479,10 +558,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             child: CircleAvatar(
                               radius: 40,
                               backgroundColor: const Color(0xFFE3F2FD),
-                              backgroundImage: _profileImageUrl != null 
-                                  ? NetworkImage(_profileImageUrl!) 
-                                  : null,
-                              child: _profileImageUrl == null 
+                            backgroundImage: _profileImageUrl != null && _profileImageUrl!.isNotEmpty
+                                ? NetworkImage(_profileImageUrl!) 
+                                : null,
+                            child: _profileImageUrl == null || _profileImageUrl!.isEmpty
                                   ? const Icon(Icons.pets, size: 45, color: Color(0xFF64B5F6))
                                   : null,
                             ),
@@ -574,7 +653,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
             ),
-            // Posts Grid
+            // Posts List
             _posts.isEmpty
                 ? SliverFillRemaining(
                     child: Center(
@@ -614,18 +693,73 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                   )
-                : SliverPadding(
-                    padding: const EdgeInsets.all(2.0),
-                    sliver: SliverGrid(
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 3,
-                        mainAxisSpacing: 3,
-                        crossAxisSpacing: 3,
-                      ),
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) => _buildPostTile(_posts[index]),
-                        childCount: _posts.length,
-                      ),
+                : SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        final post = _posts[index];
+                        final user = post['user'] ?? {};
+                        final userName = user['name'] ?? post['userName'] ?? user['username'] ?? 'Bilinmiyor';
+                        final userProfileImage = user['profileImage'] ?? post['userProfileImage'] ?? '';
+                        final comments = post['comments'] ?? [];
+
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              ListTile(
+                                leading: CircleAvatar(
+                                  backgroundColor: const Color(0xFF64B5F6),
+                                  backgroundImage: userProfileImage.isNotEmpty
+                                      ? NetworkImage(userProfileImage)
+                                      : null,
+                                  child: userProfileImage.isEmpty
+                                      ? const Icon(Icons.person, color: Colors.white)
+                                      : null,
+                                ),
+                                title: Text(userName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Text(post['caption'] ?? '', style: const TextStyle(fontSize: 16)),
+                              ),
+                              if (post['imageUrl'] != null && (post['imageUrl'] as String).isNotEmpty)
+                                Image.network(
+                                  post['imageUrl'],
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      height: 200,
+                                      color: Colors.grey[200],
+                                      child: const Center(
+                                        child: Icon(Icons.broken_image, size: 50, color: Colors.grey),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              Row(
+                                children: [
+                                  IconButton(
+                                    icon: Icon(
+                                      post['liked'] == true ? Icons.favorite : Icons.favorite_border,
+                                      size: 20,
+                                      color: Colors.red,
+                                    ),
+                                    onPressed: () => _toggleLike(post),
+                                  ),
+                                  Text('${post['likes'] ?? 0}', style: const TextStyle(color: Color(0xFF546E7A))),
+                                  const SizedBox(width: 12),
+                                  IconButton(
+                                    icon: const Icon(Icons.comment_bank_outlined, size: 20, color: Colors.orange),
+                                    onPressed: () => _openPostDetails(post),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                      childCount: _posts.length,
                     ),
                   ),
           ],
@@ -656,64 +790,246 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ],
     );
   }
+}
 
-  Widget _buildPostTile(Map<String, dynamic> post) {
-    final auth = Provider.of<AuthService>(context, listen: false);
-    final userName = auth.currentUser?.name ?? 'You';
-    final caption = post['caption'] ?? '';
-
-    return GestureDetector(
-      onTap: () {
-        // TODO: Show post detail
-      },
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            height: 110,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFFE3F2FD), Color(0xFFBBDEFB)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              border: Border.all(color: Colors.white, width: 2),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Center(
-              child: Icon(
-                Icons.pets,
-                size: 40,
-                color: const Color(0xFF64B5F6).withValues(alpha: 0.5),
+class CommentsScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Comments')),
+      body: Container(
+        color: Colors.blue.shade50,
+        child: Column(
+          children: [
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: const [
+                  // Add dynamic comments here
+                  Text('No comments yet.', style: TextStyle(fontSize: 16)),
+                ],
               ),
             ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            userName,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF2C3E50)),
-          ),
-          Text(
-            caption,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 11, color: Color(0xFF546E7A)),
-          ),
-          const SizedBox(height: 2),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              const Icon(Icons.favorite, color: Color(0xFF64B5F6), size: 14),
-              const SizedBox(width: 4),
-              Text(
-                '${post['likes'] ?? 0}',
-                style: const TextStyle(fontSize: 11, color: Color(0xFF546E7A)),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      decoration: const InputDecoration(
+                        hintText: 'Write a comment...',
+                        border: OutlineInputBorder(),
+                      ),
+                      onSubmitted: (value) {
+                        // Handle comment submission
+                      },
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.send, color: Colors.blue),
+                    onPressed: () {
+                      // Handle send action
+                    },
+                  ),
+                ],
               ),
-            ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class PostDetailsScreen extends StatefulWidget {
+  final Map<String, dynamic> post;
+  final ApiService apiService;
+
+  const PostDetailsScreen({Key? key, required this.post, required this.apiService}) : super(key: key);
+
+  @override
+  State<PostDetailsScreen> createState() => _PostDetailsScreenState();
+}
+
+class _PostDetailsScreenState extends State<PostDetailsScreen> {
+  late TextEditingController _commentController;
+  late List<Map<String, dynamic>> _comments;
+  bool _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _commentController = TextEditingController();
+    _comments = widget.post['comments'] is List ? List<Map<String, dynamic>>.from(widget.post['comments']) : [];
+  }
+
+  @override
+  void dispose() {
+    _commentController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submitComment() async {
+    if (_commentController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Yorum yazınız')),
+      );
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+
+    try {
+      final auth = Provider.of<AuthService>(context, listen: false);
+      final userId = auth.currentUser?.email;
+      final userName = auth.currentUser?.name ?? 'Anonymous';
+
+      if (userId == null) {
+        throw Exception('Kullanıcı bilgisi bulunamadı');
+      }
+
+      final response = await widget.apiService.post('/posts/comment', {
+        'postId': widget.post['id'],
+        'userId': userId,
+        'userName': userName,
+        'text': _commentController.text,
+      });
+
+      if (response['success'] == true) {
+        setState(() {
+          _comments.add({
+            'userId': userId,
+            'userName': userName,
+            'text': _commentController.text,
+            'userProfileImage': null,
+          });
+          _commentController.clear();
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Yorum eklendi!'),
+              backgroundColor: Color(0xFF66BB6A),
+            ),
+          );
+        }
+      } else {
+        throw Exception(response['message'] ?? 'Yorum eklenemedi');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Hata: $e'),
+            backgroundColor: Colors.red,
           ),
-        ],
+        );
+      }
+    } finally {
+      setState(() => _isSubmitting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final user = widget.post['user'] ?? {};
+    final senderName = user['name'] ?? widget.post['userName'] ?? user['username'] ?? 'Bilinmiyor';
+    final caption = widget.post['caption'] ?? widget.post['content'] ?? '';
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Post Detayları')),
+      body: Container(
+        color: Colors.blue.shade50,
+        child: Column(
+          children: [
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  if (widget.post['imageUrl'] != null && (widget.post['imageUrl'] as String).isNotEmpty)
+                    Image.network(
+                      widget.post['imageUrl'],
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          height: 200,
+                          color: Colors.grey[200],
+                          child: const Center(
+                            child: Icon(Icons.broken_image, size: 50, color: Colors.grey),
+                          ),
+                        );
+                      },
+                    ),
+                  const SizedBox(height: 20),
+                  if (caption.isNotEmpty)
+                    Text(caption, style: const TextStyle(fontSize: 16)),
+                  const SizedBox(height: 20),
+                  Text('Paylaşan: $senderName', style: const TextStyle(fontSize: 14, fontStyle: FontStyle.italic)),
+                  const SizedBox(height: 20),
+                  const Text('Yorumlar:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  if (_comments.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Text('Henüz yorum yok', style: TextStyle(color: Colors.grey)),
+                    )
+                  else
+                    ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: _comments.length,
+                      itemBuilder: (context, index) {
+                        final comment = _comments[index];
+                        return ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: const Color(0xFF64B5F6),
+                            backgroundImage: comment['userProfileImage'] != null && 
+                                (comment['userProfileImage'] as String?)?.isNotEmpty == true
+                                ? NetworkImage(comment['userProfileImage'])
+                                : null,
+                            child: comment['userProfileImage'] == null || 
+                                (comment['userProfileImage'] as String?)?.isEmpty != false
+                                ? const Icon(Icons.person, color: Colors.white)
+                                : null,
+                          ),
+                          title: Text(comment['userName'] ?? 'Unknown'),
+                          subtitle: Text(comment['text'] ?? ''),
+                        );
+                      },
+                    ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _commentController,
+                      enabled: !_isSubmitting,
+                      decoration: const InputDecoration(
+                        hintText: 'Yorum yazın...',
+                        border: OutlineInputBorder(),
+                      ),
+                      onSubmitted: _isSubmitting ? null : (_) => _submitComment(),
+                    ),
+                  ),
+                  IconButton(
+                    icon: _isSubmitting
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.send, color: Colors.blue),
+                    onPressed: _isSubmitting ? null : _submitComment,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
