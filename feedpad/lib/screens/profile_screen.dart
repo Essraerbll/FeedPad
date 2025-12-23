@@ -98,7 +98,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       
       // Load posts
       try {
-        final postsResponse = await _apiService.get('/posts/user/$userId');
+        final postsResponse = await _apiService.get('/posts/user/$userId?requesterId=$userId');
         if (postsResponse['success']) {
           setState(() {
             _posts = List<Map<String, dynamic>>.from(postsResponse['posts'] ?? []);

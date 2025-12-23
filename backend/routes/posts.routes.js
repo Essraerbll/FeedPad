@@ -6,6 +6,8 @@ const redisClient = require('../config/redis');
 router.get('/user/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
+    const { requesterId } = req.query; // Who is requesting to check liked status
+    
     // Resolve canonical userId (UUID) from email
     let canonicalUserId = userId;
     try {
@@ -67,10 +69,19 @@ router.get('/user/:userId', async (req, res) => {
           }
         } catch {}
         
+        // Check if requester liked this post
+        let liked = false;
+        if (requesterId) {
+          try {
+            liked = await redisClient.sIsMember(`post:${postId}:likes`, requesterId);
+          } catch {}
+        }
+        
         posts.push({
           id: postId,
           ...postData,
           likes: parseInt(postData.likes) || 0,
+          liked: liked,
           comments: comments,
           timestamp: parseInt(postData.timestamp),
           user: {
@@ -171,7 +182,7 @@ router.post('/create', async (req, res) => {
 // Get global feed
 router.get('/feed', async (req, res) => {
   try {
-    const { limit = 20, offset = 0 } = req.query;
+    const { limit = 20, offset = 0, requesterId } = req.query; // Who is requesting to check liked status
     
     const postIds = await redisClient.lRange('feed:global', offset, offset + parseInt(limit) - 1);
     const posts = [];
@@ -186,9 +197,23 @@ router.get('/feed', async (req, res) => {
         for (const commentId of commentsIds) {
           const commentData = await redisClient.hGetAll(`comment:${commentId}`);
           if (commentData && Object.keys(commentData).length > 0) {
+            // Get latest userName from user profile
+            let userName = commentData.userName || 'Anonymous';
+            try {
+              const commentUserId = commentData.userId;
+              if (commentUserId) {
+                const userDataStr = await redisClient.get(`user:${commentUserId}`);
+                if (userDataStr) {
+                  const userData = JSON.parse(userDataStr);
+                  if (userData.name) userName = userData.name;
+                }
+              }
+            } catch {}
+            
             comments.push({
               id: commentId,
               ...commentData,
+              userName: userName,
               timestamp: parseInt(commentData.timestamp)
             });
           }
@@ -216,10 +241,19 @@ router.get('/feed', async (req, res) => {
           }
         } catch {}
 
+        // Check if requester liked this post
+        let liked = false;
+        if (requesterId) {
+          try {
+            liked = await redisClient.sIsMember(`post:${postId}:likes`, requesterId);
+          } catch {}
+        }
+
         posts.push({
           id: postId,
           ...postData,
           likes: parseInt(postData.likes) || 0,
+          liked: liked,
           comments: comments,
           timestamp: parseInt(postData.timestamp),
           user: {
@@ -276,21 +310,39 @@ router.post('/follow', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Follower and Following IDs required' });
     }
     
-    if (followerId === followingId) {
+    // Resolve canonical userIds (UUID) from email if needed
+    let canonicalFollowerId = followerId;
+    let canonicalFollowingId = followingId;
+    
+    try {
+      const resolvedFollowerId = await redisClient.get(`user:email:${String(followerId).toLowerCase()}`);
+      if (resolvedFollowerId) {
+        canonicalFollowerId = resolvedFollowerId;
+      }
+    } catch {}
+    
+    try {
+      const resolvedFollowingId = await redisClient.get(`user:email:${String(followingId).toLowerCase()}`);
+      if (resolvedFollowingId) {
+        canonicalFollowingId = resolvedFollowingId;
+      }
+    } catch {}
+    
+    if (canonicalFollowerId === canonicalFollowingId) {
       return res.status(400).json({ success: false, message: 'Cannot follow yourself' });
     }
     
-    const isFollowing = await redisClient.sIsMember(`user:${followerId}:following`, followingId);
+    const isFollowing = await redisClient.sIsMember(`user:${canonicalFollowerId}:following`, canonicalFollowingId);
     
     if (isFollowing) {
       // Unfollow
-      await redisClient.sRem(`user:${followerId}:following`, followingId);
-      await redisClient.sRem(`user:${followingId}:followers`, followerId);
+      await redisClient.sRem(`user:${canonicalFollowerId}:following`, canonicalFollowingId);
+      await redisClient.sRem(`user:${canonicalFollowingId}:followers`, canonicalFollowerId);
       res.json({ success: true, following: false });
     } else {
       // Follow
-      await redisClient.sAdd(`user:${followerId}:following`, followingId);
-      await redisClient.sAdd(`user:${followingId}:followers`, followerId);
+      await redisClient.sAdd(`user:${canonicalFollowerId}:following`, canonicalFollowingId);
+      await redisClient.sAdd(`user:${canonicalFollowingId}:followers`, canonicalFollowerId);
       res.json({ success: true, following: true });
     }
   } catch (error) {
@@ -304,9 +356,18 @@ router.get('/stats/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
     
-    const postsCount = await redisClient.lLen(`user:${userId}:posts`);
-    const followersCount = await redisClient.sCard(`user:${userId}:followers`);
-    const followingCount = await redisClient.sCard(`user:${userId}:following`);
+    // Resolve canonical userId (UUID) from email if needed
+    let canonicalUserId = userId;
+    try {
+      const resolvedUserId = await redisClient.get(`user:email:${String(userId).toLowerCase()}`);
+      if (resolvedUserId) {
+        canonicalUserId = resolvedUserId;
+      }
+    } catch {}
+    
+    const postsCount = await redisClient.lLen(`user:${canonicalUserId}:posts`);
+    const followersCount = await redisClient.sCard(`user:${canonicalUserId}:followers`);
+    const followingCount = await redisClient.sCard(`user:${canonicalUserId}:following`);
     
     res.json({
       success: true,
@@ -319,6 +380,38 @@ router.get('/stats/:userId', async (req, res) => {
   } catch (error) {
     console.error('Get stats error:', error);
     res.status(500).json({ success: false, message: 'Failed to get stats' });
+  }
+});
+
+// Check if user is following another user
+router.get('/follow/status', async (req, res) => {
+  try {
+    const { followerId, followingId } = req.query;
+    
+    if (!followerId || !followingId) {
+      return res.status(400).json({ success: false, message: 'Follower and Following IDs required' });
+    }
+    
+    // Resolve canonical userIds
+    let canonicalFollowerId = followerId;
+    let canonicalFollowingId = followingId;
+    
+    try {
+      const resolvedFollowerId = await redisClient.get(`user:email:${String(followerId).toLowerCase()}`);
+      if (resolvedFollowerId) canonicalFollowerId = resolvedFollowerId;
+    } catch {}
+    
+    try {
+      const resolvedFollowingId = await redisClient.get(`user:email:${String(followingId).toLowerCase()}`);
+      if (resolvedFollowingId) canonicalFollowingId = resolvedFollowingId;
+    } catch {}
+    
+    const isFollowing = await redisClient.sIsMember(`user:${canonicalFollowerId}:following`, canonicalFollowingId);
+    
+    res.json({ success: true, isFollowing });
+  } catch (error) {
+    console.error('Check follow status error:', error);
+    res.status(500).json({ success: false, message: 'Failed to check follow status' });
   }
 });
 
@@ -407,13 +500,24 @@ router.post('/comment', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Post ID, User ID, and text required' });
     }
     
+    // Resolve canonical userId (UUID) from email if needed
+    let canonicalUserId = userId;
+    try {
+      const resolvedUserId = await redisClient.get(`user:email:${String(userId).toLowerCase()}`);
+      if (resolvedUserId) {
+        canonicalUserId = resolvedUserId;
+      }
+    } catch {}
+    
     // Get user profile data
     let userProfileImage = null;
+    let actualUserName = userName || 'Anonymous';
     try {
-      const userDataStr = await redisClient.get(`user:${userId}`);
+      const userDataStr = await redisClient.get(`user:${canonicalUserId}`);
       if (userDataStr) {
         const userData = JSON.parse(userDataStr);
         userProfileImage = userData.profileImage || null;
+        if (userData.name) actualUserName = userData.name;
       }
     } catch (e) {
       console.log('Could not fetch user profile image:', e);
@@ -422,10 +526,10 @@ router.post('/comment', async (req, res) => {
     const commentId = `comment_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const timestamp = Date.now();
     
-    // Save comment with full user info
+    // Save comment with full user info and canonical userId
     const commentKey = `comment:${commentId}`;
-    await redisClient.hSet(commentKey, 'userId', userId);
-    await redisClient.hSet(commentKey, 'userName', userName || 'Anonymous');
+    await redisClient.hSet(commentKey, 'userId', canonicalUserId);
+    await redisClient.hSet(commentKey, 'userName', actualUserName);
     await redisClient.hSet(commentKey, 'userProfileImage', userProfileImage || '');
     await redisClient.hSet(commentKey, 'text', text);
     await redisClient.hSet(commentKey, 'timestamp', timestamp.toString());

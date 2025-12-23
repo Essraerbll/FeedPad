@@ -26,7 +26,9 @@ class _FeedBlogScreenState extends State<FeedBlogScreen> {
   Future<void> _loadFeed() async {
     setState(() => _isLoading = true);
     try {
-      final response = await _apiService.get('/posts/feed');
+      final auth = Provider.of<AuthService>(context, listen: false);
+      final userId = auth.currentUser?.email ?? '';
+      final response = await _apiService.get('/posts/feed?requesterId=$userId');
       if (response['success'] == true) {
         setState(() {
           _posts = List<Map<String, dynamic>>.from(response['posts'] ?? []);
