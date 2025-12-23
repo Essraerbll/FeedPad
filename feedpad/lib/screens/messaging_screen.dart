@@ -10,33 +10,109 @@ class MessagingScreen extends StatefulWidget {
 }
 
 class _MessagingScreenState extends State<MessagingScreen> {
-  // Örnek sohbet listesi
-  final List<Map<String, dynamic>> _conversations = [
-    {
-      'id': 'conv_1',
-      'userName': 'Sarah Johnson',
-      'userImage': null,
-      'lastMessage': 'Cute pet photo!',
-      'timestamp': DateTime.now().subtract(const Duration(hours: 2)),
-      'unread': true,
-    },
-    {
-      'id': 'conv_2',
-      'userName': 'Mike Anderson',
-      'userImage': null,
-      'lastMessage': 'Thanks for the tip!',
-      'timestamp': DateTime.now().subtract(const Duration(days: 1)),
-      'unread': false,
-    },
-    {
-      'id': 'conv_3',
-      'userName': 'Emily Brown',
-      'userImage': null,
-      'lastMessage': 'See you tomorrow',
-      'timestamp': DateTime.now().subtract(const Duration(days: 2)),
-      'unread': false,
-    },
-  ];
+  // Sohbet listesi - konuşma verilerini kalıcı olarak saklıyoruz
+  late List<Map<String, dynamic>> _conversations;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeConversations();
+  }
+
+  void _initializeConversations() {
+    _conversations = [
+      {
+        'id': 'conv_1',
+        'userName': 'Sarah Johnson',
+        'userImage': null,
+        'timestamp': DateTime.now().subtract(const Duration(hours: 2)),
+        'unread': true,
+        'messages': [
+          {
+            'id': 'msg_1',
+            'sender': 'Sarah Johnson',
+            'text': 'Hi! Love your pet photos!',
+            'timestamp': DateTime.now().subtract(const Duration(hours: 3)),
+            'isSent': false,
+          },
+          {
+            'id': 'msg_2',
+            'sender': 'You',
+            'text': 'Thanks! Your photos are amazing too!',
+            'timestamp': DateTime.now().subtract(const Duration(hours: 2, minutes: 50)),
+            'isSent': true,
+          },
+          {
+            'id': 'msg_3',
+            'sender': 'Sarah Johnson',
+            'text': 'Cute pet photo!',
+            'timestamp': DateTime.now().subtract(const Duration(hours: 2)),
+            'isSent': false,
+          },
+        ],
+      },
+      {
+        'id': 'conv_2',
+        'userName': 'Mike Anderson',
+        'userImage': null,
+        'timestamp': DateTime.now().subtract(const Duration(days: 1)),
+        'unread': false,
+        'messages': [
+          {
+            'id': 'msg_1',
+            'sender': 'Mike Anderson',
+            'text': 'Hey, how are you?',
+            'timestamp': DateTime.now().subtract(const Duration(days: 1, hours: 2)),
+            'isSent': false,
+          },
+          {
+            'id': 'msg_2',
+            'sender': 'You',
+            'text': 'Good! How about you?',
+            'timestamp': DateTime.now().subtract(const Duration(days: 1, hours: 1, minutes: 50)),
+            'isSent': true,
+          },
+          {
+            'id': 'msg_3',
+            'sender': 'Mike Anderson',
+            'text': 'Thanks for the tip!',
+            'timestamp': DateTime.now().subtract(const Duration(days: 1)),
+            'isSent': false,
+          },
+        ],
+      },
+      {
+        'id': 'conv_3',
+        'userName': 'Emily Brown',
+        'userImage': null,
+        'timestamp': DateTime.now().subtract(const Duration(days: 2)),
+        'unread': false,
+        'messages': [
+          {
+            'id': 'msg_1',
+            'sender': 'Emily Brown',
+            'text': 'Are you coming tomorrow?',
+            'timestamp': DateTime.now().subtract(const Duration(days: 2, hours: 3)),
+            'isSent': false,
+          },
+          {
+            'id': 'msg_2',
+            'sender': 'You',
+            'text': 'Yes, I will be there!',
+            'timestamp': DateTime.now().subtract(const Duration(days: 2, hours: 2, minutes: 45)),
+            'isSent': true,
+          },
+          {
+            'id': 'msg_3',
+            'sender': 'Emily Brown',
+            'text': 'See you tomorrow',
+            'timestamp': DateTime.now().subtract(const Duration(days: 2)),
+            'isSent': false,
+          },
+        ],
+      },
+    ];
+  }
 
   String _formatTime(DateTime dateTime) {
     final now = DateTime.now();
@@ -98,80 +174,91 @@ class _MessagingScreenState extends State<MessagingScreen> {
               itemCount: _conversations.length,
               itemBuilder: (context, index) {
                 final conversation = _conversations[index];
-                return Card(
-                  margin: const EdgeInsets.symmetric(vertical: 4),
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: const Color(0xFF64B5F6),
-                      backgroundImage: conversation['userImage'] != null
-                          ? NetworkImage(conversation['userImage'])
-                          : null,
-                      child: conversation['userImage'] == null
-                          ? Text(
-                              conversation['userName'][0].toUpperCase(),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            )
-                          : null,
-                    ),
-                    title: Text(
-                      conversation['userName'],
-                      style: TextStyle(
-                        fontWeight: conversation['unread']
-                            ? FontWeight.bold
-                            : FontWeight.normal,
-                        color: const Color(0xFF2C3E50),
-                      ),
-                    ),
-                    subtitle: Text(
-                      conversation['lastMessage'],
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: conversation['unread']
-                            ? const Color(0xFF546E7A)
-                            : Colors.grey,
-                      ),
-                    ),
-                    trailing: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          _formatTime(conversation['timestamp']),
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        if (conversation['unread'])
-                          Container(
-                            width: 12,
-                            height: 12,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFF64B5F6),
-                              shape: BoxShape.circle,
+              return Card(
+                margin: const EdgeInsets.symmetric(vertical: 4),
+                child: ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: const Color(0xFF64B5F6),
+                    backgroundImage: conversation['userImage'] != null
+                        ? NetworkImage(conversation['userImage'])
+                        : null,
+                    child: conversation['userImage'] == null
+                        ? Text(
+                            conversation['userName'][0].toUpperCase(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
                             ),
-                          ),
-                      ],
+                          )
+                        : null,
+                  ),
+                  title: Text(
+                    conversation['userName'],
+                    style: TextStyle(
+                      fontWeight: conversation['unread']
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                      color: const Color(0xFF2C3E50),
                     ),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ChatDetailScreen(
-                            conversation: conversation,
-                            currentUserName:
-                                currentUser?.name ?? 'You',
+                  ),
+                  subtitle: Text(
+                    conversation['messages'].isNotEmpty
+                        ? conversation['messages'].last['text']
+                        : 'No messages',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: conversation['unread']
+                          ? const Color(0xFF546E7A)
+                          : Colors.grey,
+                    ),
+                  ),
+                  trailing: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        _formatTime(conversation['timestamp']),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      if (conversation['unread'])
+                        Container(
+                          width: 12,
+                          height: 12,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF64B5F6),
+                            shape: BoxShape.circle,
                           ),
                         ),
-                      );
-                    },
+                    ],
                   ),
-                );
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ChatDetailScreen(
+                          conversation: conversation,
+                          currentUserName:
+                              currentUser?.name ?? 'You',
+                          onMessagesUpdated: (updatedConversation) {
+                            setState(() {
+                              final index = _conversations
+                                  .indexWhere((c) => c['id'] == updatedConversation['id']);
+                              if (index != -1) {
+                                _conversations[index] = updatedConversation;
+                              }
+                            });
+                          },
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              );
               },
             ),
     );
@@ -181,11 +268,13 @@ class _MessagingScreenState extends State<MessagingScreen> {
 class ChatDetailScreen extends StatefulWidget {
   final Map<String, dynamic> conversation;
   final String currentUserName;
+  final Function(Map<String, dynamic>)? onMessagesUpdated;
 
   const ChatDetailScreen({
     Key? key,
     required this.conversation,
     required this.currentUserName,
+    this.onMessagesUpdated,
   }) : super(key: key);
 
   @override
@@ -194,34 +283,35 @@ class ChatDetailScreen extends StatefulWidget {
 
 class _ChatDetailScreenState extends State<ChatDetailScreen> {
   final TextEditingController _messageController = TextEditingController();
-  final List<Map<String, dynamic>> _messages = [
-    {
-      'id': 'msg_1',
-      'sender': 'Sarah Johnson',
-      'text': 'Hi! Love your pet photos!',
-      'timestamp': DateTime.now().subtract(const Duration(hours: 3)),
-      'isSent': false,
-    },
-    {
-      'id': 'msg_2',
-      'sender': 'You',
-      'text': 'Thanks! Your photos are amazing too!',
-      'timestamp': DateTime.now().subtract(const Duration(hours: 2, minutes: 50)),
-      'isSent': true,
-    },
-    {
-      'id': 'msg_3',
-      'sender': 'Sarah Johnson',
-      'text': 'Cute pet photo!',
-      'timestamp': DateTime.now().subtract(const Duration(hours: 2)),
-      'isSent': false,
-    },
+  late List<Map<String, dynamic>> _messages;
+  late String _otherUserName;
+
+  // Örnek otomatik yanıtlar
+  final List<String> _autoReplies = [
+    'That sounds great!',
+    'I agree with you!',
+    'Thanks for the message!',
+    'How was your day?',
+    'Sounds good to me!',
+    'Let me know!',
+    'Absolutely!',
+    'Nice!',
+    'See you soon!',
+    'Take care!',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _otherUserName = widget.conversation['userName'];
+    _messages = List<Map<String, dynamic>>.from(widget.conversation['messages'] ?? []);
+  }
 
   void _sendMessage() {
     if (_messageController.text.isEmpty) return;
 
     setState(() {
+      // Kullanıcının mesajını ekle
       _messages.add({
         'id': 'msg_${DateTime.now().millisecondsSinceEpoch}',
         'sender': widget.currentUserName,
@@ -229,8 +319,31 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         'timestamp': DateTime.now(),
         'isSent': true,
       });
+
+      final userMessage = _messageController.text;
       _messageController.clear();
+
+      // Otomatik yanıt gönder (biraz gecikme ile)
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) {
+          setState(() {
+            _messages.add({
+              'id': 'msg_${DateTime.now().millisecondsSinceEpoch}',
+              'sender': _otherUserName,
+              'text': _autoReplies[DateTime.now().microsecond % _autoReplies.length],
+              'timestamp': DateTime.now(),
+              'isSent': false,
+            });
+          });
+        }
+      });
     });
+
+    // Konuşmayı güncelle
+    widget.conversation['messages'] = _messages;
+    widget.conversation['timestamp'] = DateTime.now();
+    widget.conversation['unread'] = false;
+    widget.onMessagesUpdated?.call(widget.conversation);
   }
 
   @override
