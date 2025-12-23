@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import 'other_user_profile_screen.dart';
+import 'profile_screen.dart';
 
 class FeedBlogScreen extends StatefulWidget {
   const FeedBlogScreen({super.key});
@@ -141,11 +142,52 @@ class _FeedBlogScreenState extends State<FeedBlogScreen> {
           children: [
             Row(
               children: [
-                CircleAvatar(
-                  backgroundColor: const Color(0xFFE3F2FD),
-                  child: Text(
-                    name.isNotEmpty ? name[0].toUpperCase() : 'U',
-                    style: const TextStyle(color: Color(0xFF1E88E5), fontWeight: FontWeight.bold),
+                GestureDetector(
+                  onTap: () {
+                    // Kullanıcının kendi profili mi kontrol et
+                    final authService = Provider.of<AuthService>(context, listen: false);
+                    final currentUserEmail = authService.currentUser?.email ?? '';
+                    final currentUserName = authService.currentUser?.name ?? '';
+                    final postUserId = post['userId'] ?? '';
+                    
+                    // Kendi profili mi? - Email veya isim eşleşmesi kontrolü
+                    final isOwnProfile = (postUserId == currentUserEmail && currentUserEmail.isNotEmpty) ||
+                                        (name == currentUserName && currentUserName.isNotEmpty);
+                    
+                    if (isOwnProfile) {
+                      // Kendi profili - ProfileScreen'i aç
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ProfileScreen(),
+                        ),
+                      );
+                    } else if (postUserId.isNotEmpty || name.isNotEmpty) {
+                      // Başka kullanıcının profili - OtherUserProfileScreen'e git
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => OtherUserProfileScreen(
+                            user: {
+                              'id': postUserId,
+                              'email': postUserId,
+                              'name': name,
+                              'bio': post['user']?['bio'] ?? '🐾 Pet lover',
+                              'profileImage': '',
+                              'postsCount': 0,
+                              'followersCount': 0,
+                            },
+                          ),
+                        ),
+                      );
+                    }
+                  },
+                  child: CircleAvatar(
+                    backgroundColor: const Color(0xFFE3F2FD),
+                    child: Text(
+                      name.isNotEmpty ? name[0].toUpperCase() : 'U',
+                      style: const TextStyle(color: Color(0xFF1E88E5), fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -263,13 +305,36 @@ class _FeedBlogScreenState extends State<FeedBlogScreen> {
                             ),
                             title: Text(userName, style: const TextStyle(fontWeight: FontWeight.bold)),
                             onTap: () {
-                              // Kullanıcının kendi profili değilse başka kullanıcının profilini aç
+                              // Kullanıcının kendi profili mi kontrol et
                               final authService = Provider.of<AuthService>(context, listen: false);
                               final currentUserEmail = authService.currentUser?.email ?? '';
+                              final currentUserName = authService.currentUser?.name ?? '';
                               final postUserId = post['userId'] ?? '';
                               
-                              if (postUserId != currentUserEmail && postUserId.isNotEmpty) {
+                              debugPrint('=== Profile Tap Debug ===');
+                              debugPrint('Current User Email: $currentUserEmail');
+                              debugPrint('Current User Name: $currentUserName');
+                              debugPrint('Post User ID: $postUserId');
+                              debugPrint('Post User Name: $userName');
+                              debugPrint('Email match: ${postUserId == currentUserEmail}');
+                              debugPrint('Name match: ${userName == currentUserName}');
+                              
+                              // Kendi profili mi? - Email veya isim eşleşmesi kontrolü
+                              final isOwnProfile = (postUserId == currentUserEmail && currentUserEmail.isNotEmpty) ||
+                                                  (userName == currentUserName && currentUserName.isNotEmpty);
+                              
+                              if (isOwnProfile) {
+                                // Kendi profili - ProfileScreen'i aç
+                                debugPrint('Opening ProfileScreen (own profile)');
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const ProfileScreen(),
+                                  ),
+                                );
+                              } else if (postUserId.isNotEmpty || userName.isNotEmpty) {
                                 // Başka kullanıcının profili - OtherUserProfileScreen'e git
+                                debugPrint('Opening OtherUserProfileScreen');
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
