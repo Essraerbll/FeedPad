@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
+import 'other_user_profile_screen.dart';
 
 class FeedBlogScreen extends StatefulWidget {
   const FeedBlogScreen({super.key});
@@ -259,6 +260,32 @@ class _FeedBlogScreenState extends State<FeedBlogScreen> {
                                   : null,
                             ),
                             title: Text(userName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                            onTap: () {
+                              // Kullanıcının kendi profili değilse başka kullanıcının profilini aç
+                              final authService = Provider.of<AuthService>(context, listen: false);
+                              final currentUserEmail = authService.currentUser?.email ?? '';
+                              final postUserId = post['userId'] ?? '';
+                              
+                              if (postUserId != currentUserEmail && postUserId.isNotEmpty) {
+                                // Başka kullanıcının profili - OtherUserProfileScreen'e git
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => OtherUserProfileScreen(
+                                      user: {
+                                        'id': postUserId,
+                                        'email': postUserId,
+                                        'name': userName,
+                                        'bio': user['bio'] ?? '🐾 Pet lover',
+                                        'profileImage': userProfileImage,
+                                        'postsCount': 0,
+                                        'followersCount': 0,
+                                      },
+                                    ),
+                                  ),
+                                );
+                              }
+                            },
                           ),
                           Padding(
                             padding: const EdgeInsets.all(16),

@@ -42,7 +42,7 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Dynamically determine actions based on current screen
+      // Dynamically determine actions based on current screen
     List<Widget> getAppBarActions() {
       if (_currentIndex == 0) {
         // FeedBlogScreen - Show message button
