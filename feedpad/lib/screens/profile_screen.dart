@@ -282,6 +282,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 
                 final response = await _apiService.post('/posts/create', {
                   'userId': userId,
+                  'userName': authService.currentUser?.name ?? 'User',
                   'caption': captionController.text,
                   'location': locationController.text.isNotEmpty ? locationController.text : '',
                   'imageUrl': imageDataUrl ?? '',
@@ -698,7 +699,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       (context, index) {
                         final post = _posts[index];
                         final user = post['user'] ?? {};
-                        final userName = user['name'] ?? post['userName'] ?? user['username'] ?? 'Bilinmiyor';
+                        String userName = user['name'] ?? post['userName'] ?? user['username'] ?? '';
+                        if (userName.isEmpty) {
+                          final uid = post['userId'];
+                          if (uid is String && uid.isNotEmpty) {
+                            userName = uid.contains('@') ? uid.split('@').first : uid;
+                          } else {
+                            userName = 'Bilinmiyor';
+                          }
+                        }
                         final userProfileImage = user['profileImage'] ?? post['userProfileImage'] ?? '';
                         final comments = post['comments'] ?? [];
 
@@ -934,44 +943,135 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     final user = widget.post['user'] ?? {};
-    final senderName = user['name'] ?? widget.post['userName'] ?? user['username'] ?? 'Bilinmiyor';
+    String senderName = user['name'] ?? widget.post['userName'] ?? user['username'] ?? '';
+    if (senderName.isEmpty) {
+      final uid = widget.post['userId'];
+      if (uid is String && uid.isNotEmpty) {
+        senderName = uid.contains('@') ? uid.split('@').first : uid;
+      } else {
+        senderName = 'Bilinmiyor';
+      }
+    }
     final caption = widget.post['caption'] ?? widget.post['content'] ?? '';
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Post Detayları')),
+      appBar: AppBar(
+        title: const Text('Gönderi'),
+        elevation: 0,
+        backgroundColor: const Color(0xFF64B5F6),
+      ),
       body: Container(
-        color: Colors.blue.shade50,
+        color: const Color(0xFFE8F1FA),
         child: Column(
           children: [
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(12),
                 children: [
-                  if (widget.post['imageUrl'] != null && (widget.post['imageUrl'] as String).isNotEmpty)
-                    Image.network(
-                      widget.post['imageUrl'],
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          height: 200,
-                          color: Colors.grey[200],
-                          child: const Center(
-                            child: Icon(Icons.broken_image, size: 50, color: Colors.grey),
+                  Card(
+                    elevation: 3,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Post header with sender info
+                        Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Row(
+                            children: [
+                              CircleAvatar(
+                                backgroundColor: const Color(0xFF64B5F6),
+                                child: Text(
+                                  senderName.isNotEmpty ? senderName[0].toUpperCase() : 'U',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      senderName,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                        color: Color(0xFF1E2A3A),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
-                        );
-                      },
+                        ),
+                        const Divider(height: 1),
+                        // Post image
+                        if (widget.post['imageUrl'] != null && (widget.post['imageUrl'] as String).isNotEmpty)
+                          ClipRRect(
+                            borderRadius: const BorderRadius.only(
+                              bottomLeft: Radius.circular(14),
+                              bottomRight: Radius.circular(14),
+                            ),
+                            child: Image.network(
+                              widget.post['imageUrl'],
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  height: 200,
+                                  color: Colors.grey[200],
+                                  child: const Center(
+                                    child: Icon(Icons.broken_image, size: 50, color: Colors.grey),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        // Post caption
+                        if (caption.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Text(
+                              caption,
+                              style: const TextStyle(
+                                fontSize: 15,
+                                color: Color(0xFF263238),
+                                height: 1.4,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
-                  const SizedBox(height: 20),
-                  if (caption.isNotEmpty)
-                    Text(caption, style: const TextStyle(fontSize: 16)),
-                  const SizedBox(height: 20),
-                  Text('Paylaşan: $senderName', style: const TextStyle(fontSize: 14, fontStyle: FontStyle.italic)),
-                  const SizedBox(height: 20),
-                  const Text('Yorumlar:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  ),
+                  const SizedBox(height: 16),
+                  // Comments section
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: Text(
+                      'Yorumlar (${_comments.length})',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1E2A3A),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   if (_comments.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.all(16.0),
-                      child: Text('Henüz yorum yok', style: TextStyle(color: Colors.grey)),
+                    Card(
+                      color: Colors.grey[100],
+                      child: const Padding(
+                        padding: EdgeInsets.all(16.0),
+                        child: Center(
+                          child: Text(
+                            'Henüz yorum yok',
+                            style: TextStyle(color: Colors.grey, fontSize: 14),
+                          ),
+                        ),
+                      ),
                     )
                   else
                     ListView.builder(
@@ -980,50 +1080,88 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                       itemCount: _comments.length,
                       itemBuilder: (context, index) {
                         final comment = _comments[index];
-                        return ListTile(
-                          leading: CircleAvatar(
-                            backgroundColor: const Color(0xFF64B5F6),
-                            backgroundImage: comment['userProfileImage'] != null && 
-                                (comment['userProfileImage'] as String?)?.isNotEmpty == true
-                                ? NetworkImage(comment['userProfileImage'])
-                                : null,
-                            child: comment['userProfileImage'] == null || 
-                                (comment['userProfileImage'] as String?)?.isEmpty != false
-                                ? const Icon(Icons.person, color: Colors.white)
-                                : null,
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          child: ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: const Color(0xFF64B5F6),
+                              backgroundImage: comment['userProfileImage'] != null && 
+                                  (comment['userProfileImage'] as String?)?.isNotEmpty == true
+                                  ? NetworkImage(comment['userProfileImage'])
+                                  : null,
+                              child: comment['userProfileImage'] == null || 
+                                  (comment['userProfileImage'] as String?)?.isEmpty != false
+                                  ? const Icon(Icons.person, color: Colors.white, size: 18)
+                                  : null,
+                            ),
+                            title: Text(
+                              comment['userName'] ?? 'Anonim',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                            subtitle: Text(
+                              comment['text'] ?? '',
+                              style: const TextStyle(fontSize: 13, color: Color(0xFF546E7A)),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           ),
-                          title: Text(comment['userName'] ?? 'Unknown'),
-                          subtitle: Text(comment['text'] ?? ''),
                         );
                       },
                     ),
                 ],
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
+            // Comment input
+            Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                border: Border(top: BorderSide(color: Color(0xFFE0E0E0))),
+              ),
+              padding: const EdgeInsets.all(12),
               child: Row(
                 children: [
                   Expanded(
                     child: TextField(
                       controller: _commentController,
                       enabled: !_isSubmitting,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         hintText: 'Yorum yazın...',
-                        border: OutlineInputBorder(),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(24),
+                          borderSide: const BorderSide(color: Color(0xFFBBDEFB)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(24),
+                          borderSide: const BorderSide(color: Color(0xFFBBDEFB)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(24),
+                          borderSide: const BorderSide(color: Color(0xFF64B5F6), width: 2),
+                        ),
                       ),
                       onSubmitted: _isSubmitting ? null : (_) => _submitComment(),
                     ),
                   ),
-                  IconButton(
-                    icon: _isSubmitting
-                        ? const SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.send, color: Colors.blue),
-                    onPressed: _isSubmitting ? null : _submitComment,
+                  const SizedBox(width: 8),
+                  CircleAvatar(
+                    backgroundColor: const Color(0xFF64B5F6),
+                    child: IconButton(
+                      icon: _isSubmitting
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            )
+                          : const Icon(Icons.send, color: Colors.white, size: 20),
+                      onPressed: _isSubmitting ? null : _submitComment,
+                      padding: EdgeInsets.zero,
+                    ),
                   ),
                 ],
               ),

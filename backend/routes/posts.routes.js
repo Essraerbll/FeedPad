@@ -74,7 +74,7 @@ router.get('/user/:userId', async (req, res) => {
           comments: comments,
           timestamp: parseInt(postData.timestamp),
           user: {
-            name: userData.name || 'Unknown',
+            name: postData.userName || userData.name || 'User',
             username: userData.username || 'user',
             profileImage: userData.profileImage || null
           }
@@ -95,7 +95,7 @@ router.get('/user/:userId', async (req, res) => {
 // Create new post
 router.post('/create', async (req, res) => {
   try {
-    const { userId, caption, imageUrl, location } = req.body;
+    const { userId, userName, caption, imageUrl, location } = req.body;
     
     if (!userId || !caption) {
       return res.status(400).json({ success: false, message: 'User ID and caption required' });
@@ -122,6 +122,7 @@ router.post('/create', async (req, res) => {
     
     // Save post data - Redis expects key-value pairs as separate arguments
     await redisClient.hSet(`post:${postId}`, 'userId', canonicalUserId);
+    await redisClient.hSet(`post:${postId}`, 'userName', userName || userData.name || 'User');
     await redisClient.hSet(`post:${postId}`, 'caption', caption);
     await redisClient.hSet(`post:${postId}`, 'imageUrl', imageUrl || '');
     await redisClient.hSet(`post:${postId}`, 'location', location || '');
@@ -131,6 +132,7 @@ router.post('/create', async (req, res) => {
     
     const postData = {
       userId: canonicalUserId,
+      userName: userName || userData.name || 'User',
       caption,
       imageUrl: imageUrl || '',
       location: location || '',
@@ -138,7 +140,7 @@ router.post('/create', async (req, res) => {
       comments: 0,
       timestamp,
       user: {
-        name: userData.name || 'Unknown',
+        name: userData.name || 'User',
         username: userData.username || 'user',
         profileImage: userData.profileImage || null
       }
@@ -212,7 +214,7 @@ router.get('/feed', async (req, res) => {
           comments: comments,
           timestamp: parseInt(postData.timestamp),
           user: {
-            name: userData.name || 'Unknown',
+            name: postData.userName || userData.name || 'User',
             username: userData.username || 'user',
             profileImage: userData.profileImage || null
           }
