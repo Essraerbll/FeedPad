@@ -74,7 +74,7 @@ app.listen(PORT, HOST, () => {
   console.log(`🚀 Server is running on http://${HOST}:${PORT}`);
   console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🌐 Local: http://localhost:${PORT}`);
-  console.log(`📱 Network: http://192.168.1.10:${PORT}`);
+  console.log(`📱 Network: http://192.168.1.7:${PORT}`);
 });
 
 module.exports = app;

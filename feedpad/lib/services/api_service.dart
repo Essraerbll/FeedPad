@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 class ApiService {
   // Gerçek cihaz için IP adresi (bilgisayarınızın yerel IP'si)
   // Eğer IP değişirse burayı güncelleyin
-  static const String realDeviceIp = '192.168.1.10';
+  static const String realDeviceIp = '192.168.1.7';
 
   // Backend URL - platforma göre otomatik seçilir
   static String get baseUrl {
@@ -180,10 +180,14 @@ class ApiService {
     double? longitude,
     String? petType,
     double? waterLiters,
+    double? catFoodAmount,
+    double? dogFoodAmount,
     String? isWaterEnough,
     double? addedAmount,
     String? addedByUserId,
     String? isEnoughNow,
+    bool?
+        shouldUpdateCatDogAmounts, // Pet shop owner için null değerleri göndermek için flag
   }) async {
     final body = {
       if (type != null) 'type': type,
@@ -191,6 +195,11 @@ class ApiService {
       if (longitude != null) 'longitude': longitude,
       if (petType != null) 'petType': petType,
       if (waterLiters != null) 'waterLiters': waterLiters,
+      // catFoodAmount ve dogFoodAmount için null değerleri de gönder (sıfırlama için)
+      // shouldUpdateCatDogAmounts true olduğunda null değerleri de gönder
+      // null değerleri de göndermek için her zaman ekle (undefined kontrolü yapmıyoruz)
+      if (shouldUpdateCatDogAmounts == true) 'catFoodAmount': catFoodAmount,
+      if (shouldUpdateCatDogAmounts == true) 'dogFoodAmount': dogFoodAmount,
       if (isWaterEnough != null) 'isWaterEnough': isWaterEnough,
       if (addedAmount != null) 'addedAmount': addedAmount,
       if (addedByUserId != null) 'addedByUserId': addedByUserId,

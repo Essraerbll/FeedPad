@@ -22,7 +22,7 @@ async function verifySession(sessionId) {
     }
     const sessionData = await redisClient.get(`session:${sessionId}`);
     if (!sessionData) return null;
-    
+
     const session = JSON.parse(sessionData);
     const userData = await redisClient.get(`user:${session.userId}`);
     return userData ? JSON.parse(userData) : null;
@@ -36,7 +36,7 @@ async function verifySession(sessionId) {
 async function authenticateUser(req, res, next) {
   try {
     const sessionId = req.cookies?.sessionId || req.headers['x-session-id'];
-    
+
     if (!sessionId) {
       return res.status(401).json({
         success: false,
@@ -97,6 +97,8 @@ router.post('/', authenticateUser, [
       longitude: parseFloat(longitude),
       petType: petType || null,
       waterLiters: waterLiters ? parseFloat(waterLiters) : null,
+      catFoodAmount: null,
+      dogFoodAmount: null,
       isWaterEnough: isWaterEnough || null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -104,10 +106,10 @@ router.post('/', authenticateUser, [
 
     // Redis'e kaydet
     await redisClient.set(`marker:${markerId}`, JSON.stringify(markerData));
-    
+
     // Kullanıcının marker listesine ekle
     await redisClient.sAdd(`markers:user:${userId}`, markerId);
-    
+
     // Tüm marker listesine ekle
     await redisClient.sAdd('markers:all', markerId);
 
@@ -122,6 +124,8 @@ router.post('/', authenticateUser, [
         longitude: markerData.longitude,
         petType: markerData.petType,
         waterLiters: markerData.waterLiters,
+        catFoodAmount: markerData.catFoodAmount || null,
+        dogFoodAmount: markerData.dogFoodAmount || null,
         isWaterEnough: markerData.isWaterEnough,
         createdAt: markerData.createdAt,
       }
@@ -146,10 +150,10 @@ router.get('/', async (req, res) => {
     }
 
     const { latitude, longitude, radius } = req.query;
-    
+
     // Tüm marker ID'lerini al
     const markerIds = await redisClient.sMembers('markers:all');
-    
+
     if (!markerIds || markerIds.length === 0) {
       return res.status(200).json({
         success: true,
@@ -163,7 +167,7 @@ router.get('/', async (req, res) => {
       const markerData = await redisClient.get(`marker:${markerId}`);
       if (markerData) {
         const marker = JSON.parse(markerData);
-        
+
         // Yakınlık filtresi varsa uygula
         if (latitude && longitude && radius) {
           const distance = calculateDistance(
@@ -172,7 +176,7 @@ router.get('/', async (req, res) => {
             marker.latitude,
             marker.longitude
           );
-          
+
           if (distance <= parseFloat(radius)) {
             markers.push({
               id: marker.id,
@@ -182,6 +186,8 @@ router.get('/', async (req, res) => {
               longitude: marker.longitude,
               petType: marker.petType,
               waterLiters: marker.waterLiters,
+              catFoodAmount: marker.catFoodAmount || null,
+              dogFoodAmount: marker.dogFoodAmount || null,
               isWaterEnough: marker.isWaterEnough,
               addedAmount: marker.addedAmount || null,
               addedByUserId: marker.addedByUserId || null,
@@ -199,6 +205,8 @@ router.get('/', async (req, res) => {
             longitude: marker.longitude,
             petType: marker.petType,
             waterLiters: marker.waterLiters,
+            catFoodAmount: marker.catFoodAmount || null,
+            dogFoodAmount: marker.dogFoodAmount || null,
             isWaterEnough: marker.isWaterEnough,
             addedAmount: marker.addedAmount || null,
             addedByUserId: marker.addedByUserId || null,
@@ -233,10 +241,10 @@ router.get('/my-markers', authenticateUser, async (req, res) => {
     }
 
     const userId = req.user.id;
-    
+
     // Kullanıcının marker ID'lerini al
     const markerIds = await redisClient.sMembers(`markers:user:${userId}`);
-    
+
     if (!markerIds || markerIds.length === 0) {
       return res.status(200).json({
         success: true,
@@ -258,6 +266,8 @@ router.get('/my-markers', authenticateUser, async (req, res) => {
           longitude: marker.longitude,
           petType: marker.petType,
           waterLiters: marker.waterLiters,
+          catFoodAmount: marker.catFoodAmount || null,
+          dogFoodAmount: marker.dogFoodAmount || null,
           isWaterEnough: marker.isWaterEnough,
           addedAmount: marker.addedAmount || null,
           addedByUserId: marker.addedByUserId || null,
@@ -292,7 +302,7 @@ router.get('/:id', async (req, res) => {
 
     const { id } = req.params;
     const markerData = await redisClient.get(`marker:${id}`);
-    
+
     if (!markerData) {
       return res.status(404).json({
         success: false,
@@ -311,6 +321,8 @@ router.get('/:id', async (req, res) => {
         longitude: marker.longitude,
         petType: marker.petType,
         waterLiters: marker.waterLiters,
+        catFoodAmount: marker.catFoodAmount || null,
+        dogFoodAmount: marker.dogFoodAmount || null,
         isWaterEnough: marker.isWaterEnough,
         addedAmount: marker.addedAmount || null,
         addedByUserId: marker.addedByUserId || null,
@@ -334,6 +346,16 @@ router.put('/:id', authenticateUser, [
   body('longitude').optional().isFloat({ min: -180, max: 180 }).withMessage('Geçersiz boylam'),
   body('petType').optional().isIn(['cat', 'dog']).withMessage('Geçersiz pet tipi'),
   body('waterLiters').optional().isFloat({ min: 0 }).withMessage('Geçersiz su miktarı'),
+  body('catFoodAmount').optional().custom((value) => {
+    if (value === null || value === undefined) return true; // null değerleri kabul et
+    const numValue = parseFloat(value);
+    return !isNaN(numValue) && numValue >= 0;
+  }).withMessage('Geçersiz kedi maması miktarı'),
+  body('dogFoodAmount').optional().custom((value) => {
+    if (value === null || value === undefined) return true; // null değerleri kabul et
+    const numValue = parseFloat(value);
+    return !isNaN(numValue) && numValue >= 0;
+  }).withMessage('Geçersiz köpek maması miktarı'),
   body('isWaterEnough').optional().isIn(['yes', 'maybe', 'no']).withMessage('Geçersiz yeterlilik durumu'),
   body('addedAmount').optional().isFloat({ min: 0 }).withMessage('Geçersiz eklenen miktar'),
   body('addedByUserId').optional().isString().withMessage('Geçersiz kullanıcı ID'),
@@ -358,7 +380,7 @@ router.put('/:id', authenticateUser, [
 
     const { id } = req.params;
     const userId = req.user.id;
-    
+
     // Marker'ı kontrol et
     const markerData = await redisClient.get(`marker:${id}`);
     if (!markerData) {
@@ -369,7 +391,7 @@ router.put('/:id', authenticateUser, [
     }
 
     const marker = JSON.parse(markerData);
-    
+
     // Kullanıcı kontrolü - sadece marker sahibi değil, herkes güncelleyebilir (opinion için)
     // Ancak bazı alanlar sadece sahibi tarafından güncellenebilir
     const isOwner = marker.userId === userId;
@@ -385,7 +407,21 @@ router.put('/:id', authenticateUser, [
     if (req.body.longitude !== undefined && isOwner) updateData.longitude = parseFloat(req.body.longitude);
     if (req.body.petType !== undefined && isOwner) updateData.petType = req.body.petType || null;
     if (req.body.waterLiters !== undefined && isOwner) updateData.waterLiters = req.body.waterLiters ? parseFloat(req.body.waterLiters) : null;
-    
+    // Pet shop owner için Cat ve Dog için ayrı miktarlar
+    // null değerleri de kabul et (sıfırlama için)
+    if (req.body.catFoodAmount !== undefined && isOwner) {
+      // null değer gönderildiğinde null olarak ayarla, aksi halde parseFloat yap
+      updateData.catFoodAmount = (req.body.catFoodAmount === null || req.body.catFoodAmount === undefined)
+        ? null
+        : parseFloat(req.body.catFoodAmount);
+    }
+    if (req.body.dogFoodAmount !== undefined && isOwner) {
+      // null değer gönderildiğinde null olarak ayarla, aksi halde parseFloat yap
+      updateData.dogFoodAmount = (req.body.dogFoodAmount === null || req.body.dogFoodAmount === undefined)
+        ? null
+        : parseFloat(req.body.dogFoodAmount);
+    }
+
     // Opinion ve ekleme işlemleri herkes tarafından yapılabilir
     if (req.body.isWaterEnough !== undefined) updateData.isWaterEnough = req.body.isWaterEnough || null;
     if (req.body.addedAmount !== undefined) updateData.addedAmount = req.body.addedAmount ? parseFloat(req.body.addedAmount) : null;
@@ -406,6 +442,8 @@ router.put('/:id', authenticateUser, [
         longitude: updateData.longitude,
         petType: updateData.petType,
         waterLiters: updateData.waterLiters,
+        catFoodAmount: updateData.catFoodAmount || null,
+        dogFoodAmount: updateData.dogFoodAmount || null,
         isWaterEnough: updateData.isWaterEnough,
         addedAmount: updateData.addedAmount || null,
         addedByUserId: updateData.addedByUserId || null,
@@ -435,7 +473,7 @@ router.delete('/:id', authenticateUser, async (req, res) => {
 
     const { id } = req.params;
     const userId = req.user.id;
-    
+
     // Marker'ı kontrol et
     const markerData = await redisClient.get(`marker:${id}`);
     if (!markerData) {
@@ -446,7 +484,7 @@ router.delete('/:id', authenticateUser, async (req, res) => {
     }
 
     const marker = JSON.parse(markerData);
-    
+
     // Kullanıcı kontrolü
     if (marker.userId !== userId) {
       return res.status(403).json({
@@ -457,10 +495,10 @@ router.delete('/:id', authenticateUser, async (req, res) => {
 
     // Marker'ı sil
     await redisClient.del(`marker:${id}`);
-    
+
     // Kullanıcının marker listesinden çıkar
     await redisClient.sRem(`markers:user:${userId}`, id);
-    
+
     // Tüm marker listesinden çıkar
     await redisClient.sRem('markers:all', id);
 
@@ -482,7 +520,7 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
   const R = 6371; // Dünya yarıçapı (km)
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = 
+  const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
     Math.sin(dLon / 2) * Math.sin(dLon / 2);
