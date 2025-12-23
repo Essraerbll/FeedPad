@@ -5,6 +5,7 @@ import 'login_screen.dart';
 import 'feed_blog_screen.dart';
 import 'feed_map_screen.dart';
 import 'profile_screen.dart';
+import 'messaging_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -41,26 +42,36 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF9DB8E8), // Pastel mavi
-        elevation: 0,
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Icon(Icons.pets, size: 24, color: Colors.white),
-            Text(
-              _titles[_currentIndex],
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-            ),
-            const Icon(Icons.pets, size: 24, color: Colors.white),
-          ],
-        ),
-        actions: [
+    // Dynamically determine actions based on current screen
+    List<Widget> getAppBarActions() {
+      if (_currentIndex == 0) {
+        // FeedBlogScreen - Show message button
+        return [
           Container(
             margin: const EdgeInsets.only(right: 8),
             decoration: BoxDecoration(
-              color: const Color(0xFF7BA4D9), // Daha koyu mavi
+              color: const Color(0xFF7BA4D9),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.message, color: Colors.white),
+              tooltip: 'Messages',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const MessagingScreen()),
+                );
+              },
+            ),
+          ),
+        ];
+      } else if (_currentIndex == 2) {
+        // ProfileScreen - Show logout button
+        return [
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFF7BA4D9),
               borderRadius: BorderRadius.circular(8),
             ),
             child: IconButton(
@@ -117,7 +128,29 @@ class _MainScreenState extends State<MainScreen> {
               },
             ),
           ),
-        ],
+        ];
+      } else {
+        // FeedMapScreen - No button
+        return [];
+      }
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF9DB8E8),
+        elevation: 0,
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Icon(Icons.pets, size: 24, color: Colors.white),
+            Text(
+              _titles[_currentIndex],
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(width: 24),
+          ],
+        ),
+        actions: getAppBarActions(),
       ),
       body: _screens[_currentIndex],
       bottomNavigationBar: Container(

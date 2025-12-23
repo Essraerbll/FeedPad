@@ -81,6 +81,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
         debugPrint('Error loading stats: $e');
       }
       
+      // Load user profile data (including bio)
+      try {
+        final userResponse = await _apiService.get('/posts/user/$userId');
+        if (userResponse['success']) {
+          final userData = userResponse['user'];
+          if (userData != null && userData['bio'] != null && userData['bio'].isNotEmpty) {
+            setState(() {
+              _bio = userData['bio'];
+            });
+          }
+        }
+      } catch (e) {
+        debugPrint('Error loading user profile: $e');
+      }
+      
       // Load posts
       try {
         final postsResponse = await _apiService.get('/posts/user/$userId');

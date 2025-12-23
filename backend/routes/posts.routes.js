@@ -85,7 +85,15 @@ router.get('/user/:userId', async (req, res) => {
     // Sort by timestamp descending
     posts.sort((a, b) => b.timestamp - a.timestamp);
     
-    res.json({ success: true, posts });
+    // Get user's bio to return as well
+    let userBio = null;
+    try {
+      const userJson = await redisClient.get(`user:${canonicalUserId}`);
+      const userData = userJson ? JSON.parse(userJson) : {};
+      userBio = userData.bio || null;
+    } catch {}
+    
+    res.json({ success: true, posts, user: { bio: userBio } });
   } catch (error) {
     console.error('Get posts error:', error);
     res.status(500).json({ success: false, message: 'Failed to get posts' });
@@ -142,7 +150,8 @@ router.post('/create', async (req, res) => {
       user: {
         name: userData.name || 'User',
         username: userData.username || 'user',
-        profileImage: userData.profileImage || null
+        profileImage: userData.profileImage || null,
+        bio: userData.bio || null
       }
     };
     
