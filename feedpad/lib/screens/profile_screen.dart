@@ -335,7 +335,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _showEditProfileDialog() {
-    final TextEditingController nameController = TextEditingController();
+    final TextEditingController nameController = TextEditingController(
+      text: Provider.of<AuthService>(context, listen: false).currentUser?.name ?? '',
+    );
     final TextEditingController bioController = TextEditingController(text: _bio);
     final authService = Provider.of<AuthService>(context, listen: false);
 
@@ -457,31 +459,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
               final userId = authService.currentUser?.email;
               
               try {
-                await _apiService.put('/posts/profile', {
+                final response = await _apiService.put('/posts/profile', {
                   'userId': userId,
                   'name': nameController.text.isEmpty ? null : nameController.text,
                   'bio': bioController.text,
                 });
                 
-                setState(() {
-                  if (bioController.text.isNotEmpty) {
-                    _bio = bioController.text;
+                if (response['success'] == true) {
+                  setState(() {
+                    _bio = bioController.text.isNotEmpty ? bioController.text : _bio;
+                  });
+                  
+                  if (mounted) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Profile updated!'),
+                        backgroundColor: Color(0xFF66BB6A),
+                      ),
+                    );
+                    // Refresh user data
+                    await authService.getCurrentUser();
+                    await _loadUserData();
                   }
-                });
-                // Refresh user data so UI reflects changes
-                await authService.getCurrentUser();
-                await _loadUserData();
-                
-                if (mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Profile updated!'),
-                      backgroundColor: Color(0xFF66BB6A),
-                    ),
-                  );
+                } else {
+                  throw Exception(response['message'] ?? 'Update failed');
                 }
               } catch (e) {
+                debugPrint('Profile update error: $e');
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
@@ -499,15 +504,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: const Text('Save', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
-      ),
-    );
-  }
-
-  void _openCommentsSection() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => CommentsScreen(),
       ),
     );
   }

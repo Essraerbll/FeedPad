@@ -322,7 +322,16 @@ router.put('/profile', async (req, res) => {
       return res.status(400).json({ success: false, message: 'User ID required' });
     }
     
-    const userKey = `user:${userId}`;
+    // Resolve canonical userId (UUID) from email if needed
+    let canonicalUserId = userId;
+    try {
+      const resolvedUserId = await redisClient.get(`user:email:${String(userId).toLowerCase()}`);
+      if (resolvedUserId) {
+        canonicalUserId = resolvedUserId;
+      }
+    } catch {}
+    
+    const userKey = `user:${canonicalUserId}`;
     const existingUserJson = await redisClient.get(userKey);
     let userData = existingUserJson ? JSON.parse(existingUserJson) : null;
 
@@ -343,6 +352,35 @@ router.put('/profile', async (req, res) => {
     if (profileImage !== undefined) userData.profileImage = profileImage;
 
     await redisClient.set(userKey, JSON.stringify(userData));
+
+    // Update all posts by this user with new name
+    if (name) {
+      try {
+        const postIds = await redisClient.lRange(`user:${canonicalUserId}:posts`, 0, -1);
+        for (const postId of postIds) {
+          await redisClient.hSet(`post:${postId}`, 'userName', name);
+        }
+
+        // Update all comments by this user with new name
+        const feedPostIds = await redisClient.lRange('feed:global', 0, -1).catch(() => []);
+        for (const postId of feedPostIds) {
+          try {
+            const commentIds = await redisClient.lRange(`post:${postId}:comments`, 0, -1).catch(() => []);
+            for (const commentId of commentIds) {
+              const commentData = await redisClient.hGetAll(`comment:${commentId}`);
+              if (commentData && commentData.userId === canonicalUserId) {
+                await redisClient.hSet(`comment:${commentId}`, 'userName', name);
+              }
+            }
+          } catch (e) {
+            console.log('Error updating comments for post', postId, ':', e);
+          }
+        }
+      } catch (e) {
+        console.log('Error updating posts/comments with new name:', e);
+        // Don't fail the whole request, just log
+      }
+    }
 
     res.json({ success: true, message: 'Profile updated', user: userData });
   } catch (error) {
