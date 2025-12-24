@@ -445,6 +445,7 @@ class ChatDetailScreen extends StatefulWidget {
 
 class _ChatDetailScreenState extends State<ChatDetailScreen> {
   final TextEditingController _messageController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
   final ApiService _apiService = ApiService();
   List<Map<String, dynamic>> _messages = [];
   bool _isLoading = false;
@@ -487,6 +488,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         setState(() {
           _messages = List<Map<String, dynamic>>.from(response['messages'] ?? []);
         });
+        _scrollToBottom();
       }
     } catch (e) {
       debugPrint('Error loading messages: $e');
@@ -508,6 +510,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           setState(() {
             _messages = newMessages;
           });
+          _scrollToBottom();
         }
       }
     } catch (e) {
@@ -534,6 +537,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         _messageController.clear();
         await _loadMessages();
         widget.onMessagesUpdated();
+        _scrollToBottom();
       }
     } catch (e) {
       debugPrint('Error sending message: $e');
@@ -591,7 +595,16 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   void dispose() {
     _messageController.dispose();
     _refreshTimer?.cancel();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+      }
+    });
   }
 
   @override
@@ -669,7 +682,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                             style: TextStyle(color: Colors.grey[600]),
                           ),
                         )
-                      : ListView.builder(
+                        : ListView.builder(
+                          controller: _scrollController,
                           padding: const EdgeInsets.all(12),
                           itemCount: _messages.length,
                           itemBuilder: (context, index) {
