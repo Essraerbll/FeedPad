@@ -199,13 +199,37 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    String _deriveUsernameFromPost(Map<String, dynamic> post) {
+      final postUser = post['user'] as Map<String, dynamic>? ?? {};
+      final postUsername = postUser['username'] ?? post['username'];
+      if (postUsername is String && postUsername.trim().isNotEmpty) {
+        return postUsername.trim();
+      }
+      final postUserId = post['userId'];
+      if (postUserId is String && postUserId.contains('@')) {
+        return postUserId.split('@').first;
+      }
+      return 'username';
+    }
+
     final emailValue = widget.user['email'] as String? ?? '';
     final rawUsername = widget.user['username'] as String? ?? '';
-    final profileUsername = (rawUsername.trim().isNotEmpty && rawUsername.trim() != 'username')
-        ? rawUsername.trim()
-        : emailValue.contains('@')
-            ? emailValue.split('@').first
-            : (widget.user['userName'] as String? ?? 'username');
+    final profileUsername = () {
+      if (rawUsername.trim().isNotEmpty && rawUsername.trim() != 'username') {
+        return rawUsername.trim();
+      }
+      if (emailValue.contains('@')) {
+        return emailValue.split('@').first;
+      }
+      if (_userPosts.isNotEmpty) {
+        return _deriveUsernameFromPost(_userPosts.first);
+      }
+      final userNameField = widget.user['userName'];
+      if (userNameField is String && userNameField.trim().isNotEmpty) {
+        return userNameField.trim();
+      }
+      return 'username';
+    }();
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
