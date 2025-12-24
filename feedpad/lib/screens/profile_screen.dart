@@ -216,7 +216,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => PostDetailsScreen(post: post, apiService: _apiService),
+        builder: (context) => PostDetailsScreen(
+          post: post,
+          apiService: _apiService,
+        ),
       ),
     );
   }
