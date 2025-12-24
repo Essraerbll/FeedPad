@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'dart:async';
+import 'dart:convert';
 import '../services/auth_service.dart';
 import '../services/api_service.dart';
+import 'other_user_profile_screen.dart';
+import 'profile_screen.dart';
 
 class MessagingScreen extends StatefulWidget {
   const MessagingScreen({super.key});
@@ -16,6 +19,53 @@ class _MessagingScreenState extends State<MessagingScreen> {
   List<Map<String, dynamic>> _conversations = [];
   bool _isLoading = false;
   Timer? _refreshTimer;
+
+  // Helper function to get image provider from URL or base64
+  ImageProvider? _getImageProvider(String? imageUrl) {
+    if (imageUrl == null || imageUrl.isEmpty) return null;
+    try {
+      if (imageUrl.startsWith('data:image')) {
+        final base64Str = imageUrl.split(',').last;
+        final bytes = base64Decode(base64Str);
+        return MemoryImage(bytes);
+      }
+      return NetworkImage(imageUrl);
+    } catch (e) {
+      debugPrint('Error loading image: $e');
+      return null;
+    }
+  }
+
+  void _openUserProfileFromConversation(String userId, String name, String? username, String? profileImage) {
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final currentUserId = authService.currentUser?.email ?? '';
+    final resolvedUsername = (username != null && username.isNotEmpty)
+        ? username
+        : (userId.contains('@') ? userId.split('@').first : 'username');
+
+    if (userId == currentUserId && currentUserId.isNotEmpty) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const ProfileScreen(showAppBar: true)),
+      );
+    } else {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => OtherUserProfileScreen(
+            user: {
+              'id': userId,
+              'email': userId,
+              'name': name,
+              'username': resolvedUsername,
+              'bio': '🐾 Pet lover',
+              'profileImage': profileImage ?? '',
+            },
+          ),
+        ),
+      );
+    }
+  }
 
   @override
   void initState() {
@@ -234,6 +284,10 @@ class _MessagingScreenState extends State<MessagingScreen> {
                         conversation['user1'] == currentUserId ? conversation['user2Name'] : conversation['user1Name'];
                     final otherUsername =
                         conversation['user1'] == currentUserId ? conversation['user2Username'] : conversation['user1Username'];
+                    final otherUserProfileImage =
+                        conversation['user1'] == currentUserId ? conversation['user2ProfileImage'] : conversation['user1ProfileImage'];
+                    final currentUserProfileImage =
+                      conversation['user1'] == currentUserId ? conversation['user1ProfileImage'] : conversation['user2ProfileImage'];
 
                     return Dismissible(
                       key: Key(conversation['id']),
@@ -250,17 +304,37 @@ class _MessagingScreenState extends State<MessagingScreen> {
                       child: Card(
                         margin: const EdgeInsets.symmetric(vertical: 4),
                         child: ListTile(
-                          leading: CircleAvatar(
+                          leading: GestureDetector(
+                            onTap: () => _openUserProfileFromConversation(
+                              otherUserId,
+                              otherUserName,
+                              otherUsername,
+                              otherUserProfileImage,
+                            ),
+                            child: CircleAvatar(
                             backgroundColor: const Color(0xFF9DB8E8),
-                            child: Text(
-                              otherUserName[0].toUpperCase(),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
+                            backgroundImage: otherUserProfileImage != null && otherUserProfileImage.isNotEmpty
+                                ? _getImageProvider(otherUserProfileImage)
+                                : null,
+                            child: otherUserProfileImage == null || otherUserProfileImage.isEmpty
+                                ? Text(
+                                    otherUserName[0].toUpperCase(),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  )
+                                : null,
                             ),
                           ),
-                          title: Column(
+                          title: GestureDetector(
+                            onTap: () => _openUserProfileFromConversation(
+                              otherUserId,
+                              otherUserName,
+                              otherUsername,
+                              otherUserProfileImage,
+                            ),
+                            child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
@@ -278,6 +352,7 @@ class _MessagingScreenState extends State<MessagingScreen> {
                                 ),
                               ),
                             ],
+                            ),
                           ),
                           subtitle: Text(
                             conversation['lastMessage'] ?? 'No messages',
@@ -319,6 +394,9 @@ class _MessagingScreenState extends State<MessagingScreen> {
                                 conversationId: conversation['id'],
                                 otherUserId: otherUserId,
                                 otherUserName: otherUserName,
+                                otherUsername: otherUsername ?? (otherUserId.contains('@') ? otherUserId.split('@').first : ''),
+                                otherUserProfileImage: otherUserProfileImage ?? '',
+                                currentUserProfileImage: currentUserProfileImage ?? '',
                                 currentUserId: currentUserId,
                                 currentUserName: currentUser?.name ?? 'You',
                                 onMessagesUpdated: () {
@@ -326,7 +404,7 @@ class _MessagingScreenState extends State<MessagingScreen> {
                                 },
                               ),
                             ),
-                          );
+                            );
                         },
                         ),
                       ),
@@ -341,8 +419,11 @@ class ChatDetailScreen extends StatefulWidget {
   final String conversationId;
   final String otherUserId;
   final String otherUserName;
+  final String otherUsername;
+  final String otherUserProfileImage;
   final String currentUserId;
   final String currentUserName;
+  final String currentUserProfileImage;
   final VoidCallback onMessagesUpdated;
 
   const ChatDetailScreen({
@@ -350,8 +431,11 @@ class ChatDetailScreen extends StatefulWidget {
     required this.conversationId,
     required this.otherUserId,
     required this.otherUserName,
+    required this.otherUsername,
+    required this.otherUserProfileImage,
     required this.currentUserId,
     required this.currentUserName,
+    required this.currentUserProfileImage,
     required this.onMessagesUpdated,
   }) : super(key: key);
 
@@ -361,17 +445,33 @@ class ChatDetailScreen extends StatefulWidget {
 
 class _ChatDetailScreenState extends State<ChatDetailScreen> {
   final TextEditingController _messageController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
   final ApiService _apiService = ApiService();
   List<Map<String, dynamic>> _messages = [];
   bool _isLoading = false;
   bool _isSending = false;
   Timer? _refreshTimer;
 
+  // Helper function to get image provider from URL or base64
+  ImageProvider? _getImageProvider(String? imageUrl) {
+    if (imageUrl == null || imageUrl.isEmpty) return null;
+    try {
+      if (imageUrl.startsWith('data:image')) {
+        final base64Str = imageUrl.split(',').last;
+        final bytes = base64Decode(base64Str);
+        return MemoryImage(bytes);
+      }
+      return NetworkImage(imageUrl);
+    } catch (e) {
+      debugPrint('Error loading image: $e');
+      return null;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     _loadMessages();
-    // Her 2 saniyede bir mesajları yenile (gerçek zamanlı görünüm)
     _refreshTimer = Timer.periodic(const Duration(seconds: 2), (_) {
       _loadMessagesWithoutLoading();
     });
@@ -388,6 +488,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         setState(() {
           _messages = List<Map<String, dynamic>>.from(response['messages'] ?? []);
         });
+        _scrollToBottom();
       }
     } catch (e) {
       debugPrint('Error loading messages: $e');
@@ -409,6 +510,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           setState(() {
             _messages = newMessages;
           });
+          _scrollToBottom();
         }
       }
     } catch (e) {
@@ -435,6 +537,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         _messageController.clear();
         await _loadMessages();
         widget.onMessagesUpdated();
+        _scrollToBottom();
       }
     } catch (e) {
       debugPrint('Error sending message: $e');
@@ -492,19 +595,72 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   void dispose() {
     _messageController.dispose();
     _refreshTimer?.cancel();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    final headerUsername = widget.otherUsername.isNotEmpty
+      ? widget.otherUsername
+      : (widget.otherUserId.contains('@')
+        ? widget.otherUserId.split('@').first
+        : widget.otherUserName.replaceAll(' ', '').toLowerCase());
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          widget.otherUserName,
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
+        title: Row(
+          children: [
+            CircleAvatar(
+              radius: 18,
+              backgroundColor: const Color(0xFFE3F2FD),
+              backgroundImage: widget.otherUserProfileImage.isNotEmpty
+                  ? _getImageProvider(widget.otherUserProfileImage)
+                  : null,
+              child: widget.otherUserProfileImage.isEmpty
+                  ? Text(
+                      widget.otherUserName[0].toUpperCase(),
+                      style: const TextStyle(
+                        color: Color(0xFF1E88E5),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    )
+                  : null,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    widget.otherUserName,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  Text(
+                    '@$headerUsername',
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
         elevation: 0,
         backgroundColor: const Color(0xFF9DB8E8),
@@ -526,12 +682,22 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                             style: TextStyle(color: Colors.grey[600]),
                           ),
                         )
-                      : ListView.builder(
+                        : ListView.builder(
+                          controller: _scrollController,
                           padding: const EdgeInsets.all(12),
                           itemCount: _messages.length,
                           itemBuilder: (context, index) {
                             final message = _messages[index];
                             final isSent = message['senderId'] == widget.currentUserId;
+                            final senderName = message['senderName'] ?? (isSent ? widget.currentUserName : widget.otherUserName);
+                            final senderUsername = message['senderUsername'] ??
+                              (message['senderId'] is String && (message['senderId'] as String).contains('@')
+                                ? (message['senderId'] as String).split('@').first
+                                : isSent
+                                  ? widget.currentUserId.split('@').first
+                                  : widget.otherUserId.split('@').first);
+                            final senderProfileImage = message['senderProfileImage'] ??
+                              (isSent ? widget.currentUserProfileImage : widget.otherUserProfileImage);
 
                             return GestureDetector(
                               onLongPress: isSent
@@ -557,42 +723,125 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                                       );
                                     }
                                   : null,
-                              child: Align(
-                                alignment: isSent ? Alignment.centerRight : Alignment.centerLeft,
-                                child: Container(
-                                  margin: const EdgeInsets.symmetric(vertical: 4),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 8,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: isSent ? const Color(0xFF9DB8E8) : Colors.grey[300],
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment: isSent
-                                        ? CrossAxisAlignment.end
-                                        : CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        message['text'],
-                                        style: TextStyle(
-                                          color: isSent ? Colors.white : Colors.black87,
-                                          fontSize: 14,
-                                        ),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 4),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      isSent ? MainAxisAlignment.end : MainAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    if (!isSent)
+                                      CircleAvatar(
+                                        radius: 18,
+                                        backgroundColor: const Color(0xFF9DB8E8),
+                                        backgroundImage: senderProfileImage.isNotEmpty
+                                            ? _getImageProvider(senderProfileImage)
+                                            : null,
+                                        child: senderProfileImage.isEmpty
+                                            ? Text(
+                                                senderName.isNotEmpty
+                                                    ? senderName[0].toUpperCase()
+                                                    : '?',
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              )
+                                            : null,
                                       ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        _formatMessageTime(
-                                            DateTime.parse(message['timestamp'])),
-                                        style: TextStyle(
-                                          color:
-                                              isSent ? Colors.white70 : Colors.grey[600],
-                                          fontSize: 11,
-                                        ),
+                                    if (!isSent) const SizedBox(width: 8),
+                                    Flexible(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            isSent ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                                        children: [
+                                          Column(
+                                            crossAxisAlignment:
+                                                isSent ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                senderName,
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 13,
+                                                  color: Color(0xFF2C3E50),
+                                                ),
+                                              ),
+                                              Text(
+                                                '@$senderUsername',
+                                                style: const TextStyle(
+                                                  fontSize: 12,
+                                                  color: Color(0xFF90A4AE),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Align(
+                                            alignment:
+                                                isSent ? Alignment.centerRight : Alignment.centerLeft,
+                                            child: Container(
+                                              padding: const EdgeInsets.symmetric(
+                                                horizontal: 12,
+                                                vertical: 8,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: isSent
+                                                    ? const Color(0xFF9DB8E8)
+                                                    : Colors.grey[300],
+                                                borderRadius: BorderRadius.circular(12),
+                                              ),
+                                              child: Column(
+                                                crossAxisAlignment: isSent
+                                                    ? CrossAxisAlignment.end
+                                                    : CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    message['text'],
+                                                    style: TextStyle(
+                                                      color: isSent ? Colors.white : Colors.black87,
+                                                      fontSize: 14,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 4),
+                                                  Text(
+                                                    _formatMessageTime(
+                                                        DateTime.parse(message['timestamp'])),
+                                                    style: TextStyle(
+                                                      color: isSent
+                                                          ? Colors.white70
+                                                          : Colors.grey[600],
+                                                      fontSize: 11,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                    ],
-                                  ),
+                                    ),
+                                    if (isSent) const SizedBox(width: 8),
+                                    if (isSent)
+                                      CircleAvatar(
+                                        radius: 18,
+                                        backgroundColor: const Color(0xFF9DB8E8),
+                                        backgroundImage: senderProfileImage.isNotEmpty
+                                            ? _getImageProvider(senderProfileImage)
+                                            : null,
+                                        child: senderProfileImage.isEmpty
+                                            ? Text(
+                                                senderName.isNotEmpty
+                                                    ? senderName[0].toUpperCase()
+                                                    : '?',
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              )
+                                            : null,
+                                      ),
+                                  ],
                                 ),
                               ),
                             );

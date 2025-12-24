@@ -1,16 +1,33 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import 'messaging_screen.dart';
 
+// Shared helper to support network or base64 profile images
+ImageProvider? _getImageProvider(String? imageUrl) {
+  if (imageUrl == null || imageUrl.isEmpty) return null;
+  try {
+    if (imageUrl.startsWith('data:image')) {
+      final base64Str = imageUrl.split(',').last;
+      final bytes = base64Decode(base64Str);
+      return MemoryImage(bytes);
+    }
+    return NetworkImage(imageUrl);
+  } catch (e) {
+    debugPrint('Error loading image: $e');
+    return null;
+  }
+}
+
 class OtherUserProfileScreen extends StatefulWidget {
   final Map<String, dynamic> user;
 
   const OtherUserProfileScreen({
-    Key? key,
+    super.key,
     required this.user,
-  }) : super(key: key);
+  });
 
   @override
   State<OtherUserProfileScreen> createState() => _OtherUserProfileScreenState();
@@ -182,6 +199,38 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    String _deriveUsernameFromPost(Map<String, dynamic> post) {
+      final postUser = post['user'] as Map<String, dynamic>? ?? {};
+      final postUsername = postUser['username'] ?? post['username'];
+      if (postUsername is String && postUsername.trim().isNotEmpty) {
+        return postUsername.trim();
+      }
+      final postUserId = post['userId'];
+      if (postUserId is String && postUserId.contains('@')) {
+        return postUserId.split('@').first;
+      }
+      return 'username';
+    }
+
+    final emailValue = widget.user['email'] as String? ?? '';
+    final rawUsername = widget.user['username'] as String? ?? '';
+    final profileUsername = () {
+      if (rawUsername.trim().isNotEmpty && rawUsername.trim() != 'username') {
+        return rawUsername.trim();
+      }
+      if (emailValue.contains('@')) {
+        return emailValue.split('@').first;
+      }
+      if (_userPosts.isNotEmpty) {
+        return _deriveUsernameFromPost(_userPosts.first);
+      }
+      final userNameField = widget.user['userName'];
+      if (userNameField is String && userNameField.trim().isNotEmpty) {
+        return userNameField.trim();
+      }
+      return 'username';
+    }();
+
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
@@ -219,7 +268,7 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // Profile Picture
+                  // Profile Picture (uses same fallback as posts list)
                   Container(
                     padding: const EdgeInsets.all(3),
                     decoration: const BoxDecoration(
@@ -237,10 +286,13 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
                     child: CircleAvatar(
                       radius: 50,
                       backgroundColor: const Color(0xFFE3F2FD),
-                      backgroundImage: widget.user['profileImage'] != null
-                          ? NetworkImage(widget.user['profileImage'])
-                          : null,
-                      child: widget.user['profileImage'] == null
+                      backgroundImage: _getImageProvider(
+                        widget.user['profileImage'] ??
+                        widget.user['userProfileImage'] ??
+                        '',
+                      ),
+                      child: (widget.user['profileImage'] ?? widget.user['userProfileImage']) == null ||
+                              (widget.user['profileImage'] ?? widget.user['userProfileImage']).toString().isEmpty
                           ? Text(
                               widget.user['name'][0].toUpperCase(),
                               style: const TextStyle(
@@ -265,7 +317,7 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
                   const SizedBox(height: 4),
                   // Username
                   Text(
-                    '@${widget.user['username'] ?? 'username'}',
+                    '@$profileUsername',
                     style: const TextStyle(
                       fontSize: 14,
                       color: Color(0xFF90A4AE),
@@ -358,8 +410,11 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
                                   conversationId: conversationId,
                                   otherUserId: otherUserEmail,
                                   otherUserName: widget.user['name'],
+                                  otherUsername: widget.user['username'] ?? (otherUserEmail.contains('@') ? otherUserEmail.split('@').first : ''),
+                                  otherUserProfileImage: widget.user['profileImage'] ?? '',
                                   currentUserId: currentUserEmail,
                                   currentUserName: currentUserName,
+                                  currentUserProfileImage: '',
                                   onMessagesUpdated: () {},
                                 ),
                               ),
@@ -430,7 +485,17 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
                         (context, index) {
                           final post = _userPosts[index];
                           final postUser = post['user'] ?? {};
+                          String userName = postUser['name'] ?? post['userName'] ?? postUser['username'] ?? '';
                           final username = postUser['username'] ?? post['username'] ?? widget.user['username'] ?? 'username';
+                          if (userName.isEmpty) {
+                            final uid = post['userId'];
+                            if (uid is String && uid.isNotEmpty) {
+                              userName = uid.contains('@') ? uid.split('@').first : uid;
+                            } else {
+                              userName = 'User';
+                            }
+                          }
+                          final userProfileImage = postUser['profileImage'] ?? post['userProfileImage'] ?? widget.user['profileImage'] ?? '';
                           return Card(
                             margin: const EdgeInsets.symmetric(
                                 horizontal: 12, vertical: 6),
@@ -441,14 +506,10 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
                                 ListTile(
                                   leading: CircleAvatar(
                                     backgroundColor: const Color(0xFF64B5F6),
-                                    backgroundImage: widget.user['profileImage'] != null &&
-                                            (widget.user['profileImage'] as String).isNotEmpty
-                                        ? NetworkImage(widget.user['profileImage'])
-                                        : null,
-                                    child: widget.user['profileImage'] == null ||
-                                            (widget.user['profileImage'] as String).isEmpty
+                                    backgroundImage: _getImageProvider(userProfileImage),
+                                    child: userProfileImage.isEmpty
                                         ? Text(
-                                            widget.user['name'][0].toUpperCase(),
+                                            userName.isNotEmpty ? userName[0].toUpperCase() : 'U',
                                             style: const TextStyle(
                                               color: Colors.white,
                                               fontWeight: FontWeight.bold,
@@ -459,12 +520,7 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
                                   title: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text(
-                                        widget.user['name'],
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
+                                      Text(userName, style: const TextStyle(fontWeight: FontWeight.bold)),
                                       Text(
                                         '@$username',
                                         style: const TextStyle(
@@ -690,6 +746,7 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
     final user = widget.post['user'] ?? {};
     String senderName = user['name'] ?? widget.post['userName'] ?? user['username'] ?? '';
     String username = user['username'] ?? widget.post['username'] ?? 'username';
+    final userProfileImage = user['profileImage'] ?? widget.post['userProfileImage'] ?? '';
     if (senderName.isEmpty) {
       final uid = widget.post['userId'];
       if (uid is String && uid.isNotEmpty) {
@@ -727,13 +784,16 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                             children: [
                               CircleAvatar(
                                 backgroundColor: const Color(0xFF64B5F6),
-                                child: Text(
-                                  senderName.isNotEmpty ? senderName[0].toUpperCase() : 'U',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
+                                backgroundImage: _getImageProvider(userProfileImage),
+                                child: userProfileImage.isEmpty
+                                    ? Text(
+                                        senderName.isNotEmpty ? senderName[0].toUpperCase() : 'U',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      )
+                                    : null,
                               ),
                               const SizedBox(width: 12),
                               Expanded(
@@ -833,32 +893,40 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                       itemCount: _comments.length,
                       itemBuilder: (context, index) {
                         final comment = _comments[index];
+                        final commentProfileImage = comment['userProfileImage'] ?? '';
+                        final commentName = comment['userName'] ?? 'Anonymous';
+                        final commentUsername = comment['username'] ??
+                            (comment['userId'] is String && (comment['userId'] as String).contains('@')
+                                ? (comment['userId'] as String).split('@').first
+                                : (comment['userId'] ?? 'username'));
                         return Card(
                           margin: const EdgeInsets.only(bottom: 8),
                           child: ListTile(
                             leading: CircleAvatar(
                               backgroundColor: const Color(0xFF64B5F6),
-                              backgroundImage: comment['userProfileImage'] != null && 
-                                  (comment['userProfileImage'] as String?)?.isNotEmpty == true
-                                  ? NetworkImage(comment['userProfileImage'])
-                                  : null,
-                              child: comment['userProfileImage'] == null || 
-                                  (comment['userProfileImage'] as String?)?.isEmpty != false
-                                  ? const Icon(Icons.person, color: Colors.white, size: 18)
+                              backgroundImage: _getImageProvider(commentProfileImage),
+                              child: commentProfileImage.isEmpty
+                                  ? Text(
+                                      commentName.isNotEmpty ? commentName[0].toUpperCase() : 'U',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    )
                                   : null,
                             ),
                             title: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  comment['userName'] ?? 'Anonymous',
+                                  commentName,
                                   style: const TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 13,
                                   ),
                                 ),
                                 Text(
-                                  '@${comment['username'] ?? 'username'}',
+                                  '@$commentUsername',
                                   style: const TextStyle(
                                     fontSize: 11,
                                     color: Color(0xFF90A4AE),

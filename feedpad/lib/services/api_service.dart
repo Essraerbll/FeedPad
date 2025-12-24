@@ -77,6 +77,57 @@ class ApiService {
     }
   }
 
+  // POST multipart (image upload)
+  Future<Map<String, dynamic>> postMultipart(
+    String endpoint,
+    Map<String, String> fields, {
+    Uint8List? fileBytes,
+    String? filename,
+    String fileField = 'image',
+  }) async {
+    try {
+      final url = Uri.parse('$baseUrl$endpoint');
+      debugPrint('🌐 POST Multipart to: $url');
+      final request = http.MultipartRequest('POST', url);
+      request.fields.addAll(fields);
+      if (sessionId != null) {
+        request.headers['Cookie'] = 'sessionId=$sessionId';
+      }
+      if (fileBytes != null && fileBytes.isNotEmpty) {
+        request.files.add(
+          http.MultipartFile.fromBytes(
+            fileField,
+            fileBytes,
+            filename: filename ?? 'upload.jpg',
+          ),
+        );
+      }
+
+      final streamed = await request.send();
+      final responseBody = await streamed.stream.bytesToString();
+      debugPrint('📬 Multipart Status: ${streamed.statusCode}');
+      debugPrint('📬 Multipart Body: $responseBody');
+
+      final responseData = jsonDecode(responseBody) as Map<String, dynamic>;
+
+      final setCookie = streamed.headers['set-cookie'];
+      if (setCookie != null) {
+        final cookieMatch = RegExp(r'sessionId=([^;]+)').firstMatch(setCookie);
+        if (cookieMatch != null) {
+          sessionId = cookieMatch.group(1);
+        }
+      }
+
+      if (streamed.statusCode >= 200 && streamed.statusCode < 300) {
+        return responseData;
+      }
+      throw Exception(responseData['message'] ?? 'İstek başarısız');
+    } on SocketException {
+      throw Exception('Sunucuya bağlanılamadı. Backend çalışıyor mu?');
+    } catch (e) {
+      throw Exception('İstek başarısız: $e');
+    }
+  }
   // GET isteği
   Future<Map<String, dynamic>> get(String endpoint) async {
     try {

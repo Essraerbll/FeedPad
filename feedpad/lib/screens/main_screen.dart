@@ -5,6 +5,7 @@ import 'login_screen.dart';
 import 'feed_blog_screen.dart';
 import 'feed_map_screen.dart';
 import 'profile_screen.dart';
+import 'messaging_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -14,16 +15,18 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  int _currentIndex = 1; // FeedMap varsayılan (index 1)
+  int _currentIndex = 2; // FeedMap varsayılan (index 2)
 
   final List<Widget> _screens = [
     const FeedBlogScreen(),
+    const MessagingScreen(),
     const FeedMapScreen(),
     const ProfileScreen(),
   ];
 
   final List<String> _titles = [
     'FeedBlog',
+    'Messages',
     'FeedMap',
     'Profile',
   ];
@@ -41,20 +44,18 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.purple[900],
-        title: Text(
-          _titles[_currentIndex],
-          style: const TextStyle(color: Colors.white),
-        ),
-        actions: [
+    List<Widget> getAppBarActions() {
+      if (_currentIndex == 0) {
+        // FeedBlogScreen - No button
+        return [];
+      } else if (_currentIndex == 3) {
+        // ProfileScreen - Show logout button
+        return [
           Container(
             margin: const EdgeInsets.only(right: 8),
             decoration: BoxDecoration(
-              color: Colors.red,
+              color: const Color(0xFF7BA4D9),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.red, width: 2),
             ),
             child: IconButton(
               icon: const Icon(Icons.logout, color: Colors.white),
@@ -63,20 +64,20 @@ class _MainScreenState extends State<MainScreen> {
                 final confirm = await showDialog<bool>(
                   context: context,
                   builder: (context) => AlertDialog(
-                    backgroundColor: Colors.purple[900],
+                    backgroundColor: const Color(0xFFF5F8FA),
                     title: const Text(
                       'Sign Out',
-                      style: TextStyle(color: Colors.white),
+                      style: TextStyle(color: Color(0xFF5A7FA1)),
                     ),
                     content: const Text(
                       'Are you sure you want to sign out?',
-                      style: TextStyle(color: Colors.white),
+                      style: TextStyle(color: Colors.black87),
                     ),
                     actions: [
                       Container(
                         margin: const EdgeInsets.only(right: 8),
                         decoration: BoxDecoration(
-                          color: Colors.blue,
+                          color: const Color(0xFF9DB8E8),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: TextButton(
@@ -89,7 +90,7 @@ class _MainScreenState extends State<MainScreen> {
                       ),
                       Container(
                         decoration: BoxDecoration(
-                          color: Colors.red,
+                          color: const Color(0xFF7BA4D9),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: TextButton(
@@ -106,19 +107,41 @@ class _MainScreenState extends State<MainScreen> {
 
                 if (confirm == true) {
                   await _signOut();
-                }
+              }
               },
             ),
           ),
-        ],
+        ];
+      } else {
+        // FeedMapScreen - No button
+        return [];
+      }
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF9DB8E8),
+        elevation: 0,
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Icon(Icons.pets, size: 24, color: Colors.white),
+            Text(
+              _titles[_currentIndex],
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(width: 24),
+          ],
+        ),
+        actions: getAppBarActions(),
       ),
       body: _screens[_currentIndex],
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: Colors.purple[900],
+          color: const Color(0xFFD4E5F7), // Açık pastel mavi nav
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withValues(alpha: 0.1),
               blurRadius: 4,
               offset: const Offset(0, -2),
             ),
@@ -131,9 +154,9 @@ class _MainScreenState extends State<MainScreen> {
               _currentIndex = index;
             });
           },
-          backgroundColor: Colors.purple[900],
-          selectedItemColor: Colors.white,
-          unselectedItemColor: Colors.white70,
+          backgroundColor: const Color(0xFFD4E5F7),
+          selectedItemColor: const Color(0xFF5A7FA1),
+          unselectedItemColor: const Color(0xFF9DB8E8),
           selectedLabelStyle: const TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 14,
@@ -144,12 +167,16 @@ class _MainScreenState extends State<MainScreen> {
           type: BottomNavigationBarType.fixed,
           items: const [
             BottomNavigationBarItem(
-              icon: Icon(Icons.article),
-              label: 'FeedBlog',
+              icon: Icon(Icons.pets),
+              label: 'Feed Blog',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.map),
-              label: 'FeedMap',
+              icon: Icon(Icons.message),
+              label: 'Messages',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.location_on),
+              label: 'Feed Map',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.person),

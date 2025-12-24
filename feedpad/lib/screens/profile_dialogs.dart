@@ -49,7 +49,7 @@ class _CreatePostDialogState extends State<CreatePostDialog> {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('Resim çok büyük! Lütfen 2MB\'dan küçük bir resim seçin.'),
+                content: Text('Image too large! Please select an image smaller than 2MB.'),
                 backgroundColor: Colors.orange,
                 duration: Duration(seconds: 3),
               ),
@@ -70,7 +70,7 @@ class _CreatePostDialogState extends State<CreatePostDialog> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Resim seçme hatası: $e'),
+            content: Text('Error selecting image: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -83,7 +83,7 @@ class _CreatePostDialogState extends State<CreatePostDialog> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Lütfen bir başlık yazınız'),
+            content: Text('Please write a caption'),
             backgroundColor: Color(0xFF64B5F6),
           ),
         );
@@ -98,7 +98,7 @@ class _CreatePostDialogState extends State<CreatePostDialog> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('User bilgisi bulunamadı'),
+            content: Text('User information not found'),
             backgroundColor: Colors.red,
           ),
         );
@@ -106,38 +106,42 @@ class _CreatePostDialogState extends State<CreatePostDialog> {
       return;
     }
 
-    String? imageDataUrl;
-    if (_imageBytes != null) {
-      final ext = (_imageName?.split('.').last ?? 'png').toLowerCase();
-      final mime = ext == 'jpg' ? 'jpeg' : ext;
-      imageDataUrl = 'data:image/$mime;base64,${base64Encode(_imageBytes!)}';
-    }
-
     try {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Paylaşılıyor...'),
+            content: Text('Sharing...'),
             backgroundColor: Color(0xFF64B5F6),
             duration: Duration(seconds: 2),
           ),
         );
       }
 
-      final response = await widget.apiService.post('/posts/create', {
+      final fields = <String, String>{
         'userId': userId,
         'userName': authService.currentUser?.name ?? 'User',
         'caption': _captionController.text,
         'location': _locationController.text.isNotEmpty ? _locationController.text : '',
-        'imageUrl': imageDataUrl ?? '',
-      });
+      };
+
+      Map<String, dynamic> response;
+      if (_imageBytes != null) {
+        response = await widget.apiService.postMultipart(
+          '/posts/create',
+          fields,
+          fileBytes: _imageBytes!,
+          filename: _imageName ?? 'upload.jpg',
+        );
+      } else {
+        response = await widget.apiService.post('/posts/create', fields);
+      }
 
       if (response['success'] == true) {
         if (mounted) {
           Navigator.pop(context);
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Post başarıyla paylaşıldı!'),
+              content: Text('Post shared successfully!'),
               backgroundColor: Color(0xFF66BB6A),
             ),
           );
@@ -147,7 +151,7 @@ class _CreatePostDialogState extends State<CreatePostDialog> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Hata: ${response['message'] ?? 'Bilinmeyen hata'}'),
+              content: Text('Error: ${response['message'] ?? 'Unknown error'}'),
               backgroundColor: Colors.red,
             ),
           );
@@ -158,7 +162,7 @@ class _CreatePostDialogState extends State<CreatePostDialog> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Paylaşma hatası: $e'),
+            content: Text('Share error: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -168,128 +172,160 @@ class _CreatePostDialogState extends State<CreatePostDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+    
+    return Dialog(
       backgroundColor: const Color(0xFFF0F8FF),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: const Row(
-        children: [
-          Icon(Icons.add_photo_alternate, color: Color(0xFF64B5F6)),
-          SizedBox(width: 8),
-          Text(
-            'Post Oluştur',
-            style: TextStyle(color: Color(0xFF1976D2), fontWeight: FontWeight.bold),
-          ),
-        ],
-      ),
-      content: SingleChildScrollView(
+      child: SizedBox(
+        width: 450,
+        height: 580,
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           children: [
-            GestureDetector(
-              onTap: _pickImage,
-              child: Container(
-                height: 220,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE3F2FD),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFF90CAF9), width: 2),
-                ),
-                child: Center(
-                  child: _imageBytes == null
-                      ? const Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.add_a_photo, size: 48, color: Color(0xFF64B5F6)),
-                            SizedBox(height: 8),
-                            Text('Fotoğraf Ekle', style: TextStyle(color: Color(0xFF1976D2))),
-                          ],
-                        )
-                      : ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
-                          child: Image.memory(
-                            _imageBytes!,
-                            fit: BoxFit.cover,
-                            width: double.infinity,
-                            height: double.infinity,
-                          ),
+            // Header
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  const Icon(Icons.add_photo_alternate, color: Color(0xFF64B5F6)),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Create Post',
+                    style: TextStyle(color: Color(0xFF1976D2), fontWeight: FontWeight.bold, fontSize: 18),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Color(0xFF64B5F6)),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+            ),
+            // Content
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    GestureDetector(
+                      onTap: _pickImage,
+                      child: Container(
+                        height: 160,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE3F2FD),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFF90CAF9), width: 2),
                         ),
+                        child: Center(
+                          child: _imageBytes == null
+                              ? const Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.add_a_photo, size: 48, color: Color(0xFF64B5F6)),
+                                    SizedBox(height: 8),
+                                    Text('Add Photo', style: TextStyle(color: Color(0xFF1976D2))),
+                                  ],
+                                )
+                              : ClipRRect(
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: Image.memory(
+                                    _imageBytes!,
+                                    fit: BoxFit.cover,
+                                    width: double.infinity,
+                                    height: double.infinity,
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        _imageName ?? 'Select JPG/PNG',
+                        style: const TextStyle(color: Color(0xFF546E7A), fontSize: 12),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _captionController,
+                      maxLines: 3,
+                      decoration: InputDecoration(
+                        labelText: 'Caption',
+                        labelStyle: const TextStyle(color: Color(0xFF1976D2)),
+                        hintText: 'Share your thoughts...',
+                        prefixIcon: const Icon(Icons.edit, color: Color(0xFF64B5F6)),
+                        filled: true,
+                        fillColor: Colors.white,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Color(0xFFBBDEFB)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Color(0xFFBBDEFB)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Color(0xFF64B5F6), width: 2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _locationController,
+                      decoration: InputDecoration(
+                        labelText: 'Location (optional)',
+                        labelStyle: const TextStyle(color: Color(0xFF1976D2)),
+                        hintText: 'Add location...',
+                        prefixIcon: const Icon(Icons.location_on, color: Color(0xFF64B5F6)),
+                        filled: true,
+                        fillColor: Colors.white,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Color(0xFFBBDEFB)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Color(0xFFBBDEFB)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Color(0xFF64B5F6), width: 2),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                _imageName ?? 'JPG/PNG seçin',
-                style: const TextStyle(color: Color(0xFF546E7A), fontSize: 12),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _captionController,
-              maxLines: 3,
-              decoration: InputDecoration(
-                labelText: 'Başlık',
-                labelStyle: const TextStyle(color: Color(0xFF1976D2)),
-                hintText: 'Bunu paylaş...',
-                prefixIcon: const Icon(Icons.edit, color: Color(0xFF64B5F6)),
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFBBDEFB)),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFBBDEFB)),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFF64B5F6), width: 2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _locationController,
-              decoration: InputDecoration(
-                labelText: 'Konum (opsiyonel)',
-                labelStyle: const TextStyle(color: Color(0xFF1976D2)),
-                hintText: 'Konum ekle...',
-                prefixIcon: const Icon(Icons.location_on, color: Color(0xFF64B5F6)),
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFBBDEFB)),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFBBDEFB)),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFF64B5F6), width: 2),
-                ),
+            // Actions
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Cancel', style: TextStyle(color: Color(0xFF1976D2))),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton(
+                    onPressed: _createPost,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF64B5F6),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    child: const Text('Share', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  ),
+                ],
               ),
             ),
           ],
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel', style: TextStyle(color: Color(0xFF1976D2))),
-        ),
-        ElevatedButton(
-          onPressed: _createPost,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF64B5F6),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          ),
-          child: const Text('Paylaş', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        ),
-      ],
     );
   }
 }

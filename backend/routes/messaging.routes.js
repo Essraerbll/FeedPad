@@ -75,9 +75,11 @@ router.post('/send', async (req, res) => {
       { id: recipientId, name: recipientName || recipientId }
     ].sort((a, b) => a.id.localeCompare(b.id));
 
-    // Get username for both users
+    // Get username and profile image for both users
     let user1Username = '';
     let user2Username = '';
+    let user1ProfileImage = '';
+    let user2ProfileImage = '';
     try {
       const user1Keys = await redisClient.keys(`user:*`);
       for (const key of user1Keys) {
@@ -86,9 +88,11 @@ router.post('/send', async (req, res) => {
           const userData = JSON.parse(userJson);
           if (userData.email === sortedUsers[0].id) {
             user1Username = userData.username || '';
+            user1ProfileImage = userData.profileImage || '';
           }
           if (userData.email === sortedUsers[1].id) {
             user2Username = userData.username || '';
+            user2ProfileImage = userData.profileImage || '';
           }
         }
       }
@@ -101,9 +105,11 @@ router.post('/send', async (req, res) => {
       user1: sortedUsers[0].id,
       user1Name: sortedUsers[0].name,
       user1Username: user1Username,
+      user1ProfileImage: user1ProfileImage,
       user2: sortedUsers[1].id,
       user2Name: sortedUsers[1].name,
       user2Username: user2Username,
+      user2ProfileImage: user2ProfileImage,
       lastMessage: text,
       lastMessageTime: timestamp,
       lastMessageBy: senderName,
@@ -179,34 +185,46 @@ router.get('/conversations/:userId', async (req, res) => {
         // Eğer kullanıcı bu konuşmada varsa, ekle
         if (metadata.user1 === userId || metadata.user2 === userId) {
           console.log('  ✅ MATCH! Adding to conversations');
-          
-          // If username is missing, fetch it from user profile
-          if (!metadata.user1Username || !metadata.user2Username) {
-            console.log('  ⚠️ Username missing, fetching from user profiles...');
+
+          // Helper to resolve user data safely by email (handles uuid mapping)
+          const resolveUserData = async (email) => {
+            if (!email) return {};
+            let canonicalId = email;
             try {
-              const userKeys = await redisClient.keys(`user:*`);
-              for (const userKey of userKeys) {
-                const userJson = await redisClient.get(userKey);
-                if (userJson) {
-                  const userData = JSON.parse(userJson);
-                  if (!metadata.user1Username && userData.email === metadata.user1) {
-                    metadata.user1Username = userData.username || '';
-                    console.log(`  Found user1Username: ${metadata.user1Username}`);
-                  }
-                  if (!metadata.user2Username && userData.email === metadata.user2) {
-                    metadata.user2Username = userData.username || '';
-                    console.log(`  Found user2Username: ${metadata.user2Username}`);
-                  }
-                }
-              }
-              // Update metadata with usernames
+              const resolved = await redisClient.get(`user:email:${email.toLowerCase()}`);
+              if (resolved) canonicalId = resolved;
+            } catch {}
+
+            try {
+              const userJson = await redisClient.get(`user:${canonicalId}`);
+              if (userJson) return JSON.parse(userJson);
+              const userHash = await redisClient.hGetAll(`user:${canonicalId}`);
+              return userHash || {};
+            } catch (e) {
+              console.error('  ❌ resolveUserData error:', e);
+              return {};
+            }
+          };
+
+          // If username or profile image is missing, fetch it from user profile without scanning all keys
+          if (!metadata.user1Username || !metadata.user2Username || !metadata.user1ProfileImage || !metadata.user2ProfileImage) {
+            console.log('  ⚠️ Username or profile image missing, fetching from user profiles...');
+            try {
+              const user1Data = await resolveUserData(metadata.user1);
+              const user2Data = await resolveUserData(metadata.user2);
+
+              if (!metadata.user1Username) metadata.user1Username = user1Data.username || '';
+              if (!metadata.user1ProfileImage) metadata.user1ProfileImage = user1Data.profileImage || '';
+              if (!metadata.user2Username) metadata.user2Username = user2Data.username || '';
+              if (!metadata.user2ProfileImage) metadata.user2ProfileImage = user2Data.profileImage || '';
+
               await redisClient.set(key, JSON.stringify(metadata));
-              console.log('  ✅ Updated metadata with usernames');
+              console.log('  ✅ Updated metadata with usernames and profile images');
             } catch (e) {
               console.error('  ❌ Error fetching usernames:', e);
             }
           }
-          
+
           // conversationId'yi metadata'ya ekle
           const conversationId = key.replace('conversation:metadata:', '');
           conversations.push({ ...metadata, id: conversationId });

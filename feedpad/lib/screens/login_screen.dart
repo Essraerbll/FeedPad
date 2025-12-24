@@ -36,7 +36,9 @@ class _LoginScreenState extends State<LoginScreen> {
       password: _passwordController.text,
     );
 
-    setState(() => _isLoading = false);
+    if (mounted) {
+      setState(() => _isLoading = false);
+    }
 
     if (error != null && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -59,7 +61,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.purple[900],
+      backgroundColor: const Color(0xFFE8F1FA), // Welcome ekranıyla aynı açık pastel mavi
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -70,26 +72,26 @@ class _LoginScreenState extends State<LoginScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Logo veya başlık
-                  Icon(
-                    Icons.map,
-                    size: 100,
-                    color: Colors.white,
+                  // Logo veya başlık - Kedi teması
+                  const Icon(
+                    Icons.pets,
+                    size: 80,
+                    color: Color(0xFF9DB8E8), // Pastel mavi
                   ),
                   const SizedBox(height: 16),
                   Text(
                     'FeedPad',
                     style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: const Color(0xFF5A7FA1), // Welcome ile aynı
                         ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Welcome to FeedPad',
+                    'Welcome to FeedPad 🐾',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: Colors.white,
+                          color: const Color(0xFF6B7FA8),
                         ),
                     textAlign: TextAlign.center,
                   ),
@@ -112,23 +114,23 @@ class _LoginScreenState extends State<LoginScreen> {
                           style: const TextStyle(color: Colors.black87),
                           decoration: InputDecoration(
                             labelText: 'Email',
-                            labelStyle: const TextStyle(color: Colors.grey),
+                            labelStyle: const TextStyle(color: Color(0xFF6B7FA8)),
                             prefixIcon:
-                                const Icon(Icons.email, color: Colors.grey),
+                                const Icon(Icons.email, color: Color(0xFF9DB8E8)),
                             filled: true,
-                            fillColor: Colors.grey[100],
+                            fillColor: const Color(0xFFF5F8FA),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Colors.grey),
+                              borderSide: const BorderSide(color: Color(0xFFC5D9F1), width: 1.5),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Colors.grey),
+                              borderSide: const BorderSide(color: Color(0xFFC5D9F1), width: 1.5),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide: const BorderSide(
-                                  color: Colors.purple, width: 2),
+                                  color: Color(0xFF9DB8E8), width: 2),
                             ),
                           ),
                           validator: (value) {
@@ -150,15 +152,15 @@ class _LoginScreenState extends State<LoginScreen> {
                           style: const TextStyle(color: Colors.black87),
                           decoration: InputDecoration(
                             labelText: 'Password',
-                            labelStyle: const TextStyle(color: Colors.grey),
+                            labelStyle: const TextStyle(color: Color(0xFF6B7FA8)),
                             prefixIcon:
-                                const Icon(Icons.lock, color: Colors.grey),
+                                const Icon(Icons.lock, color: Color(0xFF9DB8E8)),
                             suffixIcon: IconButton(
                               icon: Icon(
                                 _obscurePassword
                                     ? Icons.visibility
                                     : Icons.visibility_off,
-                                color: Colors.grey,
+                                color: const Color(0xFF9DB8E8),
                               ),
                               onPressed: () {
                                 setState(() {
@@ -167,19 +169,19 @@ class _LoginScreenState extends State<LoginScreen> {
                               },
                             ),
                             filled: true,
-                            fillColor: Colors.grey[100],
+                            fillColor: const Color(0xFFF5F8FA),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Colors.grey),
+                              borderSide: const BorderSide(color: Color(0xFFC5D9F1), width: 1.5),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Colors.grey),
+                              borderSide: const BorderSide(color: Color(0xFFC5D9F1), width: 1.5),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide: const BorderSide(
-                                  color: Colors.purple, width: 2),
+                                  color: Color(0xFF9DB8E8), width: 2),
                             ),
                           ),
                           validator: (value) {
@@ -197,54 +199,31 @@ class _LoginScreenState extends State<LoginScreen> {
                         // Giriş butonu
                         ElevatedButton(
                           onPressed: _isLoading ? null : _signIn,
-                          style: ButtonStyle(
-                            backgroundColor:
-                                MaterialStateProperty.resolveWith<Color?>(
-                              (Set<MaterialState> states) {
-                                if (states.contains(MaterialState.pressed)) {
-                                  return Colors.purple[900];
-                                }
-                                return Colors.grey[200];
-                              },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF9DB8E8), // Welcome buton rengi
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 20, horizontal: 24),
+                            minimumSize: const Size(double.infinity, 56),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                            foregroundColor:
-                                MaterialStateProperty.resolveWith<Color?>(
-                              (Set<MaterialState> states) {
-                                if (states.contains(MaterialState.pressed)) {
-                                  return Colors.white;
-                                }
-                                return Colors.purple[900];
-                              },
-                            ),
-                            side: MaterialStateProperty.all(
-                              BorderSide(color: Colors.purple[900]!, width: 2),
-                            ),
-                            padding: MaterialStateProperty.all(
-                              const EdgeInsets.symmetric(
-                                  vertical: 20, horizontal: 24),
-                            ),
-                            minimumSize: MaterialStateProperty.all(
-                              const Size(double.infinity, 56),
-                            ),
-                            shape: MaterialStateProperty.all(
-                              RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
+                            elevation: 1,
                           ),
                           child: _isLoading
-                              ? SizedBox(
+                              ? const SizedBox(
                                   height: 20,
                                   width: 20,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    color: Colors.purple[900],
+                                    color: Colors.white,
                                   ),
                                 )
-                              : Text(
+                              : const Text(
                                   'Login',
                                   style: TextStyle(
                                     fontSize: 16,
+                                    fontWeight: FontWeight.bold,
                                   ),
                                 ),
                         ),
@@ -263,39 +242,14 @@ class _LoginScreenState extends State<LoginScreen> {
                                     ),
                                   );
                                 },
-                          style: ButtonStyle(
-                            backgroundColor:
-                                MaterialStateProperty.resolveWith<Color?>(
-                              (Set<MaterialState> states) {
-                                if (states.contains(MaterialState.pressed)) {
-                                  return Colors.purple[900];
-                                }
-                                return Colors.grey[200];
-                              },
-                            ),
-                            foregroundColor:
-                                MaterialStateProperty.resolveWith<Color?>(
-                              (Set<MaterialState> states) {
-                                if (states.contains(MaterialState.pressed)) {
-                                  return Colors.white;
-                                }
-                                return Colors.purple[900];
-                              },
-                            ),
-                            side: MaterialStateProperty.all(
-                              BorderSide(color: Colors.purple[900]!, width: 2),
-                            ),
-                            padding: MaterialStateProperty.all(
-                              const EdgeInsets.symmetric(
-                                  vertical: 20, horizontal: 24),
-                            ),
-                            minimumSize: MaterialStateProperty.all(
-                              const Size(double.infinity, 56),
-                            ),
-                            shape: MaterialStateProperty.all(
-                              RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFF5A7FA1),
+                            side: const BorderSide(color: Color(0xFF9DB8E8), width: 2),
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 20, horizontal: 24),
+                            minimumSize: const Size(double.infinity, 56),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
                           ),
                           child: const Text(

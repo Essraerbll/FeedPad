@@ -41,7 +41,7 @@ class _AddMarkerScreenState extends State<AddMarkerScreen> {
       insetPadding: const EdgeInsets.all(24.0),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.purple[900],
+          color:  Color(0xFF64B5F6),
           borderRadius: BorderRadius.circular(16),
         ),
         child: SingleChildScrollView(
@@ -421,11 +421,11 @@ class _AddMarkerScreenState extends State<AddMarkerScreen> {
                         },
                         style: ButtonStyle(
                           backgroundColor:
-                              MaterialStateProperty.all(Colors.blue),
+                              MaterialStateProperty.all(Color(0xFF64B5F6)),
                           foregroundColor:
                               MaterialStateProperty.all(Colors.white),
                           side: MaterialStateProperty.all(
-                            BorderSide(color: Colors.blue, width: 2),
+                            BorderSide(color: Color(0xFF64B5F6), width: 2),
                           ),
                           padding: MaterialStateProperty.all(
                             const EdgeInsets.symmetric(

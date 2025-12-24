@@ -603,7 +603,7 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
       insetPadding: const EdgeInsets.all(24.0),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.purple[900],
+          color:  Color(0xFF64B5F6),
           borderRadius: BorderRadius.circular(16),
         ),
         child: SingleChildScrollView(
@@ -874,7 +874,7 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
                                 borderSide: const BorderSide(
-                                    color: Colors.purple, width: 2),
+                                    color:  Color(0xFF64B5F6), width: 2),
                               ),
                             ),
                             items: const [
@@ -943,7 +943,7 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
                                   borderSide: const BorderSide(
-                                      color: Colors.purple, width: 2),
+                                      color:  Color(0xFF64B5F6), width: 2),
                                 ),
                               ),
                               items: const [
@@ -1014,7 +1014,7 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
                                   focusedBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
                                     borderSide: const BorderSide(
-                                        color: Colors.purple, width: 2),
+                                        color:  Color(0xFF64B5F6), width: 2),
                                   ),
                                 ),
                                 validator: (value) {
@@ -1074,7 +1074,7 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
                                 borderSide: const BorderSide(
-                                    color: Colors.purple, width: 2),
+                                    color:  Color(0xFF64B5F6), width: 2),
                               ),
                             ),
                             items: const [
@@ -1149,7 +1149,7 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
                                   borderSide: const BorderSide(
-                                      color: Colors.purple, width: 2),
+                                      color:  Color(0xFF64B5F6), width: 2),
                                 ),
                               ),
                               items: const [
@@ -1228,7 +1228,7 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
                                   focusedBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
                                     borderSide: const BorderSide(
-                                        color: Colors.purple, width: 2),
+                                        color:  Color(0xFF64B5F6), width: 2),
                                   ),
                                 ),
                                 validator: (value) {
@@ -1286,7 +1286,7 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
                                   focusedBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
                                     borderSide: const BorderSide(
-                                        color: Colors.purple, width: 2),
+                                        color:  Color(0xFF64B5F6), width: 2),
                                   ),
                                 ),
                                 items: const [
@@ -1324,11 +1324,11 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
                           onPressed: _isLoading ? null : _submitOpinion,
                           style: ButtonStyle(
                             backgroundColor:
-                                MaterialStateProperty.all(Colors.blue),
+                                MaterialStateProperty.all(Color(0xFF64B5F6)),
                             foregroundColor:
                                 MaterialStateProperty.all(Colors.white),
                             side: MaterialStateProperty.all(
-                              BorderSide(color: Colors.blue, width: 2),
+                              BorderSide(color: Color(0xFF64B5F6), width: 2),
                             ),
                             padding: MaterialStateProperty.all(
                               const EdgeInsets.symmetric(

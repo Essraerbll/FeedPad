@@ -281,6 +281,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                                     final authService = Provider.of<AuthService>(context, listen: false);
                                     final currentUserId = authService.currentUser?.email ?? '';
                                     final currentUserName = authService.currentUser?.name ?? 'You';
+                                    const currentUserProfileImage = '';
                                     
                                     // ChatDetailScreen'i direkt aç (messaging_screen.dart içindeki widget)
                                     Navigator.push(
@@ -294,8 +295,11 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                                             conversationId: conversationId,
                                             otherUserId: otherEmail,
                                             otherUserName: user['name'],
+                                            otherUsername: user['username'] ?? (otherEmail.contains('@') ? otherEmail.split('@').first : ''),
+                                            otherUserProfileImage: user['profileImage'] ?? '',
                                             currentUserId: currentUserId,
                                             currentUserName: currentUserName,
+                                            currentUserProfileImage: currentUserProfileImage,
                                             onMessagesUpdated: () {},
                                           );
                                         },
