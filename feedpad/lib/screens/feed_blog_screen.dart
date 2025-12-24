@@ -124,6 +124,7 @@ class _FeedBlogScreenState extends State<FeedBlogScreen> {
                     final post = _posts[index];
                     final user = post['user'] ?? {};
                     String userName = user['name'] ?? post['userName'] ?? user['username'] ?? '';
+                    String username = user['username'] ?? post['username'] ?? 'username';
                     if (userName.isEmpty) {
                       final uid = post['userId'];
                       if (uid is String && uid.isNotEmpty) {
@@ -153,7 +154,19 @@ class _FeedBlogScreenState extends State<FeedBlogScreen> {
                                     )
                                   : null,
                             ),
-                            title: Text(userName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                            title: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(userName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                Text(
+                                  '@$username',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Color(0xFF90A4AE),
+                                  ),
+                                ),
+                              ],
+                            ),
                             onTap: () {
                               // Kullanıcının kendi profili mi kontrol et
                               final authService = Provider.of<AuthService>(context, listen: false);
@@ -345,6 +358,7 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
   Widget build(BuildContext context) {
     final user = widget.post['user'] ?? {};
     String senderName = user['name'] ?? widget.post['userName'] ?? user['username'] ?? '';
+    String username = user['username'] ?? widget.post['username'] ?? 'username';
     if (senderName.isEmpty) {
       final uid = widget.post['userId'];
       if (uid is String && uid.isNotEmpty) {
@@ -408,6 +422,13 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                                         fontWeight: FontWeight.bold,
                                         fontSize: 14,
                                         color: Color(0xFF1E2A3A),
+                                      ),
+                                    ),
+                                    Text(
+                                      '@$username',
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: Color(0xFF90A4AE),
                                       ),
                                     ),
                                   ],
@@ -502,12 +523,24 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                                   ? const Icon(Icons.person, color: Colors.white, size: 18)
                                   : null,
                             ),
-                            title: Text(
-                              comment['userName'] ?? 'Anonymous',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13,
-                              ),
+                            title: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  comment['userName'] ?? 'Anonymous',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                                Text(
+                                  '@${comment['username'] ?? 'username'}',
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: Color(0xFF90A4AE),
+                                  ),
+                                ),
+                              ],
                             ),
                             subtitle: Text(
                               comment['text'] ?? '',

@@ -39,9 +39,26 @@ router.get('/user/:userId', async (req, res) => {
         for (const commentId of commentsIds) {
           const commentData = await redisClient.hGetAll(`comment:${commentId}`);
           if (commentData && Object.keys(commentData).length > 0) {
+            // Get latest userName and username from user profile
+            let userName = commentData.userName || 'Anonymous';
+            let username = commentData.username || 'user';
+            try {
+              const commentUserId = commentData.userId;
+              if (commentUserId) {
+                const userDataStr = await redisClient.get(`user:${commentUserId}`);
+                if (userDataStr) {
+                  const userData = JSON.parse(userDataStr);
+                  if (userData.name) userName = userData.name;
+                  if (userData.username) username = userData.username;
+                }
+              }
+            } catch {}
+            
             comments.push({
               id: commentId,
               ...commentData,
+              userName: userName,
+              username: username,
               timestamp: parseInt(commentData.timestamp)
             });
           }
@@ -62,10 +79,11 @@ router.get('/user/:userId', async (req, res) => {
         
         let userData = {};
         try {
-          userData = await redisClient.hGetAll(`user:${userIdKey}`);
-          if (!userData || Object.keys(userData).length === 0) {
-            const userJson = await redisClient.get(`user:${userIdKey}`);
-            userData = userJson ? JSON.parse(userJson) : {};
+          const userJson = await redisClient.get(`user:${userIdKey}`);
+          if (userJson) {
+            userData = JSON.parse(userJson);
+          } else {
+            userData = await redisClient.hGetAll(`user:${userIdKey}`);
           }
         } catch {}
         
@@ -199,8 +217,9 @@ router.get('/feed', async (req, res) => {
         for (const commentId of commentsIds) {
           const commentData = await redisClient.hGetAll(`comment:${commentId}`);
           if (commentData && Object.keys(commentData).length > 0) {
-            // Get latest userName from user profile
+            // Get latest userName and username from user profile
             let userName = commentData.userName || 'Anonymous';
+            let username = commentData.username || 'user';
             try {
               const commentUserId = commentData.userId;
               if (commentUserId) {
@@ -208,6 +227,7 @@ router.get('/feed', async (req, res) => {
                 if (userDataStr) {
                   const userData = JSON.parse(userDataStr);
                   if (userData.name) userName = userData.name;
+                  if (userData.username) username = userData.username;
                 }
               }
             } catch {}
@@ -216,6 +236,7 @@ router.get('/feed', async (req, res) => {
               id: commentId,
               ...commentData,
               userName: userName,
+              username: username,
               timestamp: parseInt(commentData.timestamp)
             });
           }
@@ -236,10 +257,11 @@ router.get('/feed', async (req, res) => {
         
         let userData = {};
         try {
-          userData = await redisClient.hGetAll(`user:${userIdKey}`);
-          if (!userData || Object.keys(userData).length === 0) {
-            const userJson = await redisClient.get(`user:${userIdKey}`);
-            userData = userJson ? JSON.parse(userJson) : {};
+          const userJson = await redisClient.get(`user:${userIdKey}`);
+          if (userJson) {
+            userData = JSON.parse(userJson);
+          } else {
+            userData = await redisClient.hGetAll(`user:${userIdKey}`);
           }
         } catch {}
 
@@ -529,11 +551,13 @@ router.post('/comment', async (req, res) => {
     // Get user profile data
     let userProfileImage = null;
     let actualUserName = userName || 'Anonymous';
+    let username = '';
     try {
       const userDataStr = await redisClient.get(`user:${canonicalUserId}`);
       if (userDataStr) {
         const userData = JSON.parse(userDataStr);
         userProfileImage = userData.profileImage || null;
+        username = userData.username || '';
         if (userData.name) actualUserName = userData.name;
       }
     } catch (e) {
@@ -547,6 +571,7 @@ router.post('/comment', async (req, res) => {
     const commentKey = `comment:${commentId}`;
     await redisClient.hSet(commentKey, 'userId', canonicalUserId);
     await redisClient.hSet(commentKey, 'userName', actualUserName);
+    await redisClient.hSet(commentKey, 'username', username);
     await redisClient.hSet(commentKey, 'userProfileImage', userProfileImage || '');
     await redisClient.hSet(commentKey, 'text', text);
     await redisClient.hSet(commentKey, 'timestamp', timestamp.toString());

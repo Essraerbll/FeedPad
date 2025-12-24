@@ -312,7 +312,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               color: Color(0xFF2C3E50),
                             ),
                           ),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 2),
+                          Text(
+                            '@${currentUser?.username ?? 'username'}',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Color(0xFF90A4AE),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
                           Text(
                             _bio,
                             style: const TextStyle(
@@ -415,6 +423,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         final post = _posts[index];
                         final user = post['user'] ?? {};
                         String userName = user['name'] ?? post['userName'] ?? user['username'] ?? '';
+                        String username = user['username'] ?? post['username'] ?? 'username';
                         if (userName.isEmpty) {
                           final uid = post['userId'];
                           if (uid is String && uid.isNotEmpty) {
@@ -438,7 +447,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       ? const Icon(Icons.person, color: Colors.white)
                                       : null,
                                 ),
-                                title: Text(userName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                title: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(userName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                    Text(
+                                      '@$username',
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: Color(0xFF90A4AE),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                               Padding(
                                 padding: const EdgeInsets.all(16),
@@ -705,6 +726,7 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
   Widget build(BuildContext context) {
     final user = widget.post['user'] ?? {};
     String senderName = user['name'] ?? widget.post['userName'] ?? user['username'] ?? '';
+    String username = user['username'] ?? widget.post['username'] ?? 'username';
     if (senderName.isEmpty) {
       final uid = widget.post['userId'];
       if (uid is String && uid.isNotEmpty) {
@@ -768,6 +790,13 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                                         fontWeight: FontWeight.bold,
                                         fontSize: 14,
                                         color: Color(0xFF1E2A3A),
+                                      ),
+                                    ),
+                                    Text(
+                                      '@$username',
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: Color(0xFF90A4AE),
                                       ),
                                     ),
                                   ],
@@ -844,12 +873,24 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                                   ? const Icon(Icons.person, color: Colors.white, size: 18)
                                   : null,
                             ),
-                            title: Text(
-                              comment['userName'] ?? 'Anonymous',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13,
-                              ),
+                            title: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  comment['userName'] ?? 'Anonymous',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                                Text(
+                                  '@${comment['username'] ?? 'username'}',
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: Color(0xFF90A4AE),
+                                  ),
+                                ),
+                              ],
                             ),
                             subtitle: Text(
                               comment['text'] ?? '',

@@ -232,6 +232,8 @@ class _MessagingScreenState extends State<MessagingScreen> {
                         conversation['user1'] == currentUserId ? conversation['user2'] : conversation['user1'];
                     final otherUserName =
                         conversation['user1'] == currentUserId ? conversation['user2Name'] : conversation['user1Name'];
+                    final otherUsername =
+                        conversation['user1'] == currentUserId ? conversation['user2Username'] : conversation['user1Username'];
 
                     return Dismissible(
                       key: Key(conversation['id']),
@@ -258,12 +260,24 @@ class _MessagingScreenState extends State<MessagingScreen> {
                               ),
                             ),
                           ),
-                          title: Text(
-                            otherUserName,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF2C3E50),
-                            ),
+                          title: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                otherUserName,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF2C3E50),
+                                ),
+                              ),
+                              Text(
+                                '@${otherUsername ?? 'username'}',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFF90A4AE),
+                                ),
+                              ),
+                            ],
                           ),
                           subtitle: Text(
                             conversation['lastMessage'] ?? 'No messages',

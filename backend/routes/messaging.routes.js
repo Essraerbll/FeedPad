@@ -75,12 +75,35 @@ router.post('/send', async (req, res) => {
       { id: recipientId, name: recipientName || recipientId }
     ].sort((a, b) => a.id.localeCompare(b.id));
 
+    // Get username for both users
+    let user1Username = '';
+    let user2Username = '';
+    try {
+      const user1Keys = await redisClient.keys(`user:*`);
+      for (const key of user1Keys) {
+        const userJson = await redisClient.get(key);
+        if (userJson) {
+          const userData = JSON.parse(userJson);
+          if (userData.email === sortedUsers[0].id) {
+            user1Username = userData.username || '';
+          }
+          if (userData.email === sortedUsers[1].id) {
+            user2Username = userData.username || '';
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Error getting usernames:', e);
+    }
+
     const conversationMetadata = {
       id: conversationId,
       user1: sortedUsers[0].id,
       user1Name: sortedUsers[0].name,
+      user1Username: user1Username,
       user2: sortedUsers[1].id,
       user2Name: sortedUsers[1].name,
+      user2Username: user2Username,
       lastMessage: text,
       lastMessageTime: timestamp,
       lastMessageBy: senderName,
@@ -156,6 +179,34 @@ router.get('/conversations/:userId', async (req, res) => {
         // Eğer kullanıcı bu konuşmada varsa, ekle
         if (metadata.user1 === userId || metadata.user2 === userId) {
           console.log('  ✅ MATCH! Adding to conversations');
+          
+          // If username is missing, fetch it from user profile
+          if (!metadata.user1Username || !metadata.user2Username) {
+            console.log('  ⚠️ Username missing, fetching from user profiles...');
+            try {
+              const userKeys = await redisClient.keys(`user:*`);
+              for (const userKey of userKeys) {
+                const userJson = await redisClient.get(userKey);
+                if (userJson) {
+                  const userData = JSON.parse(userJson);
+                  if (!metadata.user1Username && userData.email === metadata.user1) {
+                    metadata.user1Username = userData.username || '';
+                    console.log(`  Found user1Username: ${metadata.user1Username}`);
+                  }
+                  if (!metadata.user2Username && userData.email === metadata.user2) {
+                    metadata.user2Username = userData.username || '';
+                    console.log(`  Found user2Username: ${metadata.user2Username}`);
+                  }
+                }
+              }
+              // Update metadata with usernames
+              await redisClient.set(key, JSON.stringify(metadata));
+              console.log('  ✅ Updated metadata with usernames');
+            } catch (e) {
+              console.error('  ❌ Error fetching usernames:', e);
+            }
+          }
+          
           // conversationId'yi metadata'ya ekle
           const conversationId = key.replace('conversation:metadata:', '');
           conversations.push({ ...metadata, id: conversationId });

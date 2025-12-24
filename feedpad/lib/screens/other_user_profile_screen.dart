@@ -262,7 +262,16 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
                       color: Color(0xFF2C3E50),
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 4),
+                  // Username
+                  Text(
+                    '@${widget.user['username'] ?? 'username'}',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF90A4AE),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   // Bio
                   Text(
                     widget.user['bio'],
@@ -420,6 +429,8 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
                       delegate: SliverChildBuilderDelegate(
                         (context, index) {
                           final post = _userPosts[index];
+                          final postUser = post['user'] ?? {};
+                          final username = postUser['username'] ?? post['username'] ?? widget.user['username'] ?? 'username';
                           return Card(
                             margin: const EdgeInsets.symmetric(
                                 horizontal: 12, vertical: 6),
@@ -445,11 +456,23 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
                                           )
                                         : null,
                                   ),
-                                  title: Text(
-                                    widget.user['name'],
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                  title: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        widget.user['name'],
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      Text(
+                                        '@$username',
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: Color(0xFF90A4AE),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                                 // Post caption
@@ -666,6 +689,7 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
   Widget build(BuildContext context) {
     final user = widget.post['user'] ?? {};
     String senderName = user['name'] ?? widget.post['userName'] ?? user['username'] ?? '';
+    String username = user['username'] ?? widget.post['username'] ?? 'username';
     if (senderName.isEmpty) {
       final uid = widget.post['userId'];
       if (uid is String && uid.isNotEmpty) {
@@ -722,6 +746,13 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                                         fontWeight: FontWeight.bold,
                                         fontSize: 14,
                                         color: Color(0xFF1E2A3A),
+                                      ),
+                                    ),
+                                    Text(
+                                      '@$username',
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: Color(0xFF90A4AE),
                                       ),
                                     ),
                                   ],
@@ -816,12 +847,24 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                                   ? const Icon(Icons.person, color: Colors.white, size: 18)
                                   : null,
                             ),
-                            title: Text(
-                              comment['userName'] ?? 'Anonymous',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13,
-                              ),
+                            title: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  comment['userName'] ?? 'Anonymous',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                                Text(
+                                  '@${comment['username'] ?? 'username'}',
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: Color(0xFF90A4AE),
+                                  ),
+                                ),
+                              ],
                             ),
                             subtitle: Text(
                               comment['text'] ?? '',
