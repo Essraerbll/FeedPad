@@ -1,6 +1,38 @@
 const express = require('express');
+const path = require('path');
+const fs = require('fs');
+const multer = require('multer');
 const router = express.Router();
 const redisClient = require('../config/redis');
+
+// Upload config
+const uploadDir = path.join(__dirname, '..', 'uploads', 'posts');
+fs.mkdirSync(uploadDir, { recursive: true });
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, uploadDir),
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname || '').toLowerCase();
+    const base = path.basename(file.originalname || 'upload', ext) || 'upload';
+    const safeBase = base.replace(/[^a-zA-Z0-9_-]/g, '');
+    cb(null, `${Date.now()}_${safeBase || 'file'}${ext || '.jpg'}`);
+  }
+});
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+});
+
+const conditionalUpload = (req, res, next) => {
+  if (req.is('multipart/form-data')) {
+    return upload.single('image')(req, res, next);
+  }
+  return next();
+};
+
+const buildImageUrl = (req, filename) => {
+  const base = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
+  return `${base}/uploads/posts/${filename}`;
+};
 
 // Get user's posts
 router.get('/user/:userId', async (req, res) => {
@@ -138,10 +170,16 @@ router.get('/user/:userId', async (req, res) => {
   }
 });
 
-// Create new post
-router.post('/create', async (req, res) => {
+// Create new post (supports JSON or multipart/form-data with image)
+router.post('/create', conditionalUpload, async (req, res) => {
   try {
-    const { userId, userName, caption, imageUrl, location } = req.body;
+    const { userId, userName, caption, location } = req.body;
+    
+    console.log('Create post request:');
+    console.log('Body:', req.body);
+    console.log('File:', req.file ? `${req.file.filename} (${req.file.size} bytes)` : 'None');
+    console.log('userId:', userId);
+    console.log('caption:', caption);
     
     if (!userId || !caption) {
       return res.status(400).json({ success: false, message: 'User ID and caption required' });
@@ -154,7 +192,7 @@ router.post('/create', async (req, res) => {
     let canonicalUserId = userId;
     let userData = {};
     try {
-      const resolvedUserId = await redisClient.get(`user:email:${userId.toLowerCase()}`);
+      const resolvedUserId = await redisClient.get(`user:email:${String(userId).toLowerCase()}`);
       if (resolvedUserId) {
         canonicalUserId = resolvedUserId;
       }
@@ -164,6 +202,11 @@ router.post('/create', async (req, res) => {
       }
     } catch (e) {
       console.log('Could not fetch user data:', e);
+    }
+    
+    let imageUrl = req.body.imageUrl || '';
+    if (req.file) {
+      imageUrl = buildImageUrl(req, req.file.filename);
     }
     
     // Save post data - Redis expects key-value pairs as separate arguments
