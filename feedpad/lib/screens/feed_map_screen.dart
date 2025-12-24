@@ -287,30 +287,600 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
         final dogFoodAmount = result['dogFoodAmount'];
 
         if (markerId != null && _markerDataMap.containsKey(markerId)) {
-          // Marker verisini güncelle (userType bilgisini koru)
-          final existingUserType = _markerDataMap[markerId]!['userType'];
-          _markerDataMap[markerId]!['isWaterEnough'] = newIsEnough;
+          // Marker verisini ve rengini aynı setState içinde güncelle (anında renk güncellemesi için)
+          setState(() {
+            // Marker verisini güncelle (userType bilgisini koru)
+            final existingUserType = _markerDataMap[markerId]!['userType'];
+            _markerDataMap[markerId]!['isWaterEnough'] = newIsEnough;
 
-          // Bağış bilgilerini güncelle (pet shop owner için)
-          if (catFoodAmount != null) {
-            _markerDataMap[markerId]!['catFoodAmount'] =
-                (catFoodAmount as num).toDouble();
-          } else {
-            _markerDataMap[markerId]!['catFoodAmount'] = null;
-          }
-          if (dogFoodAmount != null) {
-            _markerDataMap[markerId]!['dogFoodAmount'] =
-                (dogFoodAmount as num).toDouble();
-          } else {
-            _markerDataMap[markerId]!['dogFoodAmount'] = null;
-          }
+            // Yeni alanları da güncelle (addedAmount, addedByUserId, isEnoughNow)
+            if (result['addedAmount'] != null) {
+              _markerDataMap[markerId]!['addedAmount'] = result['addedAmount'];
+            } else {
+              // Eğer null ise de güncelle (temizleme için)
+              _markerDataMap[markerId]!['addedAmount'] = null;
+            }
+            if (result['addedByUserId'] != null) {
+              _markerDataMap[markerId]!['addedByUserId'] =
+                  result['addedByUserId'];
+            } else {
+              // Eğer null ise de güncelle (temizleme için)
+              _markerDataMap[markerId]!['addedByUserId'] = null;
+            }
+            if (result['isEnoughNow'] != null) {
+              _markerDataMap[markerId]!['isEnoughNow'] = result['isEnoughNow'];
+            } else {
+              // Eğer null ise de güncelle (temizleme için)
+              _markerDataMap[markerId]!['isEnoughNow'] = null;
+            }
 
-          if (existingUserType != null) {
-            _markerDataMap[markerId]!['userType'] = existingUserType;
-          }
+            // Bağış bilgilerini güncelle (pet shop owner için)
+            if (catFoodAmount != null) {
+              _markerDataMap[markerId]!['catFoodAmount'] =
+                  (catFoodAmount as num).toDouble();
+            } else {
+              _markerDataMap[markerId]!['catFoodAmount'] = null;
+            }
+            if (dogFoodAmount != null) {
+              _markerDataMap[markerId]!['dogFoodAmount'] =
+                  (dogFoodAmount as num).toDouble();
+            } else {
+              _markerDataMap[markerId]!['dogFoodAmount'] = null;
+            }
 
-          // Marker'ı haritada güncelle (isWaterEnough'a göre renk hesaplanacak)
-          _updateMarkerColor(markerId);
+            if (existingUserType != null) {
+              _markerDataMap[markerId]!['userType'] = existingUserType;
+            }
+
+            // Marker'ı hemen güncelle (aynı setState içinde)
+            if (_markerIndexMap.containsKey(markerId)) {
+              final markerIndex = _markerIndexMap[markerId]!;
+              final markerData = _markerDataMap[markerId]!;
+              final position = LatLng(
+                markerData['latitude'] as double,
+                markerData['longitude'] as double,
+              );
+              final type = markerData['type'] as String;
+              final petType = markerData['petType'] as String?;
+              // Güncellenmiş değerleri kullan (result'tan veya güncellenmiş markerData'dan)
+              final isWaterEnough =
+                  newIsEnough ?? markerData['isWaterEnough'] as String?;
+              final isEnoughNow = result['isEnoughNow'] as String? ??
+                  markerData['isEnoughNow'] as String?;
+
+              // Pet shop owner kontrolü
+              final userType = markerData['userType'] as String?;
+              final isPetShopOwnerMarker = userType == 'pet_shop_owner';
+
+              // Renk belirleme: isEnoughNow varsa onu kullan, yoksa isWaterEnough'u kullan
+              final statusToUse = isEnoughNow ?? isWaterEnough;
+              Color markerColor;
+              bool isHouseShape = false;
+
+              if (isPetShopOwnerMarker) {
+                isHouseShape = true;
+                markerColor = statusToUse == 'yes'
+                    ? Colors.green
+                    : statusToUse == 'no'
+                        ? Colors.red
+                        : Colors.blue;
+              } else if (type == 'food' && petType != null) {
+                markerColor = statusToUse == 'yes'
+                    ? Colors.green
+                    : statusToUse == 'maybe'
+                        ? Colors.orange
+                        : Colors.red;
+              } else if (type == 'water') {
+                markerColor = statusToUse == 'yes'
+                    ? Colors.green
+                    : statusToUse == 'maybe'
+                        ? Colors.orange
+                        : Colors.red;
+              } else if (type == 'food') {
+                markerColor = statusToUse == 'yes'
+                    ? Colors.green
+                    : statusToUse == 'maybe'
+                        ? Colors.orange
+                        : Colors.red;
+              } else {
+                markerColor = Colors.blue;
+              }
+
+              // Icon'u belirle
+              IconData iconData;
+              if (isPetShopOwnerMarker) {
+                iconData = Icons.home;
+              } else if (type == 'food' && petType != null) {
+                if (petType == 'cat') {
+                  iconData = Icons.pets;
+                } else if (petType == 'dog') {
+                  iconData = Icons.donut_large;
+                } else {
+                  iconData = Icons.restaurant;
+                }
+              } else if (type == 'water') {
+                iconData = Icons.water_drop;
+              } else if (type == 'food') {
+                iconData = Icons.restaurant;
+              } else {
+                iconData = Icons.location_on;
+              }
+
+              // Marker'ı güncelle
+              _markers[markerIndex] = Marker(
+                point: position,
+                width: 50.0,
+                height: 50.0,
+                child: GestureDetector(
+                  onTap: () async {
+                    if (_markerDataMap.containsKey(markerId)) {
+                      final result = await showDialog<Map<String, dynamic>>(
+                        context: context,
+                        builder: (context) => MarkerDetailScreen(
+                          markerId: markerId,
+                          markerData: _markerDataMap[markerId]!,
+                        ),
+                      );
+
+                      if (result != null && mounted) {
+                        final updatedMarkerId = result['markerId'] as String?;
+                        final newIsEnough = result['isWaterEnough'] as String?;
+                        final waterLiters = result['waterLiters'];
+                        final petType = result['petType'];
+
+                        if (updatedMarkerId != null &&
+                            _markerDataMap.containsKey(updatedMarkerId)) {
+                          setState(() {
+                            final existingUserType =
+                                _markerDataMap[updatedMarkerId]!['userType'];
+                            _markerDataMap[updatedMarkerId]!['isWaterEnough'] =
+                                newIsEnough;
+
+                            if (result['addedAmount'] != null) {
+                              _markerDataMap[updatedMarkerId]!['addedAmount'] =
+                                  result['addedAmount'];
+                            } else {
+                              _markerDataMap[updatedMarkerId]!['addedAmount'] =
+                                  null;
+                            }
+                            if (result['addedByUserId'] != null) {
+                              _markerDataMap[updatedMarkerId]![
+                                  'addedByUserId'] = result['addedByUserId'];
+                            } else {
+                              _markerDataMap[updatedMarkerId]![
+                                  'addedByUserId'] = null;
+                            }
+                            if (result['isEnoughNow'] != null) {
+                              _markerDataMap[updatedMarkerId]!['isEnoughNow'] =
+                                  result['isEnoughNow'];
+                            } else {
+                              _markerDataMap[updatedMarkerId]!['isEnoughNow'] =
+                                  null;
+                            }
+
+                            if (waterLiters != null) {
+                              _markerDataMap[updatedMarkerId]!['waterLiters'] =
+                                  (waterLiters as num).toDouble();
+                            }
+                            if (petType != null) {
+                              _markerDataMap[updatedMarkerId]!['petType'] =
+                                  petType;
+                            }
+
+                            if (existingUserType != null) {
+                              _markerDataMap[updatedMarkerId]!['userType'] =
+                                  existingUserType;
+                            }
+
+                            // Marker'ı hemen güncelle
+                            if (_markerIndexMap.containsKey(updatedMarkerId)) {
+                              final updatedMarkerIndex =
+                                  _markerIndexMap[updatedMarkerId]!;
+                              final updatedMarkerData =
+                                  _markerDataMap[updatedMarkerId]!;
+                              final updatedPosition = LatLng(
+                                updatedMarkerData['latitude'] as double,
+                                updatedMarkerData['longitude'] as double,
+                              );
+                              final updatedType =
+                                  updatedMarkerData['type'] as String;
+                              final updatedPetType =
+                                  updatedMarkerData['petType'] as String?;
+                              // Güncellenmiş değerleri kullan (result'tan veya güncellenmiş markerData'dan)
+                              final updatedIsWaterEnough = newIsEnough ??
+                                  updatedMarkerData['isWaterEnough'] as String?;
+                              final updatedIsEnoughNow = result['isEnoughNow']
+                                      as String? ??
+                                  updatedMarkerData['isEnoughNow'] as String?;
+
+                              final updatedUserType =
+                                  updatedMarkerData['userType'] as String?;
+                              final updatedIsPetShopOwnerMarker =
+                                  updatedUserType == 'pet_shop_owner';
+
+                              final updatedStatusToUse =
+                                  updatedIsEnoughNow ?? updatedIsWaterEnough;
+                              Color updatedMarkerColor;
+                              bool updatedIsHouseShape = false;
+
+                              if (updatedIsPetShopOwnerMarker) {
+                                updatedIsHouseShape = true;
+                                updatedMarkerColor = updatedStatusToUse == 'yes'
+                                    ? Colors.green
+                                    : updatedStatusToUse == 'no'
+                                        ? Colors.red
+                                        : Colors.blue;
+                              } else if (updatedType == 'food' &&
+                                  updatedPetType != null) {
+                                updatedMarkerColor = updatedStatusToUse == 'yes'
+                                    ? Colors.green
+                                    : updatedStatusToUse == 'maybe'
+                                        ? Colors.orange
+                                        : Colors.red;
+                              } else if (updatedType == 'water') {
+                                updatedMarkerColor = updatedStatusToUse == 'yes'
+                                    ? Colors.green
+                                    : updatedStatusToUse == 'maybe'
+                                        ? Colors.orange
+                                        : Colors.red;
+                              } else if (updatedType == 'food') {
+                                updatedMarkerColor = updatedStatusToUse == 'yes'
+                                    ? Colors.green
+                                    : updatedStatusToUse == 'maybe'
+                                        ? Colors.orange
+                                        : Colors.red;
+                              } else {
+                                updatedMarkerColor = Colors.blue;
+                              }
+
+                              IconData updatedIconData;
+                              if (updatedIsPetShopOwnerMarker) {
+                                updatedIconData = Icons.home;
+                              } else if (updatedType == 'food' &&
+                                  updatedPetType != null) {
+                                if (updatedPetType == 'cat') {
+                                  updatedIconData = Icons.pets;
+                                } else if (updatedPetType == 'dog') {
+                                  updatedIconData = Icons.donut_large;
+                                } else {
+                                  updatedIconData = Icons.restaurant;
+                                }
+                              } else if (updatedType == 'water') {
+                                updatedIconData = Icons.water_drop;
+                              } else if (updatedType == 'food') {
+                                updatedIconData = Icons.restaurant;
+                              } else {
+                                updatedIconData = Icons.location_on;
+                              }
+
+                              _markers[updatedMarkerIndex] = Marker(
+                                point: updatedPosition,
+                                width: 50.0,
+                                height: 50.0,
+                                child: GestureDetector(
+                                  onTap: () async {
+                                    if (_markerDataMap
+                                        .containsKey(updatedMarkerId)) {
+                                      final result = await showDialog<
+                                          Map<String, dynamic>>(
+                                        context: context,
+                                        builder: (context) =>
+                                            MarkerDetailScreen(
+                                          markerId: updatedMarkerId,
+                                          markerData:
+                                              _markerDataMap[updatedMarkerId]!,
+                                        ),
+                                      );
+
+                                      if (result != null && mounted) {
+                                        final nestedMarkerId =
+                                            result['markerId'] as String?;
+                                        final nestedIsEnough =
+                                            result['isWaterEnough'] as String?;
+                                        final nestedCatFoodAmount =
+                                            result['catFoodAmount'];
+                                        final nestedDogFoodAmount =
+                                            result['dogFoodAmount'];
+
+                                        if (nestedMarkerId != null &&
+                                            _markerDataMap
+                                                .containsKey(nestedMarkerId)) {
+                                          setState(() {
+                                            // Marker verisini güncelle
+                                            final existingUserType =
+                                                _markerDataMap[nestedMarkerId]![
+                                                    'userType'];
+                                            _markerDataMap[nestedMarkerId]![
+                                                    'isWaterEnough'] =
+                                                nestedIsEnough;
+
+                                            // Yeni alanları da güncelle
+                                            if (result['addedAmount'] != null) {
+                                              _markerDataMap[nestedMarkerId]![
+                                                      'addedAmount'] =
+                                                  result['addedAmount'];
+                                            } else {
+                                              _markerDataMap[nestedMarkerId]![
+                                                  'addedAmount'] = null;
+                                            }
+                                            if (result['addedByUserId'] !=
+                                                null) {
+                                              _markerDataMap[nestedMarkerId]![
+                                                      'addedByUserId'] =
+                                                  result['addedByUserId'];
+                                            } else {
+                                              _markerDataMap[nestedMarkerId]![
+                                                  'addedByUserId'] = null;
+                                            }
+                                            if (result['isEnoughNow'] != null) {
+                                              _markerDataMap[nestedMarkerId]![
+                                                      'isEnoughNow'] =
+                                                  result['isEnoughNow'];
+                                            } else {
+                                              _markerDataMap[nestedMarkerId]![
+                                                  'isEnoughNow'] = null;
+                                            }
+
+                                            // Bağış bilgilerini güncelle
+                                            if (nestedCatFoodAmount != null) {
+                                              _markerDataMap[nestedMarkerId]![
+                                                      'catFoodAmount'] =
+                                                  (nestedCatFoodAmount as num)
+                                                      .toDouble();
+                                            } else {
+                                              _markerDataMap[nestedMarkerId]![
+                                                  'catFoodAmount'] = null;
+                                            }
+                                            if (nestedDogFoodAmount != null) {
+                                              _markerDataMap[nestedMarkerId]![
+                                                      'dogFoodAmount'] =
+                                                  (nestedDogFoodAmount as num)
+                                                      .toDouble();
+                                            } else {
+                                              _markerDataMap[nestedMarkerId]![
+                                                  'dogFoodAmount'] = null;
+                                            }
+
+                                            if (existingUserType != null) {
+                                              _markerDataMap[nestedMarkerId]![
+                                                      'userType'] =
+                                                  existingUserType;
+                                            }
+
+                                            // Marker'ı hemen güncelle
+                                            if (_markerIndexMap
+                                                .containsKey(nestedMarkerId)) {
+                                              final nestedMarkerIndex =
+                                                  _markerIndexMap[
+                                                      nestedMarkerId]!;
+                                              final nestedMarkerData =
+                                                  _markerDataMap[
+                                                      nestedMarkerId]!;
+                                              final nestedPosition = LatLng(
+                                                nestedMarkerData['latitude']
+                                                    as double,
+                                                nestedMarkerData['longitude']
+                                                    as double,
+                                              );
+                                              final nestedType =
+                                                  nestedMarkerData['type']
+                                                      as String;
+                                              final nestedPetType =
+                                                  nestedMarkerData['petType']
+                                                      as String?;
+                                              // Güncellenmiş değerleri kullan (result'tan veya güncellenmiş markerData'dan)
+                                              final nestedIsWaterEnough =
+                                                  nestedIsEnough ??
+                                                      nestedMarkerData[
+                                                              'isWaterEnough']
+                                                          as String?;
+                                              final nestedIsEnoughNow =
+                                                  result['isEnoughNow']
+                                                          as String? ??
+                                                      nestedMarkerData[
+                                                              'isEnoughNow']
+                                                          as String?;
+
+                                              final nestedUserType =
+                                                  nestedMarkerData['userType']
+                                                      as String?;
+                                              final nestedIsPetShopOwnerMarker =
+                                                  nestedUserType ==
+                                                      'pet_shop_owner';
+
+                                              final nestedStatusToUse =
+                                                  nestedIsEnoughNow ??
+                                                      nestedIsWaterEnough;
+                                              Color nestedMarkerColor;
+                                              bool nestedIsHouseShape = false;
+
+                                              if (nestedIsPetShopOwnerMarker) {
+                                                nestedIsHouseShape = true;
+                                                nestedMarkerColor =
+                                                    nestedStatusToUse == 'yes'
+                                                        ? Colors.green
+                                                        : nestedStatusToUse ==
+                                                                'no'
+                                                            ? Colors.red
+                                                            : Colors.blue;
+                                              } else if (nestedType == 'food' &&
+                                                  nestedPetType != null) {
+                                                nestedMarkerColor =
+                                                    nestedStatusToUse == 'yes'
+                                                        ? Colors.green
+                                                        : nestedStatusToUse ==
+                                                                'maybe'
+                                                            ? Colors.orange
+                                                            : Colors.red;
+                                              } else if (nestedType ==
+                                                  'water') {
+                                                nestedMarkerColor =
+                                                    nestedStatusToUse == 'yes'
+                                                        ? Colors.green
+                                                        : nestedStatusToUse ==
+                                                                'maybe'
+                                                            ? Colors.orange
+                                                            : Colors.red;
+                                              } else if (nestedType == 'food') {
+                                                nestedMarkerColor =
+                                                    nestedStatusToUse == 'yes'
+                                                        ? Colors.green
+                                                        : nestedStatusToUse ==
+                                                                'maybe'
+                                                            ? Colors.orange
+                                                            : Colors.red;
+                                              } else {
+                                                nestedMarkerColor = Colors.blue;
+                                              }
+
+                                              IconData nestedIconData;
+                                              if (nestedIsPetShopOwnerMarker) {
+                                                nestedIconData = Icons.home;
+                                              } else if (nestedType == 'food' &&
+                                                  nestedPetType != null) {
+                                                if (nestedPetType == 'cat') {
+                                                  nestedIconData = Icons.pets;
+                                                } else if (nestedPetType ==
+                                                    'dog') {
+                                                  nestedIconData =
+                                                      Icons.donut_large;
+                                                } else {
+                                                  nestedIconData =
+                                                      Icons.restaurant;
+                                                }
+                                              } else if (nestedType ==
+                                                  'water') {
+                                                nestedIconData =
+                                                    Icons.water_drop;
+                                              } else if (nestedType == 'food') {
+                                                nestedIconData =
+                                                    Icons.restaurant;
+                                              } else {
+                                                nestedIconData =
+                                                    Icons.location_on;
+                                              }
+
+                                              _markers[nestedMarkerIndex] =
+                                                  Marker(
+                                                point: nestedPosition,
+                                                width: 50.0,
+                                                height: 50.0,
+                                                child: GestureDetector(
+                                                  onTap: () async {
+                                                    if (_markerDataMap
+                                                        .containsKey(
+                                                            nestedMarkerId)) {
+                                                      final result =
+                                                          await showDialog<
+                                                              Map<String,
+                                                                  dynamic>>(
+                                                        context: context,
+                                                        builder: (context) =>
+                                                            MarkerDetailScreen(
+                                                          markerId:
+                                                              nestedMarkerId,
+                                                          markerData:
+                                                              _markerDataMap[
+                                                                  nestedMarkerId]!,
+                                                        ),
+                                                      );
+
+                                                      if (result != null &&
+                                                          mounted) {
+                                                        final deepMarkerId =
+                                                            result['markerId']
+                                                                as String?;
+                                                        if (deepMarkerId !=
+                                                                null &&
+                                                            _markerDataMap
+                                                                .containsKey(
+                                                                    deepMarkerId)) {
+                                                          _updateMarkerColor(
+                                                              deepMarkerId);
+                                                        }
+                                                      }
+                                                    }
+                                                  },
+                                                  child: Container(
+                                                    decoration: BoxDecoration(
+                                                      color: nestedMarkerColor,
+                                                      shape: nestedIsHouseShape
+                                                          ? BoxShape.rectangle
+                                                          : BoxShape.circle,
+                                                      borderRadius:
+                                                          nestedIsHouseShape
+                                                              ? BorderRadius
+                                                                  .circular(8)
+                                                              : null,
+                                                      border: Border.all(
+                                                        color: Colors.white,
+                                                        width: 2.0,
+                                                      ),
+                                                    ),
+                                                    child: Icon(
+                                                      nestedIconData,
+                                                      color: Colors.white,
+                                                      size: 25.0,
+                                                    ),
+                                                  ),
+                                                ),
+                                              );
+                                            }
+                                          });
+                                        }
+                                      }
+                                    }
+                                  },
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: updatedMarkerColor,
+                                      shape: updatedIsHouseShape
+                                          ? BoxShape.rectangle
+                                          : BoxShape.circle,
+                                      borderRadius: updatedIsHouseShape
+                                          ? BorderRadius.circular(8)
+                                          : null,
+                                      border: Border.all(
+                                        color: Colors.white,
+                                        width: 2.0,
+                                      ),
+                                    ),
+                                    child: Icon(
+                                      updatedIconData,
+                                      color: Colors.white,
+                                      size: 25.0,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }
+                          });
+                        }
+                      }
+                    }
+                  },
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: markerColor,
+                      shape:
+                          isHouseShape ? BoxShape.rectangle : BoxShape.circle,
+                      borderRadius:
+                          isHouseShape ? BorderRadius.circular(8) : null,
+                      border: Border.all(
+                        color: Colors.white,
+                        width: 2.0,
+                      ),
+                    ),
+                    child: Icon(
+                      iconData,
+                      color: Colors.white,
+                      size: 25.0,
+                    ),
+                  ),
+                ),
+              );
+            }
+          });
         }
       }
     }
@@ -572,42 +1142,45 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
 
                       if (updatedMarkerId != null &&
                           _markerDataMap.containsKey(updatedMarkerId)) {
-                        // Marker verisini güncelle (userType bilgisini koru)
-                        final existingUserType =
-                            _markerDataMap[updatedMarkerId]!['userType'];
-                        _markerDataMap[updatedMarkerId]!['isWaterEnough'] =
-                            newIsEnough;
+                        // Marker verisini setState içinde güncelle (anında renk güncellemesi için)
+                        setState(() {
+                          // Marker verisini güncelle (userType bilgisini koru)
+                          final existingUserType =
+                              _markerDataMap[updatedMarkerId]!['userType'];
+                          _markerDataMap[updatedMarkerId]!['isWaterEnough'] =
+                              newIsEnough;
 
-                        // Yeni alanları da güncelle
-                        if (result['addedAmount'] != null) {
-                          _markerDataMap[updatedMarkerId]!['addedAmount'] =
-                              result['addedAmount'];
-                        } else {
-                          // Eğer null ise de güncelle (temizleme için)
-                          _markerDataMap[updatedMarkerId]!['addedAmount'] =
-                              null;
-                        }
-                        if (result['addedByUserId'] != null) {
-                          _markerDataMap[updatedMarkerId]!['addedByUserId'] =
-                              result['addedByUserId'];
-                        } else {
-                          // Eğer null ise de güncelle (temizleme için)
-                          _markerDataMap[updatedMarkerId]!['addedByUserId'] =
-                              null;
-                        }
-                        if (result['isEnoughNow'] != null) {
-                          _markerDataMap[updatedMarkerId]!['isEnoughNow'] =
-                              result['isEnoughNow'];
-                        } else {
-                          // Eğer null ise de güncelle (temizleme için)
-                          _markerDataMap[updatedMarkerId]!['isEnoughNow'] =
-                              null;
-                        }
-                        // userType bilgisini koru
-                        if (existingUserType != null) {
-                          _markerDataMap[updatedMarkerId]!['userType'] =
-                              existingUserType;
-                        }
+                          // Yeni alanları da güncelle
+                          if (result['addedAmount'] != null) {
+                            _markerDataMap[updatedMarkerId]!['addedAmount'] =
+                                result['addedAmount'];
+                          } else {
+                            // Eğer null ise de güncelle (temizleme için)
+                            _markerDataMap[updatedMarkerId]!['addedAmount'] =
+                                null;
+                          }
+                          if (result['addedByUserId'] != null) {
+                            _markerDataMap[updatedMarkerId]!['addedByUserId'] =
+                                result['addedByUserId'];
+                          } else {
+                            // Eğer null ise de güncelle (temizleme için)
+                            _markerDataMap[updatedMarkerId]!['addedByUserId'] =
+                                null;
+                          }
+                          if (result['isEnoughNow'] != null) {
+                            _markerDataMap[updatedMarkerId]!['isEnoughNow'] =
+                                result['isEnoughNow'];
+                          } else {
+                            // Eğer null ise de güncelle (temizleme için)
+                            _markerDataMap[updatedMarkerId]!['isEnoughNow'] =
+                                null;
+                          }
+                          // userType bilgisini koru
+                          if (existingUserType != null) {
+                            _markerDataMap[updatedMarkerId]!['userType'] =
+                                existingUserType;
+                          }
+                        });
 
                         // Marker'ı haritada güncelle (isWaterEnough veya isEnoughNow'e göre renk hesaplanacak)
                         _updateMarkerColor(updatedMarkerId);
@@ -766,27 +1339,53 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
 
                 if (updatedMarkerId != null &&
                     _markerDataMap.containsKey(updatedMarkerId)) {
-                  // Marker verisini güncelle (userType bilgisini koru)
-                  final existingUserType =
-                      _markerDataMap[updatedMarkerId]!['userType'];
-                  _markerDataMap[updatedMarkerId]!['isWaterEnough'] =
-                      newIsEnough;
+                  // Marker verisini setState içinde güncelle (anında renk güncellemesi için)
+                  setState(() {
+                    // Marker verisini güncelle (userType bilgisini koru)
+                    final existingUserType =
+                        _markerDataMap[updatedMarkerId]!['userType'];
+                    _markerDataMap[updatedMarkerId]!['isWaterEnough'] =
+                        newIsEnough;
 
-                  // Bağış bilgilerini güncelle (pet shop owner için)
-                  if (waterLiters != null) {
-                    _markerDataMap[updatedMarkerId]!['waterLiters'] =
-                        (waterLiters as num).toDouble();
-                  }
-                  if (petType != null) {
-                    _markerDataMap[updatedMarkerId]!['petType'] = petType;
-                  }
+                    // Yeni alanları da güncelle (addedAmount, addedByUserId, isEnoughNow)
+                    if (result['addedAmount'] != null) {
+                      _markerDataMap[updatedMarkerId]!['addedAmount'] =
+                          result['addedAmount'];
+                    } else {
+                      // Eğer null ise de güncelle (temizleme için)
+                      _markerDataMap[updatedMarkerId]!['addedAmount'] = null;
+                    }
+                    if (result['addedByUserId'] != null) {
+                      _markerDataMap[updatedMarkerId]!['addedByUserId'] =
+                          result['addedByUserId'];
+                    } else {
+                      // Eğer null ise de güncelle (temizleme için)
+                      _markerDataMap[updatedMarkerId]!['addedByUserId'] = null;
+                    }
+                    if (result['isEnoughNow'] != null) {
+                      _markerDataMap[updatedMarkerId]!['isEnoughNow'] =
+                          result['isEnoughNow'];
+                    } else {
+                      // Eğer null ise de güncelle (temizleme için)
+                      _markerDataMap[updatedMarkerId]!['isEnoughNow'] = null;
+                    }
 
-                  if (existingUserType != null) {
-                    _markerDataMap[updatedMarkerId]!['userType'] =
-                        existingUserType;
-                  }
+                    // Bağış bilgilerini güncelle (pet shop owner için)
+                    if (waterLiters != null) {
+                      _markerDataMap[updatedMarkerId]!['waterLiters'] =
+                          (waterLiters as num).toDouble();
+                    }
+                    if (petType != null) {
+                      _markerDataMap[updatedMarkerId]!['petType'] = petType;
+                    }
 
-                  // Marker'ı haritada güncelle (isWaterEnough'a göre renk hesaplanacak)
+                    if (existingUserType != null) {
+                      _markerDataMap[updatedMarkerId]!['userType'] =
+                          existingUserType;
+                    }
+                  });
+
+                  // Marker'ı haritada güncelle (isWaterEnough veya isEnoughNow'e göre renk hesaplanacak)
                   _updateMarkerColor(updatedMarkerId);
                 }
               }

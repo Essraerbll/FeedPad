@@ -5,7 +5,6 @@ const redisClient = require('../config/redis');
 const { v4: uuidv4 } = require('uuid');
 const router = express.Router();
 
-// Helper: Redis bağlantı kontrolü
 function checkRedisConnection() {
   try {
     return redisClient && typeof redisClient.isConnected === 'function' && redisClient.isConnected();

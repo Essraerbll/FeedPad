@@ -1,11 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
+import 'welcome_screen.dart';
 import 'login_screen.dart';
 import 'main_screen.dart';
 
-class AuthWrapper extends StatelessWidget {
+class AuthWrapper extends StatefulWidget {
   const AuthWrapper({super.key});
+
+  @override
+  State<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends State<AuthWrapper> {
+  bool _showWelcome = true; // İlk kez açılışta welcome göster
 
   @override
   Widget build(BuildContext context) {
@@ -17,6 +25,15 @@ class AuthWrapper extends StatelessWidget {
         body: Center(
           child: CircularProgressIndicator(),
         ),
+      );
+    }
+
+    // İlk kez açılışta welcome ekranını göster (kalıcı - sadece buton ile geç)
+    if (_showWelcome && !authService.isAuthenticated) {
+      return WelcomeScreen(
+        onGetStarted: () {
+          setState(() => _showWelcome = false);
+        },
       );
     }
 
