@@ -1,10 +1,9 @@
 import 'dart:convert';
-import 'dart:typed_data';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../services/api_service.dart';
+import 'profile_dialogs.dart';
 
 class ProfileScreen extends StatefulWidget {
   final bool showAppBar;
@@ -28,6 +27,74 @@ class _ProfileScreenState extends State<ProfileScreen> {
   
   // Posts from API
   List<Map<String, dynamic>> _posts = [];
+  
+  // Helper function to get image provider from URL or base64
+  ImageProvider? _getImageProvider(String? imageUrl) {
+    if (imageUrl == null || imageUrl.isEmpty) return null;
+    
+    try {
+      if (imageUrl.startsWith('data:image')) {
+        final base64Str = imageUrl.split(',').last;
+        final bytes = base64Decode(base64Str);
+        return MemoryImage(bytes);
+      } else {
+        return NetworkImage(imageUrl);
+      }
+    } catch (e) {
+      debugPrint('Error loading image: $e');
+      return null;
+    }
+  }
+  
+  // Helper widget to build image from URL or base64
+  Widget _buildPostImage(String? imageUrl) {
+    if (imageUrl == null || imageUrl.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    
+    try {
+      if (imageUrl.startsWith('data:image')) {
+        final base64Str = imageUrl.split(',').last;
+        final bytes = base64Decode(base64Str);
+        return Image.memory(
+          bytes,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            return Container(
+              height: 200,
+              color: Colors.grey[200],
+              child: const Center(
+                child: Icon(Icons.broken_image, size: 50, color: Colors.grey),
+              ),
+            );
+          },
+        );
+      } else {
+        return Image.network(
+          imageUrl,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            return Container(
+              height: 200,
+              color: Colors.grey[200],
+              child: const Center(
+                child: Icon(Icons.broken_image, size: 50, color: Colors.grey),
+              ),
+            );
+          },
+        );
+      }
+    } catch (e) {
+      return Container(
+        height: 200,
+        color: Colors.grey[200],
+        child: const Center(
+          child: Icon(Icons.broken_image, size: 50, color: Colors.grey),
+        ),
+      );
+    }
+  }
+  
   Future<void> _toggleLike(Map<String, dynamic> post) async {
     final auth = Provider.of<AuthService>(context, listen: false);
     final userId = auth.currentUser?.email;
@@ -83,14 +150,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
         debugPrint('Error loading stats: $e');
       }
       
-      // Load user profile data (including bio)
+      // Load user profile data (including bio and profile image)
       try {
         final userResponse = await _apiService.get('/posts/user/$userId');
         if (userResponse['success']) {
           final userData = userResponse['user'];
-          if (userData != null && userData['bio'] != null && userData['bio'].isNotEmpty) {
+          if (userData != null) {
             setState(() {
-              _bio = userData['bio'];
+              if (userData['bio'] != null && userData['bio'].isNotEmpty) {
+                _bio = userData['bio'];
+              }
+              if (userData['profileImage'] != null && userData['profileImage'].isNotEmpty) {
+                _profileImageUrl = userData['profileImage'];
+              }
             });
           }
         }
@@ -115,412 +187,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _showCreatePostDialog() {
-    final TextEditingController captionController = TextEditingController();
-    final TextEditingController locationController = TextEditingController();
-    Uint8List? imageBytes;
-    String? imageName;
-
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setStateDialog) => AlertDialog(
-        backgroundColor: const Color(0xFFF0F8FF),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
-          children: [
-            Icon(Icons.add_photo_alternate, color: Color(0xFF64B5F6)),
-            SizedBox(width: 8),
-            Text(
-              'Post Oluştur',
-              style: TextStyle(color: Color(0xFF1976D2), fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Image picker / preview
-              GestureDetector(
-                onTap: () async {
-                  final result = await FilePicker.platform.pickFiles(
-                    type: FileType.image,
-                    withData: true,
-                  );
-                  if (result != null && result.files.isNotEmpty) {
-                    setStateDialog(() {
-                      imageBytes = result.files.first.bytes;
-                      imageName = result.files.first.name;
-                    });
-                  }
-                },
-                child: Container(
-                  height: 220,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE3F2FD),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFF90CAF9), width: 2),
-                  ),
-                  child: Center(
-                    child: imageBytes == null
-                        ? const Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.add_a_photo, size: 48, color: Color(0xFF64B5F6)),
-                              SizedBox(height: 8),
-                              Text('Fotoğraf Ekle', style: TextStyle(color: Color(0xFF1976D2))),
-                            ],
-                          )
-                        : ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
-                            child: Image.memory(
-                              imageBytes!,
-                              fit: BoxFit.cover,
-                              width: double.infinity,
-                              height: double.infinity,
-                            ),
-                          ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  imageName ?? 'JPG/PNG seçin',
-                  style: const TextStyle(color: Color(0xFF546E7A), fontSize: 12),
-                ),
-              ),
-              const SizedBox(height: 12),
-              // Başlık
-              TextField(
-                controller: captionController,
-                maxLines: 3,
-                decoration: InputDecoration(
-                  labelText: 'Başlık',
-                  labelStyle: const TextStyle(color: Color(0xFF1976D2)),
-                  hintText: 'Bunu paylaş...',
-                  prefixIcon: const Icon(Icons.edit, color: Color(0xFF64B5F6)),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFFBBDEFB)),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFFBBDEFB)),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFF64B5F6), width: 2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              // Konum
-              TextField(
-                controller: locationController,
-                decoration: InputDecoration(
-                  labelText: 'Konum (opsiyonel)',
-                  labelStyle: const TextStyle(color: Color(0xFF1976D2)),
-                  hintText: 'Konum ekle...',
-                  prefixIcon: const Icon(Icons.location_on, color: Color(0xFF64B5F6)),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFFBBDEFB)),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFFBBDEFB)),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFF64B5F6), width: 2),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: Color(0xFF1976D2))),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (captionController.text.isEmpty) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Lütfen bir başlık yazınız'),
-                      backgroundColor: Color(0xFF64B5F6),
-                    ),
-                  );
-                }
-                return;
-              }
-              
-              final authService = Provider.of<AuthService>(context, listen: false);
-              final userId = authService.currentUser?.email;
-              
-              if (userId == null) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('User bilgisi bulunamadı'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-                return;
-              }
-              
-              String? imageDataUrl;
-              if (imageBytes != null) {
-                final ext = (imageName?.split('.').last ?? 'png').toLowerCase();
-                final mime = ext == 'jpg' ? 'jpeg' : ext;
-                imageDataUrl = 'data:image/$mime;base64,${base64Encode(imageBytes!)}';
-              }
-              
-              try {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Paylaşılıyor...'),
-                      backgroundColor: Color(0xFF64B5F6),
-                      duration: Duration(seconds: 2),
-                    ),
-                  );
-                }
-                
-                final response = await _apiService.post('/posts/create', {
-                  'userId': userId,
-                  'userName': authService.currentUser?.name ?? 'User',
-                  'caption': captionController.text,
-                  'location': locationController.text.isNotEmpty ? locationController.text : '',
-                  'imageUrl': imageDataUrl ?? '',
-                });
-                
-                if (response['success'] == true) {
-                  if (mounted) {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Post başarıyla paylaşıldı!'),
-                        backgroundColor: Color(0xFF66BB6A),
-                      ),
-                    );
-                    // Reload user data to show new post
-                    _loadUserData();
-                  }
-                } else {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Hata: ${response['message'] ?? 'Bilinmeyen hata'}'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                  }
-                }
-              } catch (e) {
-                debugPrint('Post creation error: $e');
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Paylaşma hatası: $e'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF64B5F6),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-            child: const Text('Paylaş', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
+      builder: (dialogContext) => CreatePostDialog(
+        apiService: _apiService,
+        onPostCreated: _loadUserData,
       ),
     );
   }
 
   void _showEditProfileDialog() {
-    final TextEditingController nameController = TextEditingController(
-      text: Provider.of<AuthService>(context, listen: false).currentUser?.name ?? '',
-    );
-    final TextEditingController bioController = TextEditingController(text: _bio);
-    final authService = Provider.of<AuthService>(context, listen: false);
-
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFFF0F8FF),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
-          children: [
-            Icon(Icons.edit, color: Color(0xFF64B5F6)),
-            SizedBox(width: 8),
-            Text(
-              'Edit Profile',
-              style: TextStyle(color: Color(0xFF1976D2), fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Profile Image
-              Stack(
-                children: [
-                  CircleAvatar(
-                    radius: 50,
-                    backgroundColor: const Color(0xFF64B5F6),
-                    backgroundImage: _profileImageUrl != null && _profileImageUrl!.isNotEmpty
-                        ? NetworkImage(_profileImageUrl!) 
-                        : null,
-                    child: _profileImageUrl == null || _profileImageUrl!.isEmpty
-                        ? const Icon(Icons.pets, size: 50, color: Colors.white)
-                        : null,
-                  ),
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: CircleAvatar(
-                      radius: 18,
-                      backgroundColor: const Color(0xFF1976D2),
-                      child: IconButton(
-                        icon: const Icon(Icons.camera_alt, size: 18, color: Colors.white),
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Image picker coming soon!'),
-                              backgroundColor: Color(0xFF64B5F6),
-                            ),
-                          );
-                        },
-                        padding: EdgeInsets.zero,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              // Name
-              TextField(
-                controller: nameController,
-                decoration: InputDecoration(
-                  labelText: 'Name',
-                  labelStyle: const TextStyle(color: Color(0xFF1976D2)),
-                  hintText: authService.currentUser?.name ?? 'Your name',
-                  prefixIcon: const Icon(Icons.person, color: Color(0xFF64B5F6)),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFFBBDEFB)),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFFBBDEFB)),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFF64B5F6), width: 2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              // Bio
-              TextField(
-                controller: bioController,
-                maxLines: 3,
-                decoration: InputDecoration(
-                  labelText: 'Bio',
-                  labelStyle: const TextStyle(color: Color(0xFF1976D2)),
-                  hintText: 'Tell us about yourself...',
-                  prefixIcon: const Icon(Icons.info_outline, color: Color(0xFF64B5F6)),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFFBBDEFB)),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFFBBDEFB)),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFF64B5F6), width: 2),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: Color(0xFF1976D2))),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final userId = authService.currentUser?.email;
-              
-              try {
-                final response = await _apiService.put('/posts/profile', {
-                  'userId': userId,
-                  'name': nameController.text.isEmpty ? null : nameController.text,
-                  'bio': bioController.text,
-                });
-                
-                if (response['success'] == true) {
-                  setState(() {
-                    _bio = bioController.text.isNotEmpty ? bioController.text : _bio;
-                  });
-                  
-                  if (mounted) {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Profile updated!'),
-                        backgroundColor: Color(0xFF66BB6A),
-                      ),
-                    );
-                    // Refresh user data
-                    await authService.getCurrentUser();
-                    await _loadUserData();
-                  }
-                } else {
-                  throw Exception(response['message'] ?? 'Update failed');
-                }
-              } catch (e) {
-                debugPrint('Profile update error: $e');
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Error: $e'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF64B5F6),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-            child: const Text('Save', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          ),
-        ],
+      builder: (dialogContext) => EditProfileDialog(
+        apiService: _apiService,
+        currentBio: _bio,
+        currentProfileImage: _profileImageUrl,
+        onProfileUpdated: () {
+          // Force reload and setState
+          setState(() => _isLoading = true);
+          _loadUserData();
+        },
       ),
     );
   }
@@ -589,10 +276,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             child: CircleAvatar(
                               radius: 40,
                               backgroundColor: const Color(0xFFE3F2FD),
-                            backgroundImage: _profileImageUrl != null && _profileImageUrl!.isNotEmpty
-                                ? NetworkImage(_profileImageUrl!) 
-                                : null,
-                            child: _profileImageUrl == null || _profileImageUrl!.isEmpty
+                              backgroundImage: _getImageProvider(_profileImageUrl),
+                              child: _profileImageUrl == null || _profileImageUrl!.isEmpty
                                   ? const Icon(Icons.pets, size: 45, color: Color(0xFF9DB8E8))
                                   : null,
                             ),
@@ -739,7 +424,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           }
                         }
                         final userProfileImage = user['profileImage'] ?? post['userProfileImage'] ?? '';
-                        final comments = post['comments'] ?? [];
 
                         return Card(
                           margin: const EdgeInsets.only(bottom: 16),
@@ -749,9 +433,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ListTile(
                                 leading: CircleAvatar(
                                   backgroundColor: const Color(0xFF64B5F6),
-                                  backgroundImage: userProfileImage.isNotEmpty
-                                      ? NetworkImage(userProfileImage)
-                                      : null,
+                                  backgroundImage: _getImageProvider(userProfileImage),
                                   child: userProfileImage.isEmpty
                                       ? const Icon(Icons.person, color: Colors.white)
                                       : null,
@@ -763,19 +445,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 child: Text(post['caption'] ?? '', style: const TextStyle(fontSize: 16)),
                               ),
                               if (post['imageUrl'] != null && (post['imageUrl'] as String).isNotEmpty)
-                                Image.network(
-                                  post['imageUrl'],
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return Container(
-                                      height: 200,
-                                      color: Colors.grey[200],
-                                      child: const Center(
-                                        child: Icon(Icons.broken_image, size: 50, color: Colors.grey),
-                                      ),
-                                    );
-                                  },
-                                ),
+                                _buildPostImage(post['imageUrl']),
                               Row(
                                 children: [
                                   IconButton(
@@ -894,6 +564,67 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
   late TextEditingController _commentController;
   late List<Map<String, dynamic>> _comments;
   bool _isSubmitting = false;
+
+  // Helper widget to build image from URL or base64
+  Widget _buildPostImage(String? imageUrl) {
+    if (imageUrl == null || imageUrl.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    
+    try {
+      if (imageUrl.startsWith('data:image')) {
+        final base64Str = imageUrl.split(',').last;
+        final bytes = base64Decode(base64Str);
+        return ClipRRect(
+          borderRadius: const BorderRadius.only(
+            bottomLeft: Radius.circular(14),
+            bottomRight: Radius.circular(14),
+          ),
+          child: Image.memory(
+            bytes,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                height: 200,
+                color: Colors.grey[200],
+                child: const Center(
+                  child: Icon(Icons.broken_image, size: 50, color: Colors.grey),
+                ),
+              );
+            },
+          ),
+        );
+      } else {
+        return ClipRRect(
+          borderRadius: const BorderRadius.only(
+            bottomLeft: Radius.circular(14),
+            bottomRight: Radius.circular(14),
+          ),
+          child: Image.network(
+            imageUrl,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                height: 200,
+                color: Colors.grey[200],
+                child: const Center(
+                  child: Icon(Icons.broken_image, size: 50, color: Colors.grey),
+                ),
+              );
+            },
+          ),
+        );
+      }
+    } catch (e) {
+      return Container(
+        height: 200,
+        color: Colors.grey[200],
+        child: const Center(
+          child: Icon(Icons.broken_image, size: 50, color: Colors.grey),
+        ),
+      );
+    }
+  }
 
   @override
   void initState() {
@@ -1048,25 +779,7 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                         const Divider(height: 1),
                         // Post image
                         if (widget.post['imageUrl'] != null && (widget.post['imageUrl'] as String).isNotEmpty)
-                          ClipRRect(
-                            borderRadius: const BorderRadius.only(
-                              bottomLeft: Radius.circular(14),
-                              bottomRight: Radius.circular(14),
-                            ),
-                            child: Image.network(
-                              widget.post['imageUrl'],
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Container(
-                                  height: 200,
-                                  color: Colors.grey[200],
-                                  child: const Center(
-                                    child: Icon(Icons.broken_image, size: 50, color: Colors.grey),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
+                          _buildPostImage(widget.post['imageUrl']),
                         // Post caption
                         if (caption.isNotEmpty)
                           Padding(

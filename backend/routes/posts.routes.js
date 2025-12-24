@@ -159,6 +159,8 @@ router.post('/create', async (req, res) => {
       comments: 0,
       timestamp,
       user: {
+        id: canonicalUserId,
+        email: userData.email || '',
         name: userData.name || 'User',
         username: userData.username || 'user',
         profileImage: userData.profileImage || null,
@@ -257,6 +259,8 @@ router.get('/feed', async (req, res) => {
           comments: comments,
           timestamp: parseInt(postData.timestamp),
           user: {
+            id: userIdKey,
+            email: userData.email || '',
             name: postData.userName || userData.name || 'User',
             username: userData.username || 'user',
             profileImage: userData.profileImage || null
@@ -264,7 +268,7 @@ router.get('/feed', async (req, res) => {
         });
       }
     }
-    
+
     res.json({ success: true, posts });
   } catch (error) {
     console.error('Get feed error:', error);
@@ -420,6 +424,12 @@ router.put('/profile', async (req, res) => {
   try {
     const { userId, name, bio, profileImage } = req.body;
     
+    console.log('=== Profile Update Debug ===');
+    console.log('User ID:', userId);
+    console.log('Name:', name);
+    console.log('Bio:', bio ? bio.substring(0, 50) : 'null');
+    console.log('Profile Image:', profileImage ? `YES (${profileImage.length} chars)` : 'NO');
+    
     if (!userId) {
       return res.status(400).json({ success: false, message: 'User ID required' });
     }
@@ -449,11 +459,18 @@ router.put('/profile', async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
+    console.log('User found:', canonicalUserId);
+    console.log('Before update - profileImage:', userData.profileImage ? 'EXISTS' : 'NULL');
+
     if (name) userData.name = name;
     if (bio !== undefined) userData.bio = bio;
     if (profileImage !== undefined) userData.profileImage = profileImage;
 
+    console.log('After update - profileImage:', userData.profileImage ? `YES (${userData.profileImage.length} chars)` : 'NULL');
+
     await redisClient.set(userKey, JSON.stringify(userData));
+    
+    console.log('Saved to Redis:', userKey);
 
     // Update all posts by this user with new name
     if (name) {

@@ -28,9 +28,9 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
 
     _allUsers = [
       {
-        'id': 'user_1',
-        'email': 'sarah.johnson@example.com',
-        'name': 'Sarah Johnson',
+        'id': '52d4b80a-f8cb-46d0-b4c7-0f83ce962562',
+        'email': 'esraerbil@gmail.com',
+        'name': 'Esra Erbil',
         'bio': '🐾 Dog lover | Photography enthusiast',
         'profileImage': null,
         'postsCount': 12,

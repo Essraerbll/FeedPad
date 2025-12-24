@@ -10,7 +10,11 @@ function getConversationId(user1, user2) {
 // Mesaj gönder
 router.post('/send', async (req, res) => {
   try {
-    const { senderId, senderName, recipientId, recipientName, text } = req.body;
+    let { senderId, senderName, recipientId, recipientName, text } = req.body;
+
+    console.log('\n=== SEND MESSAGE DEBUG ===');
+    console.log('senderId:', senderId);
+    console.log('recipientId (raw):', recipientId);
 
     if (!senderId || !recipientId || !text) {
       return res.status(400).json({
@@ -19,7 +23,32 @@ router.post('/send', async (req, res) => {
       });
     }
 
+    // If recipientId is UUID, resolve to email
+    if (recipientId.includes('-') && !recipientId.includes('@')) {
+      console.log('recipientId is UUID, resolving to email...');
+      try {
+        const userJson = await redisClient.get(`user:${recipientId}`);
+        if (userJson) {
+          const userData = JSON.parse(userJson);
+          if (userData.email) {
+            recipientId = userData.email;
+            recipientName = userData.name || recipientName;
+            console.log('Resolved to email:', recipientId);
+          }
+        }
+      } catch (e) {
+        console.error('Error resolving UUID to email:', e);
+      }
+    }
+
+    console.log('senderName:', senderName);
+    console.log('recipientId (resolved):', recipientId);
+    console.log('recipientName:', recipientName);
+    console.log('text:', text);
+
     const conversationId = getConversationId(senderId, recipientId);
+    console.log('conversationId:', conversationId);
+    
     const messageId = `msg_${Date.now()}`;
     const timestamp = new Date().toISOString();
 
@@ -40,12 +69,18 @@ router.post('/send', async (req, res) => {
     );
 
     // Konuşma metadata'sını güncelle
+    // user1 ve user2'yi conversationId ile aynı sırada tut
+    const sortedUsers = [
+      { id: senderId, name: senderName || senderId },
+      { id: recipientId, name: recipientName || recipientId }
+    ].sort((a, b) => a.id.localeCompare(b.id));
+
     const conversationMetadata = {
       id: conversationId,
-      user1: senderId,
-      user1Name: senderName,
-      user2: recipientId,
-      user2Name: recipientName,
+      user1: sortedUsers[0].id,
+      user1Name: sortedUsers[0].name,
+      user2: sortedUsers[1].id,
+      user2Name: sortedUsers[1].name,
       lastMessage: text,
       lastMessageTime: timestamp,
       lastMessageBy: senderName,
@@ -75,6 +110,9 @@ router.get('/conversations/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
 
+    console.log('\n=== GET CONVERSATIONS DEBUG ===');
+    console.log('userId:', userId);
+
     if (!userId) {
       return res.status(400).json({
         success: false,
@@ -84,18 +122,30 @@ router.get('/conversations/:userId', async (req, res) => {
 
     // Tüm konuşmaları taraması gerektiği için pattern ile arama yapıyoruz
     const keys = await redisClient.keys('conversation:metadata:*');
+    console.log('Found metadata keys:', keys.length);
+    
     const conversations = [];
 
     for (const key of keys) {
       const metadataStr = await redisClient.get(key);
       if (metadataStr) {
         const metadata = JSON.parse(metadataStr);
+        console.log(`\nMetadata for ${key}:`);
+        console.log('  user1:', metadata.user1);
+        console.log('  user2:', metadata.user2);
+        console.log('  userId (looking for):', userId);
+        
         // Eğer kullanıcı bu konuşmada varsa, ekle
         if (metadata.user1 === userId || metadata.user2 === userId) {
+          console.log('  ✅ MATCH! Adding to conversations');
           conversations.push(metadata);
+        } else {
+          console.log('  ❌ No match');
         }
       }
     }
+
+    console.log('\nTotal conversations found:', conversations.length);
 
     // Son mesaj zamanına göre sırala
     conversations.sort((a, b) => {

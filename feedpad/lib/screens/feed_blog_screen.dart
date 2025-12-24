@@ -18,6 +18,24 @@ class _FeedBlogScreenState extends State<FeedBlogScreen> {
   bool _isLoading = false;
   List<Map<String, dynamic>> _posts = [];
 
+  // Helper function to get image provider from URL or base64
+  ImageProvider? _getImageProvider(String? imageUrl) {
+    if (imageUrl == null || imageUrl.isEmpty) return null;
+    
+    try {
+      if (imageUrl.startsWith('data:image')) {
+        final base64Str = imageUrl.split(',').last;
+        final bytes = base64Decode(base64Str);
+        return MemoryImage(bytes);
+      } else {
+        return NetworkImage(imageUrl);
+      }
+    } catch (e) {
+      debugPrint('Error loading image: $e');
+      return null;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -81,179 +99,6 @@ class _FeedBlogScreenState extends State<FeedBlogScreen> {
     }
   }
 
-  Widget _buildImage(String imageUrl) {
-    Widget fallback = Container(
-      height: 220,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        gradient: const LinearGradient(
-          colors: [Color(0xFFE3F2FD), Color(0xFFBBDEFB)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: const Center(
-        child: Icon(Icons.image, size: 64, color: Color(0xFF90CAF9)),
-      ),
-    );
-
-    try {
-      if (imageUrl.startsWith('data:image')) {
-        final base64Str = imageUrl.split(',').last;
-        final bytes = base64Decode(base64Str);
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: Image.memory(bytes, fit: BoxFit.cover, height: 220, width: double.infinity),
-        );
-      }
-    } catch (_) {
-      return fallback;
-    }
-
-    return fallback;
-  }
-
-  Widget _buildPostCard(Map<String, dynamic> post) {
-    final user = post['user'] ?? {};
-    String name = user['name'] ?? post['userName'] ?? post['username'] ?? '';
-    if (name.isEmpty) {
-      final uid = post['userId'];
-      if (uid is String && uid.isNotEmpty) {
-        name = uid.contains('@') ? uid.split('@').first : uid;
-      } else {
-        name = 'Bilinmiyor';
-      }
-    }
-    final username = user['username'] ?? '';
-    final caption = post['caption'] ?? '';
-    final imageUrl = post['imageUrl'] ?? '';
-    final likes = post['likes'] ?? 0;
-    final location = post['location'] ?? '';
-    final isLiked = post['liked'] == true;
-
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                GestureDetector(
-                  onTap: () {
-                    // Kullanıcının kendi profili mi kontrol et
-                    final authService = Provider.of<AuthService>(context, listen: false);
-                    final currentUserEmail = authService.currentUser?.email ?? '';
-                    final currentUserName = authService.currentUser?.name ?? '';
-                    final postUserId = post['userId'] ?? '';
-                    
-                    // Kendi profili mi? - Email veya isim eşleşmesi kontrolü
-                    final isOwnProfile = (postUserId == currentUserEmail && currentUserEmail.isNotEmpty) ||
-                                        (name == currentUserName && currentUserName.isNotEmpty);
-                    
-                    if (isOwnProfile) {
-                      // Kendi profili - ProfileScreen'i aç
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const ProfileScreen(showAppBar: true),
-                        ),
-                      );
-                    } else if (postUserId.isNotEmpty || name.isNotEmpty) {
-                      // Başka kullanıcının profili - OtherUserProfileScreen'e git
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => OtherUserProfileScreen(
-                            user: {
-                              'id': postUserId,
-                              'email': postUserId,
-                              'name': name,
-                              'bio': post['user']?['bio'] ?? '🐾 Pet lover',
-                              'profileImage': '',
-                              'postsCount': 0,
-                              'followersCount': 0,
-                            },
-                          ),
-                        ),
-                      );
-                    }
-                  },
-                  child: CircleAvatar(
-                    backgroundColor: const Color(0xFFE3F2FD),
-                    child: Text(
-                      name.isNotEmpty ? name[0].toUpperCase() : 'U',
-                      style: const TextStyle(color: Color(0xFF1E88E5), fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(name, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E2A3A))),
-                      if ((username as String).isNotEmpty)
-                        Text('@$username', style: const TextStyle(color: Color(0xFF607D8B), fontSize: 12)),
-                    ],
-                  ),
-                ),
-                if ((location as String).isNotEmpty)
-                  const Row(
-                    children: [
-                      Icon(Icons.location_on, size: 16, color: Color(0xFF64B5F6)),
-                    ],
-                  ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            if ((imageUrl as String).isNotEmpty)
-              _buildImage(imageUrl)
-            else
-              Container(
-                height: 220,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFE3F2FD), Color(0xFFBBDEFB)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
-                child: const Center(
-                  child: Icon(Icons.image, size: 64, color: Color(0xFF90CAF9)),
-                ),
-              ),
-            const SizedBox(height: 10),
-            if (caption.isNotEmpty)
-              Text(
-                caption,
-                style: const TextStyle(fontSize: 14, color: Color(0xFF263238)),
-              ),
-            if (caption.isNotEmpty) const SizedBox(height: 10),
-            Row(
-              children: [
-                IconButton(
-                  icon: Icon(isLiked ? Icons.favorite : Icons.favorite_border, color: const Color(0xFF1E88E5)),
-                  onPressed: () => _toggleLike(post),
-                ),
-                Text('$likes', style: const TextStyle(color: Color(0xFF546E7A))),
-                const SizedBox(width: 12),
-                IconButton(
-                  icon: const Icon(Icons.comment_bank_outlined, size: 20, color: Colors.orange),
-                  onPressed: () => _openPostDetails(post),
-                ),
-              ],
-            )
-          ],
-        ),
-      ),
-    );
-  }
-
   void _openPostDetails(Map<String, dynamic> post) {
     Navigator.push(
       context,
@@ -296,11 +141,16 @@ class _FeedBlogScreenState extends State<FeedBlogScreen> {
                         children: [
                           ListTile(
                             leading: CircleAvatar(
-                              backgroundImage: userProfileImage.isNotEmpty
-                                  ? NetworkImage(userProfileImage)
-                                  : null,
+                              backgroundColor: const Color(0xFFE3F2FD),
+                              backgroundImage: _getImageProvider(userProfileImage),
                               child: userProfileImage.isEmpty
-                                  ? const Icon(Icons.person, color: Colors.white)
+                                  ? Text(
+                                      userName.isNotEmpty ? userName[0].toUpperCase() : 'U',
+                                      style: const TextStyle(
+                                        color: Color(0xFF1E88E5),
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    )
                                   : null,
                             ),
                             title: Text(userName, style: const TextStyle(fontWeight: FontWeight.bold)),

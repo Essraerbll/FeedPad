@@ -328,12 +328,39 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
                             final currentUserName = authService.currentUser?.name ?? 'You';
                             final currentUserEmail = authService.currentUser?.email ?? '';
                             
+                            // Debug: log what we have
+                            debugPrint('=== MESSAGE BUTTON DEBUG ===');
+                            debugPrint('widget.user: $widget.user');
+                            debugPrint('widget.user[email]: ${widget.user['email']}');
+                            debugPrint('widget.user[id]: ${widget.user['id']}');
+                            
+                            // Always use email for messaging - email is the primary identifier
+                            String otherUserEmail = widget.user['email'] ?? '';
+                            
+                            // If email is empty, it's an error - don't use UUID
+                            if (otherUserEmail.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Kullanıcı email adresi bulunamadı'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                              return;
+                            }
+                            
+                            // Create conversation ID by sorting user emails (same as backend)
+                            final users = [currentUserEmail, otherUserEmail]..sort();
+                            final conversationId = users.join(':');
+                            
+                            debugPrint('otherUserEmail: $otherUserEmail');
+                            debugPrint('conversationId: $conversationId');
+                            
                             Navigator.push(
                               context,
                               MaterialPageRoute(
                                 builder: (context) => ChatDetailScreen(
-                                  conversationId: 'conv_${widget.user['id']}',
-                                  otherUserId: widget.user['id'],
+                                  conversationId: conversationId,
+                                  otherUserId: otherUserEmail,
                                   otherUserName: widget.user['name'],
                                   currentUserId: currentUserEmail,
                                   currentUserName: currentUserName,
