@@ -78,7 +78,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
     _allUsers.removeWhere((user) => user['email'] == currentUserEmail);
 
     // Takip edilen kullanıcılar
-    _followingUsers = {'user_2', 'user_4'}.obs;
+    _followingUsers = {'user_2', 'user_4'};
   }
 
   void _toggleFollow(String userId) {
@@ -265,29 +265,30 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                                 child: ElevatedButton(
                                   onPressed: () {
                                     final authService = Provider.of<AuthService>(context, listen: false);
+                                    final currentUserId = authService.currentUser?.email ?? '';
                                     final currentUserName = authService.currentUser?.name ?? 'You';
                                     
-                                    final conversation = {
-                                      'id': 'conv_${user['id']}',
-                                      'userName': user['name'],
-                                      'userImage': user['profileImage'],
-                                      'timestamp': DateTime.now(),
-                                      'unread': false,
-                                      'messages': [],
-                                    };
-                                    
+                                    // ChatDetailScreen'i direkt aç (messaging_screen.dart içindeki widget)
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (context) => ChatDetailScreen(
-                                          conversation: conversation,
-                                          currentUserName: currentUserName,
-                                        ),
+                                        builder: (context) {
+                                          // ChatDetailScreen import edilmeli
+                                          return ChatDetailScreen(
+                                            conversationId: [currentUserId, user['email']].join(':'),
+                                            otherUserId: user['email'],
+                                            otherUserName: user['name'],
+                                            currentUserId: currentUserId,
+                                            currentUserName: currentUserName,
+                                            onMessagesUpdated: () {},
+                                          );
+                                        },
                                       ),
                                     );
                                   },
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color(0xFF64B5F6),
+                                    foregroundColor: Colors.white,
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(8),
                                     ),
@@ -305,8 +306,4 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
             ),
     );
   }
-}
-
-extension on Set<String> {
-  Set<String> get obs => this;
 }

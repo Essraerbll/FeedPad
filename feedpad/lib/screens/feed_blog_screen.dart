@@ -159,7 +159,7 @@ class _FeedBlogScreenState extends State<FeedBlogScreen> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const ProfileScreen(),
+                          builder: (context) => const ProfileScreen(showAppBar: true),
                         ),
                       );
                     } else if (postUserId.isNotEmpty || name.isNotEmpty) {
@@ -329,7 +329,7 @@ class _FeedBlogScreenState extends State<FeedBlogScreen> {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => const ProfileScreen(),
+                                    builder: (context) => const ProfileScreen(showAppBar: true),
                                   ),
                                 );
                               } else if (postUserId.isNotEmpty || userName.isNotEmpty) {
@@ -507,9 +507,16 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Post'),
+        title: const Text(
+          'Post',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         elevation: 0,
         backgroundColor: const Color(0xFF64B5F6),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Container(
         color: const Color(0xFFE8F1FA),

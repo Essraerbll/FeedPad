@@ -217,7 +217,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             if (value.length < 3) {
                               return 'Username must be at least 3 characters';
                             }
-                            if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(value)) {
+                            // Türkçe karakterlere izin ver
+                            if (!RegExp(r'^[a-zA-ZğüşıöçĞÜŞİÖÇ0-9_]+$').hasMatch(value)) {
                               return 'Use only letters, numbers and _';
                             }
                             return null;

@@ -45,32 +45,43 @@ class ApiService {
   ) async {
     try {
       final url = Uri.parse('$baseUrl$endpoint');
+      debugPrint('🌐 POST Request to: $url');
+      debugPrint('📦 Request Body: ${jsonEncode(body)}');
+      
       final response = await http.post(
         url,
         headers: _headers,
         body: jsonEncode(body),
       );
 
+      debugPrint('📬 Response Status: ${response.statusCode}');
+      debugPrint('📬 Response Body: ${response.body}');
+
       final responseData = jsonDecode(response.body) as Map<String, dynamic>;
 
       // Cookie'yi response'dan al (hem header'dan hem de body'den)
       final setCookie = response.headers['set-cookie'];
       if (setCookie != null) {
+        debugPrint('🍪 Set-Cookie Header: $setCookie');
         final cookieMatch = RegExp(r'sessionId=([^;]+)').firstMatch(setCookie);
         if (cookieMatch != null) {
           sessionId = cookieMatch.group(1);
+          debugPrint('✅ Session ID from header: $sessionId');
         }
       }
 
       // Eğer header'da yoksa body'den al
       if (sessionId == null && responseData['sessionId'] != null) {
         sessionId = responseData['sessionId'] as String;
+        debugPrint('✅ Session ID from body: $sessionId');
       }
 
       return responseData;
-    } on SocketException {
+    } on SocketException catch (e) {
+      debugPrint('❌ SocketException: $e');
       throw Exception('Sunucuya bağlanılamadı. Backend çalışıyor mu?');
     } catch (e) {
+      debugPrint('❌ Error: $e');
       throw Exception('İstek başarısız: $e');
     }
   }

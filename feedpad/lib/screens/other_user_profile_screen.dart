@@ -183,14 +183,31 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text(widget.user['name']),
+        backgroundColor: const Color(0xFF9DB8E8),
         elevation: 0,
-        backgroundColor: const Color(0xFF64B5F6),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
+        leading: Container(
+          margin: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white, size: 24),
+            onPressed: () => Navigator.pop(context),
+            tooltip: 'Geri',
+          ),
         ),
+        title: Text(
+          widget.user['name'],
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
+        ),
+        centerTitle: false,
       ),
       body: CustomScrollView(
         slivers: [
@@ -209,9 +226,9 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
                       shape: BoxShape.circle,
                       gradient: LinearGradient(
                         colors: [
-                          Color(0xFF64B5F6),
-                          Color(0xFF90CAF9),
-                          Color(0xFF42A5F5)
+                          Color(0xFF9DB8E8),
+                          Color(0xFFBBDEFB),
+                          Color(0xFF64B5F6)
                         ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
@@ -229,7 +246,7 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
                               style: const TextStyle(
                                 fontSize: 40,
                                 fontWeight: FontWeight.bold,
-                                color: Color(0xFF64B5F6),
+                                color: Color(0xFF9DB8E8),
                               ),
                             )
                           : null,
@@ -309,23 +326,20 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
                           onPressed: () {
                             final authService = Provider.of<AuthService>(context, listen: false);
                             final currentUserName = authService.currentUser?.name ?? 'You';
-                            
-                            // Konuşma objesi oluştur veya mevcut konuşmayı bul
-                            final conversation = {
-                              'id': 'conv_${widget.user['id']}',
-                              'userName': widget.user['name'],
-                              'userImage': widget.user['profileImage'],
-                              'timestamp': DateTime.now(),
-                              'unread': false,
-                              'messages': [],
-                            };
+                            final currentUserEmail = authService.currentUser?.email ?? '';
                             
                             Navigator.push(
                               context,
                               MaterialPageRoute(
                                 builder: (context) => ChatDetailScreen(
-                                  conversation: conversation,
+                                  conversationId: 'conv_${widget.user['id']}',
+                                  otherUserId: widget.user['id'],
+                                  otherUserName: widget.user['name'],
+                                  currentUserId: currentUserEmail,
                                   currentUserName: currentUserName,
+                                  onMessagesUpdated: () {
+                                    // Konuşma güncellendiğinde yapılacak
+                                  },
                                 ),
                               ),
                             );

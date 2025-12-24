@@ -7,7 +7,9 @@ import '../services/auth_service.dart';
 import '../services/api_service.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  final bool showAppBar;
+  
+  const ProfileScreen({super.key, this.showAppBar = false});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -539,9 +541,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: widget.showAppBar ? AppBar(
+        title: const Text(
+          'Profile',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        backgroundColor: const Color(0xFF9DB8E8),
+        elevation: 0,
+        centerTitle: true,
+        iconTheme: const IconThemeData(color: Colors.white),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ) : null,
       body: SafeArea(
         child: _isLoading
-            ? const Center(child: CircularProgressIndicator(color: Color(0xFF64B5F6)))
+            ? const Center(child: CircularProgressIndicator(color: Color(0xFF9DB8E8)))
             : CustomScrollView(
           slivers: [
             // Profile Header
@@ -559,7 +578,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           decoration: const BoxDecoration(
                             shape: BoxShape.circle,
                             gradient: LinearGradient(
-                              colors: [Color(0xFF64B5F6), Color(0xFF90CAF9), Color(0xFF42A5F5)],
+                              colors: [Color(0xFF9DB8E8), Color(0xFFBBDEFB), Color(0xFF64B5F6)],
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                             ),
@@ -574,7 +593,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ? NetworkImage(_profileImageUrl!) 
                                 : null,
                             child: _profileImageUrl == null || _profileImageUrl!.isEmpty
-                                  ? const Icon(Icons.pets, size: 45, color: Color(0xFF64B5F6))
+                                  ? const Icon(Icons.pets, size: 45, color: Color(0xFF9DB8E8))
                                   : null,
                             ),
                           ),
@@ -967,9 +986,16 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Post'),
+        title: const Text(
+          'Post',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         elevation: 0,
         backgroundColor: const Color(0xFF64B5F6),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Container(
         color: const Color(0xFFE8F1FA),

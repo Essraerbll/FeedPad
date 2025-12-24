@@ -14,8 +14,8 @@ app.use(cors({
   credentials: true,
 }));
 app.use(morgan('dev'));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10mb' })); // UTF-8 desteği için
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 
 // Routes
@@ -27,6 +27,9 @@ app.use('/api/markers', markerRoutes);
 
 const postsRoutes = require('./routes/posts.routes');
 app.use('/api/posts', postsRoutes);
+
+const messagingRoutes = require('./routes/messaging.routes');
+app.use('/api/messaging', messagingRoutes);
 
 // Diğer route'lar (varsa)
 try {

@@ -92,6 +92,8 @@ class AuthService extends ChangeNotifier {
       _isLoading = true;
       notifyListeners();
 
+      debugPrint('🔐 Attempting login for: $email');
+      
       final response = await _apiService.post('/auth/login', {
         'email': email,
         'password': password,
@@ -100,11 +102,16 @@ class AuthService extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
 
+      debugPrint('📥 Login response: $response');
+
       if (response['success'] == true) {
+        debugPrint('✅ Login successful');
         _currentUser = User.fromJson(response['user']);
+        debugPrint('👤 Current user: ${_currentUser?.email}');
         notifyListeners();
         return null; // Başarılı
       } else {
+        debugPrint('❌ Login failed: ${response['message']}');
         // Validation hatalarını kontrol et
         if (response['errors'] != null) {
           final errors = response['errors'] as List;
@@ -117,6 +124,7 @@ class AuthService extends ChangeNotifier {
         return response['message'] as String? ?? 'Login failed';
       }
     } catch (e) {
+      debugPrint('❌ Login error: $e');
       _isLoading = false;
       notifyListeners();
       return e.toString().replaceAll('Exception: ', '');
