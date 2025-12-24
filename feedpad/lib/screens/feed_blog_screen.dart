@@ -407,11 +407,15 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                             children: [
                               CircleAvatar(
                                 backgroundColor: const Color(0xFF64B5F6),
-                                backgroundImage: userProfileImage != null && userProfileImage.isNotEmpty
-                                    ? NetworkImage(userProfileImage)
-                                    : null,
-                                child: userProfileImage == null || userProfileImage.isEmpty
-                                    ? const Icon(Icons.person, color: Colors.white, size: 20)
+                                backgroundImage: _getImageProvider(userProfileImage),
+                                child: userProfileImage.isEmpty
+                                    ? Text(
+                                        senderName.isNotEmpty ? senderName[0].toUpperCase() : 'U',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      )
                                     : null,
                               ),
                               const SizedBox(width: 12),
