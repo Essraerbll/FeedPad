@@ -15,16 +15,18 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  int _currentIndex = 1; // FeedMap varsayılan (index 1)
+  int _currentIndex = 0; // FeedBlog varsayılan (index 0)
 
   final List<Widget> _screens = [
     const FeedBlogScreen(),
+    const MessagingScreen(),
     const FeedMapScreen(),
     const ProfileScreen(),
   ];
 
   final List<String> _titles = [
     'Feed Blog',
+    'Messages',
     'Feed Map',
     'Profile',
   ];
@@ -42,30 +44,12 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-      // Dynamically determine actions based on current screen
+    // Dynamically determine actions based on current screen
     List<Widget> getAppBarActions() {
       if (_currentIndex == 0) {
-        // FeedBlogScreen - Show message button
-        return [
-          Container(
-            margin: const EdgeInsets.only(right: 8),
-            decoration: BoxDecoration(
-              color: const Color(0xFF7BA4D9),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: IconButton(
-              icon: const Icon(Icons.message, color: Colors.white),
-              tooltip: 'Messages',
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const MessagingScreen()),
-                );
-              },
-            ),
-          ),
-        ];
-      } else if (_currentIndex == 2) {
+        // FeedBlogScreen - No button
+        return [];
+      } else if (_currentIndex == 3) {
         // ProfileScreen - Show logout button
         return [
           Container(
@@ -184,15 +168,19 @@ class _MainScreenState extends State<MainScreen> {
           type: BottomNavigationBarType.fixed,
           items: const [
             BottomNavigationBarItem(
-              icon: Icon(Icons.article),
+              icon: Icon(Icons.pets),
               label: 'Feed Blog',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.message),
+              label: 'Messages',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.location_on),
               label: 'Feed Map',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.pets),
+              icon: Icon(Icons.person),
               label: 'Profile',
             ),
           ],

@@ -188,13 +188,42 @@ router.get('/conversations/:userId', async (req, res) => {
 // Belirli konuşmanın mesajlarını getir
 router.get('/conversation/:userId/:otherUserId', async (req, res) => {
   try {
-    const { userId, otherUserId } = req.params;
+    let { userId, otherUserId } = req.params;
 
     if (!userId || !otherUserId) {
       return res.status(400).json({
         success: false,
         message: 'userId ve otherUserId gerekli'
       });
+    }
+
+    // UUID'leri email'e çevir (eğer gerekirse)
+    if (userId.includes('-') && !userId.includes('@')) {
+      try {
+        const userJson = await redisClient.get(`user:${userId}`);
+        if (userJson) {
+          const userData = JSON.parse(userJson);
+          if (userData.email) {
+            userId = userData.email;
+          }
+        }
+      } catch (e) {
+        console.error('Error resolving userId UUID:', e);
+      }
+    }
+
+    if (otherUserId.includes('-') && !otherUserId.includes('@')) {
+      try {
+        const userJson = await redisClient.get(`user:${otherUserId}`);
+        if (userJson) {
+          const userData = JSON.parse(userJson);
+          if (userData.email) {
+            otherUserId = userData.email;
+          }
+        }
+      } catch (e) {
+        console.error('Error resolving otherUserId UUID:', e);
+      }
     }
 
     const conversationId = getConversationId(userId, otherUserId);

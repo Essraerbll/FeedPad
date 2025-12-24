@@ -133,10 +133,12 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                             CircleAvatar(
                               radius: 30,
                               backgroundColor: const Color(0xFF64B5F6),
-                              backgroundImage: user['profileImage'] != null
+                              backgroundImage: (user['profileImage'] != null && 
+                                  (user['profileImage'] as String).isNotEmpty)
                                   ? NetworkImage(user['profileImage'])
                                   : null,
-                              child: user['profileImage'] == null
+                              child: (user['profileImage'] == null || 
+                                  (user['profileImage'] as String).isEmpty)
                                   ? Text(
                                       user['name'][0].toUpperCase(),
                                       style: const TextStyle(

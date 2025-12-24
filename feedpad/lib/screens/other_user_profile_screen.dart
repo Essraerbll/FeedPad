@@ -324,10 +324,35 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
                       Expanded(
                         child: OutlinedButton.icon(
                           onPressed: () {
+                            final authService = Provider.of<AuthService>(context, listen: false);
+                            final currentUserEmail = authService.currentUser?.email ?? '';
+                            final currentUserName = authService.currentUser?.name ?? 'You';
+                            final otherUserEmail = widget.user['email'] ?? '';
+                            
+                            if (otherUserEmail.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('User email not found'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                              return;
+                            }
+                            
+                            // Create conversation ID by sorting emails
+                            final conversationId = ([currentUserEmail, otherUserEmail]..sort()).join(':');
+                            
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => const MessagingScreen(),
+                                builder: (context) => ChatDetailScreen(
+                                  conversationId: conversationId,
+                                  otherUserId: otherUserEmail,
+                                  otherUserName: widget.user['name'],
+                                  currentUserId: currentUserEmail,
+                                  currentUserName: currentUserName,
+                                  onMessagesUpdated: () {},
+                                ),
                               ),
                             );
                           },
