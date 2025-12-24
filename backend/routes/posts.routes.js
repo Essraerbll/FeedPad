@@ -114,15 +114,24 @@ router.get('/user/:userId', async (req, res) => {
     // Sort by timestamp descending
     posts.sort((a, b) => b.timestamp - a.timestamp);
     
-    // Get user's bio to return as well
+    // Get user's bio and profile image to return as well
     let userBio = null;
+    let userProfileImage = null;
     try {
       const userJson = await redisClient.get(`user:${canonicalUserId}`);
       const userData = userJson ? JSON.parse(userJson) : {};
       userBio = userData.bio || null;
+      userProfileImage = userData.profileImage || null;
     } catch {}
     
-    res.json({ success: true, posts, user: { bio: userBio } });
+    res.json({ 
+      success: true, 
+      posts, 
+      user: { 
+        bio: userBio,
+        profileImage: userProfileImage
+      } 
+    });
   } catch (error) {
     console.error('Get posts error:', error);
     res.status(500).json({ success: false, message: 'Failed to get posts' });
