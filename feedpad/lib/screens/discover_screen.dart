@@ -274,9 +274,11 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                                       MaterialPageRoute(
                                         builder: (context) {
                                           // ChatDetailScreen import edilmeli
+                                          final otherEmail = user['email'] ?? '';
+                                          final conversationId = ([currentUserId, otherEmail]..sort()).join(':');
                                           return ChatDetailScreen(
-                                            conversationId: [currentUserId, user['email']].join(':'),
-                                            otherUserId: user['email'],
+                                            conversationId: conversationId,
+                                            otherUserId: otherEmail,
                                             otherUserName: user['name'],
                                             currentUserId: currentUserId,
                                             currentUserName: currentUserName,

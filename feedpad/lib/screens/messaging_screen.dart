@@ -70,6 +70,101 @@ class _MessagingScreenState extends State<MessagingScreen> {
     }
   }
 
+  Future<void> _deleteConversation(String conversationId) async {
+    try {
+      final authService = Provider.of<AuthService>(context, listen: false);
+      final userId = authService.currentUser?.email ?? '';
+
+      final response = await _apiService.delete(
+        '/messaging/conversation/$conversationId?userId=$userId',
+      );
+
+      if (response['success'] == true) {
+        await _loadConversations();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Sohbet silindi'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error deleting conversation: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Silme hatası: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _hideConversation(String conversationId) async {
+    try {
+      final authService = Provider.of<AuthService>(context, listen: false);
+      final userId = authService.currentUser?.email ?? '';
+
+      // Onay dialog'u göster
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Delete chat?'),
+          content: const Text('This chat will be removed from your list.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: const Text('Delete'),
+            ),
+          ],
+        ),
+      ) ?? false;
+
+      if (!confirmed) return;
+
+      final response = await _apiService.post(
+        '/messaging/conversation/hide',
+        {
+          'conversationId': conversationId,
+          'userId': userId,
+        },
+      );
+
+      if (response['success'] == true) {
+        await _loadConversations();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Sohbet silindi'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error hiding conversation: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Silme hatası: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+
   String _formatTime(DateTime dateTime) {
     final now = DateTime.now();
     final difference = now.difference(dateTime);
@@ -154,46 +249,75 @@ class _MessagingScreenState extends State<MessagingScreen> {
                     final otherUserName =
                         conversation['user1'] == currentUserId ? conversation['user2Name'] : conversation['user1Name'];
 
-                    return Card(
-                      margin: const EdgeInsets.symmetric(vertical: 4),
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: const Color(0xFF9DB8E8),
-                          child: Text(
-                            otherUserName[0].toUpperCase(),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
+                    return Dismissible(
+                      key: Key(conversation['id']),
+                      direction: DismissDirection.endToStart,
+                      onDismissed: (direction) {
+                        _deleteConversation(conversation['id']);
+                      },
+                      background: Container(
+                        color: Colors.red,
+                        alignment: Alignment.centerRight,
+                        padding: const EdgeInsets.only(right: 16),
+                        child: const Icon(Icons.delete, color: Colors.white),
+                      ),
+                      child: Card(
+                        margin: const EdgeInsets.symmetric(vertical: 4),
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: const Color(0xFF9DB8E8),
+                            child: Text(
+                              otherUserName[0].toUpperCase(),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
-                        ),
-                        title: Text(
-                          otherUserName,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF2C3E50),
+                          title: Text(
+                            otherUserName,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF2C3E50),
+                            ),
                           ),
-                        ),
-                        subtitle: Text(
-                          conversation['lastMessage'] ?? 'No messages',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.grey,
+                          subtitle: Text(
+                            conversation['lastMessage'] ?? 'No messages',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.grey,
+                            ),
                           ),
-                        ),
-                        trailing: Text(
-                          _formatTime(DateTime.parse(conversation['lastMessageTime'])),
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
+                          trailing: SizedBox(
+                            width: 120,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                Text(
+                                  _formatTime(DateTime.parse(conversation['lastMessageTime'])),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                IconButton(
+                                  icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                                  onPressed: () {
+                                    _hideConversation(conversation['id']);
+                                  },
+                                  constraints: const BoxConstraints(),
+                                  padding: EdgeInsets.zero,
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => ChatDetailScreen(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ChatDetailScreen(
                                 conversationId: conversation['id'],
                                 otherUserId: otherUserId,
                                 otherUserName: otherUserName,
@@ -206,6 +330,7 @@ class _MessagingScreenState extends State<MessagingScreen> {
                             ),
                           );
                         },
+                        ),
                       ),
                     );
                   },
@@ -334,6 +459,37 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     return '$hour:$minute';
   }
 
+  Future<void> _deleteMessage(String messageId) async {
+    try {
+      final response = await _apiService.delete(
+        '/messaging/message/${widget.conversationId}/$messageId?userId=${widget.currentUserId}',
+      );
+
+      if (response['success'] == true) {
+        await _loadMessages();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Mesaj silindi'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error deleting message: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Silme hatası: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   void dispose() {
     _messageController.dispose();
@@ -379,41 +535,66 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                             final message = _messages[index];
                             final isSent = message['senderId'] == widget.currentUserId;
 
-                            return Align(
-                              alignment: isSent ? Alignment.centerRight : Alignment.centerLeft,
-                              child: Container(
-                                margin: const EdgeInsets.symmetric(vertical: 4),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 8,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: isSent ? const Color(0xFF9DB8E8) : Colors.grey[300],
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: isSent
-                                      ? CrossAxisAlignment.end
-                                      : CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      message['text'],
-                                      style: TextStyle(
-                                        color: isSent ? Colors.white : Colors.black87,
-                                        fontSize: 14,
+                            return GestureDetector(
+                              onLongPress: isSent
+                                  ? () {
+                                      showModalBottomSheet(
+                                        context: context,
+                                        builder: (context) => Container(
+                                          padding: const EdgeInsets.all(16),
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              ListTile(
+                                                leading: const Icon(Icons.delete, color: Colors.red),
+                                                title: const Text('Delete Message'),
+                                                onTap: () {
+                                                  Navigator.pop(context);
+                                                  _deleteMessage(message['id']);
+                                                },
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  : null,
+                              child: Align(
+                                alignment: isSent ? Alignment.centerRight : Alignment.centerLeft,
+                                child: Container(
+                                  margin: const EdgeInsets.symmetric(vertical: 4),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: isSent ? const Color(0xFF9DB8E8) : Colors.grey[300],
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: isSent
+                                        ? CrossAxisAlignment.end
+                                        : CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        message['text'],
+                                        style: TextStyle(
+                                          color: isSent ? Colors.white : Colors.black87,
+                                          fontSize: 14,
+                                        ),
                                       ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      _formatMessageTime(
-                                          DateTime.parse(message['timestamp'])),
-                                      style: TextStyle(
-                                        color:
-                                            isSent ? Colors.white70 : Colors.grey[600],
-                                        fontSize: 11,
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        _formatMessageTime(
+                                            DateTime.parse(message['timestamp'])),
+                                        style: TextStyle(
+                                          color:
+                                              isSent ? Colors.white70 : Colors.grey[600],
+                                          fontSize: 11,
+                                        ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ),
                             );
