@@ -71,9 +71,10 @@ router.get('/user/:userId', async (req, res) => {
         for (const commentId of commentsIds) {
           const commentData = await redisClient.hGetAll(`comment:${commentId}`);
           if (commentData && Object.keys(commentData).length > 0) {
-            // Get latest userName and username from user profile
+            // Get latest userName, username, and profileImage from user profile
             let userName = commentData.userName || 'Anonymous';
             let username = commentData.username || 'user';
+            let userProfileImage = commentData.userProfileImage || '';
             try {
               const commentUserId = commentData.userId;
               if (commentUserId) {
@@ -82,6 +83,7 @@ router.get('/user/:userId', async (req, res) => {
                   const userData = JSON.parse(userDataStr);
                   if (userData.name) userName = userData.name;
                   if (userData.username) username = userData.username;
+                  if (userData.profileImage) userProfileImage = userData.profileImage;
                 }
               }
             } catch {}
@@ -91,6 +93,7 @@ router.get('/user/:userId', async (req, res) => {
               ...commentData,
               userName: userName,
               username: username,
+              userProfileImage: userProfileImage,
               timestamp: parseInt(commentData.timestamp)
             });
           }

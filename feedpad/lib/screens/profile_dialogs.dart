@@ -179,8 +179,8 @@ class _CreatePostDialogState extends State<CreatePostDialog> {
       backgroundColor: const Color(0xFFF0F8FF),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: SizedBox(
-        width: screenWidth * 0.9,
-        height: screenHeight * 0.75,
+        width: 450,
+        height: 580,
         child: Column(
           children: [
             // Header

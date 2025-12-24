@@ -6,6 +6,24 @@ import '../services/auth_service.dart';
 import 'other_user_profile_screen.dart';
 import 'profile_screen.dart';
 
+// Helper function to get image provider from URL or base64
+ImageProvider? _getImageProvider(String? imageUrl) {
+  if (imageUrl == null || imageUrl.isEmpty) return null;
+  
+  try {
+    if (imageUrl.startsWith('data:image')) {
+      final base64Str = imageUrl.split(',').last;
+      final bytes = base64Decode(base64Str);
+      return MemoryImage(bytes);
+    } else {
+      return NetworkImage(imageUrl);
+    }
+  } catch (e) {
+    debugPrint('Error loading image: $e');
+    return null;
+  }
+}
+
 class FeedBlogScreen extends StatefulWidget {
   const FeedBlogScreen({super.key});
 
@@ -17,24 +35,6 @@ class _FeedBlogScreenState extends State<FeedBlogScreen> {
   final ApiService _apiService = ApiService();
   bool _isLoading = false;
   List<Map<String, dynamic>> _posts = [];
-
-  // Helper function to get image provider from URL or base64
-  ImageProvider? _getImageProvider(String? imageUrl) {
-    if (imageUrl == null || imageUrl.isEmpty) return null;
-    
-    try {
-      if (imageUrl.startsWith('data:image')) {
-        final base64Str = imageUrl.split(',').last;
-        final bytes = base64Decode(base64Str);
-        return MemoryImage(bytes);
-      } else {
-        return NetworkImage(imageUrl);
-      }
-    } catch (e) {
-      debugPrint('Error loading image: $e');
-      return null;
-    }
-  }
 
   @override
   void initState() {
@@ -306,6 +306,8 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
       final auth = Provider.of<AuthService>(context, listen: false);
       final userId = auth.currentUser?.email;
       final userName = auth.currentUser?.name ?? 'Anonymous';
+      final userEmail = auth.currentUser?.email ?? '';
+      final username = userEmail.split('@').first;
 
       if (userId == null) {
         throw Exception('Kullanıcı bilgisi bulunamadı');
@@ -323,8 +325,9 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
           _comments.add({
             'userId': userId,
             'userName': userName,
+            'username': username,
             'text': _commentController.text,
-            'userProfileImage': null,
+            'userProfileImage': response['comment']?['userProfileImage'] ?? '',
           });
           _commentController.clear();
         });
@@ -359,6 +362,7 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
     final user = widget.post['user'] ?? {};
     String senderName = user['name'] ?? widget.post['userName'] ?? user['username'] ?? '';
     String username = user['username'] ?? widget.post['username'] ?? 'username';
+    final userProfileImage = user['profileImage'] ?? widget.post['userProfileImage'] ?? '';
     if (senderName.isEmpty) {
       final uid = widget.post['userId'];
       if (uid is String && uid.isNotEmpty) {
@@ -379,7 +383,7 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
           ),
         ),
         elevation: 0,
-        backgroundColor: const Color(0xFF64B5F6),
+        backgroundColor: const Color(0xFF9DB8E8),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Container(
@@ -403,13 +407,12 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                             children: [
                               CircleAvatar(
                                 backgroundColor: const Color(0xFF64B5F6),
-                                child: Text(
-                                  senderName.isNotEmpty ? senderName[0].toUpperCase() : 'U',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
+                                backgroundImage: userProfileImage != null && userProfileImage.isNotEmpty
+                                    ? NetworkImage(userProfileImage)
+                                    : null,
+                                child: userProfileImage == null || userProfileImage.isEmpty
+                                    ? const Icon(Icons.person, color: Colors.white, size: 20)
+                                    : null,
                               ),
                               const SizedBox(width: 12),
                               Expanded(
@@ -438,7 +441,20 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                           ),
                         ),
                         const Divider(height: 1),
-                        // Post image
+                        // Post caption FIRST (before image)
+                        if (caption.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Text(
+                              caption,
+                              style: const TextStyle(
+                                fontSize: 15,
+                                color: Color(0xFF263238),
+                                height: 1.4,
+                              ),
+                            ),
+                          ),
+                        // Post image SECOND (after caption)
                         if (widget.post['imageUrl'] != null && (widget.post['imageUrl'] as String).isNotEmpty)
                           ClipRRect(
                             borderRadius: const BorderRadius.only(
@@ -457,19 +473,6 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                                   ),
                                 );
                               },
-                            ),
-                          ),
-                        // Post caption
-                        if (caption.isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Text(
-                              caption,
-                              style: const TextStyle(
-                                fontSize: 15,
-                                color: Color(0xFF263238),
-                                height: 1.4,
-                              ),
                             ),
                           ),
                       ],
@@ -509,32 +512,40 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                       itemCount: _comments.length,
                       itemBuilder: (context, index) {
                         final comment = _comments[index];
+                        final commentProfileImage = comment['userProfileImage'] ?? '';
+                        final commentName = comment['userName'] ?? 'Anonymous';
+                        final commentUsername = comment['username'] ??
+                            (comment['userId'] is String && (comment['userId'] as String).contains('@')
+                                ? (comment['userId'] as String).split('@').first
+                                : (comment['userId'] ?? 'username'));
                         return Card(
                           margin: const EdgeInsets.only(bottom: 8),
                           child: ListTile(
                             leading: CircleAvatar(
                               backgroundColor: const Color(0xFF64B5F6),
-                              backgroundImage: comment['userProfileImage'] != null && 
-                                  (comment['userProfileImage'] as String?)?.isNotEmpty == true
-                                  ? NetworkImage(comment['userProfileImage'])
-                                  : null,
-                              child: comment['userProfileImage'] == null || 
-                                  (comment['userProfileImage'] as String?)?.isEmpty != false
-                                  ? const Icon(Icons.person, color: Colors.white, size: 18)
+                              backgroundImage: _getImageProvider(commentProfileImage),
+                              child: commentProfileImage.isEmpty
+                                  ? Text(
+                                      commentName.isNotEmpty ? commentName[0].toUpperCase() : 'U',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    )
                                   : null,
                             ),
                             title: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  comment['userName'] ?? 'Anonymous',
+                                  commentName,
                                   style: const TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 13,
                                   ),
                                 ),
                                 Text(
-                                  '@${comment['username'] ?? 'username'}',
+                                  '@$commentUsername',
                                   style: const TextStyle(
                                     fontSize: 11,
                                     color: Color(0xFF90A4AE),

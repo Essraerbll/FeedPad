@@ -704,12 +704,15 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
       });
 
       if (response['success'] == true) {
+        final userEmail = auth.currentUser?.email ?? '';
+        final username = userEmail.split('@').first;
         setState(() {
           _comments.add({
             'userId': userId,
             'userName': userName,
+            'username': username,
             'text': _commentController.text,
-            'userProfileImage': null,
+            'userProfileImage': response['comment']?['userProfileImage'] ?? '',
           });
           _commentController.clear();
         });
@@ -759,9 +762,16 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Post'),
+        title: const Text(
+          'Post',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         elevation: 0,
-        backgroundColor: const Color(0xFF64B5F6),
+        backgroundColor: const Color(0xFF9DB8E8),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Container(
         color: const Color(0xFFE8F1FA),
@@ -822,7 +832,20 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                           ),
                         ),
                         const Divider(height: 1),
-                        // Post image
+                        // Post caption FIRST (before image)
+                        if (caption.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Text(
+                              caption,
+                              style: const TextStyle(
+                                fontSize: 15,
+                                color: Color(0xFF263238),
+                                height: 1.4,
+                              ),
+                            ),
+                          ),
+                        // Post image SECOND (after caption)
                         if (widget.post['imageUrl'] != null && (widget.post['imageUrl'] as String).isNotEmpty)
                           ClipRRect(
                             borderRadius: const BorderRadius.only(
@@ -841,19 +864,6 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                                   ),
                                 );
                               },
-                            ),
-                          ),
-                        // Post caption
-                        if (caption.isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Text(
-                              caption,
-                              style: const TextStyle(
-                                fontSize: 15,
-                                color: Color(0xFF263238),
-                                height: 1.4,
-                              ),
                             ),
                           ),
                       ],
