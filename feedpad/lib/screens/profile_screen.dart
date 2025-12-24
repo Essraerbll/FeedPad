@@ -195,6 +195,145 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  void _showEditPostDialog(Map<String, dynamic> post) {
+    final captionController = TextEditingController(text: post['caption'] ?? '');
+    bool isUpdating = false;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Edit Post'),
+          content: SingleChildScrollView(
+            child: TextField(
+              controller: captionController,
+              decoration: const InputDecoration(
+                labelText: 'Caption',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 4,
+              enabled: !isUpdating,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: isUpdating
+                  ? null
+                  : () async {
+                      setState(() => isUpdating = true);
+                      try {
+                        final auth = Provider.of<AuthService>(context, listen: false);
+                        final userId = auth.currentUser?.email;
+                        final response = await _apiService.post('/posts/update', {
+                          'postId': post['id'],
+                          'userId': userId,
+                          'caption': captionController.text,
+                          'location': post['location'] ?? '',
+                        });
+
+                        if (response['success'] == true) {
+                          if (mounted) {
+                            Navigator.pop(context);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Post updated successfully!'),
+                                backgroundColor: Color(0xFF66BB6A),
+                              ),
+                            );
+                            _loadUserData();
+                          }
+                        } else {
+                          throw Exception(response['message'] ?? 'Update failed');
+                        }
+                      } catch (e) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Error: $e'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      } finally {
+                        setState(() => isUpdating = false);
+                      }
+                    },
+              child: isUpdating
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Update'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showDeletePostConfirm(Map<String, dynamic> post) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Post'),
+        content: const Text('Are you sure you want to delete this post? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              try {
+                final auth = Provider.of<AuthService>(context, listen: false);
+                final userId = auth.currentUser?.email;
+                final response = await _apiService.post('/posts/delete', {
+                  'postId': post['id'],
+                  'userId': userId,
+                });
+
+                if (response['success'] == true) {
+                  if (mounted) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Post deleted successfully!'),
+                        backgroundColor: Color(0xFF66BB6A),
+                      ),
+                    );
+                    _loadUserData();
+                  }
+                } else {
+                  throw Exception(response['message'] ?? 'Delete failed');
+                }
+              } catch (e) {
+                if (mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text(
+              'Delete',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showEditProfileDialog() {
     showDialog(
       context: context,
@@ -458,6 +597,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       style: const TextStyle(
                                         fontSize: 12,
                                         color: Color(0xFF90A4AE),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                trailing: PopupMenuButton<String>(
+                                  onSelected: (value) {
+                                    if (value == 'edit') {
+                                      _showEditPostDialog(post);
+                                    } else if (value == 'delete') {
+                                      _showDeletePostConfirm(post);
+                                    }
+                                  },
+                                  itemBuilder: (BuildContext context) => [
+                                    const PopupMenuItem<String>(
+                                      value: 'edit',
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.edit, size: 18, color: Colors.blue),
+                                          SizedBox(width: 8),
+                                          Text('Edit'),
+                                        ],
+                                      ),
+                                    ),
+                                    const PopupMenuItem<String>(
+                                      value: 'delete',
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.delete, size: 18, color: Colors.red),
+                                          SizedBox(width: 8),
+                                          Text('Delete'),
+                                        ],
                                       ),
                                     ),
                                   ],
