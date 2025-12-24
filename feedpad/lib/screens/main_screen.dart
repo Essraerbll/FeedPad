@@ -44,78 +44,68 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    List<Widget> getAppBarActions() {
-      if (_currentIndex == 0) {
-        // FeedBlogScreen - No button
-        return [];
-      } else if (_currentIndex == 3) {
-        // ProfileScreen - Show logout button
-        return [
-          Container(
-            margin: const EdgeInsets.only(right: 8),
-            decoration: BoxDecoration(
-              color: const Color(0xFF7BA4D9),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: IconButton(
-              icon: const Icon(Icons.logout, color: Colors.white),
-              tooltip: 'Sign Out',
-              onPressed: () async {
-                final confirm = await showDialog<bool>(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    backgroundColor: const Color(0xFFF5F8FA),
-                    title: const Text(
-                      'Sign Out',
-                      style: TextStyle(color: Color(0xFF5A7FA1)),
+    // Sign out butonu - tüm ekranlarda göster
+    Widget buildSignOutButton() {
+      return Container(
+        margin: const EdgeInsets.only(right: 8),
+        decoration: BoxDecoration(
+          color: Colors.red,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: IconButton(
+          icon: const Icon(Icons.logout, color: Colors.white),
+          tooltip: 'Sign Out',
+          onPressed: () async {
+            final confirm = await showDialog<bool>(
+              context: context,
+              builder: (context) => AlertDialog(
+                backgroundColor: const Color(0xFFF5F8FA),
+                title: const Text(
+                  'Sign Out',
+                  style: TextStyle(color: Color(0xFF5A7FA1)),
+                ),
+                content: const Text(
+                  'Are you sure you want to sign out?',
+                  style: TextStyle(color: Colors.black87),
+                ),
+                actions: [
+                  Container(
+                    margin: const EdgeInsets.only(right: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF9DB8E8),
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    content: const Text(
-                      'Are you sure you want to sign out?',
-                      style: TextStyle(color: Colors.black87),
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text(
+                        'Cancel',
+                        style: TextStyle(color: Colors.white),
+                      ),
                     ),
-                    actions: [
-                      Container(
-                        margin: const EdgeInsets.only(right: 8),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF9DB8E8),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: TextButton(
-                          onPressed: () => Navigator.pop(context, false),
-                          child: const Text(
-                            'Cancel',
-                            style: TextStyle(color: Colors.white),
-                          ),
-                        ),
-                      ),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF7BA4D9),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: TextButton(
-                          onPressed: () => Navigator.pop(context, true),
-                          child: const Text(
-                            'Sign Out',
-                            style: TextStyle(color: Colors.white),
-                          ),
-                        ),
-                      ),
-                    ],
                   ),
-                );
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.red,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      child: const Text(
+                        'Sign Out',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
 
-                if (confirm == true) {
-                  await _signOut();
-              }
-              },
-            ),
-          ),
-        ];
-      } else {
-        // FeedMapScreen - No button
-        return [];
-      }
+            if (confirm == true) {
+              await _signOut();
+            }
+          },
+        ),
+      );
     }
 
     return Scaffold(
@@ -133,7 +123,7 @@ class _MainScreenState extends State<MainScreen> {
             const SizedBox(width: 24),
           ],
         ),
-        actions: getAppBarActions(),
+        actions: [buildSignOutButton()],
       ),
       body: _screens[_currentIndex],
       bottomNavigationBar: Container(
