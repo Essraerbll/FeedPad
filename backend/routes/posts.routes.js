@@ -34,6 +34,11 @@ const buildImageUrl = (req, filename) => {
   return `${base}/uploads/posts/${filename}`;
 };
 
+const buildProfileImageUrl = (req, filename) => {
+  const base = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
+  return `${base}/uploads/profiles/${filename}`;
+};
+
 // Get user's posts
 router.get('/user/:userId', async (req, res) => {
   try {
@@ -83,7 +88,13 @@ router.get('/user/:userId', async (req, res) => {
                   const userData = JSON.parse(userDataStr);
                   if (userData.name) userName = userData.name;
                   if (userData.username) username = userData.username;
-                  if (userData.profileImage) userProfileImage = userData.profileImage;
+                  if (userData.profileImage) {
+                    userProfileImage = userData.profileImage;
+                    // Convert to full URL if it's a filename
+                    if (!userProfileImage.startsWith('http') && !userProfileImage.startsWith('data:')) {
+                      userProfileImage = buildProfileImageUrl(req, userProfileImage);
+                    }
+                  }
                 }
               }
             } catch {}
@@ -96,6 +107,8 @@ router.get('/user/:userId', async (req, res) => {
               userProfileImage: userProfileImage,
               timestamp: parseInt(commentData.timestamp)
             });
+            
+            console.log(`Comment user: ${userName}, profileImage: ${userProfileImage}`);
           }
         }
         
@@ -121,6 +134,13 @@ router.get('/user/:userId', async (req, res) => {
             userData = await redisClient.hGetAll(`user:${userIdKey}`);
           }
         } catch {}
+        
+        // Convert profile image to full URL if it's a filename
+        if (userData.profileImage && !userData.profileImage.startsWith('http') && !userData.profileImage.startsWith('data:')) {
+          userData.profileImage = buildProfileImageUrl(req, userData.profileImage);
+        }
+        
+        console.log('Post owner userData:', { name: userData.name, profileImage: userData.profileImage });
         
         // Check if requester liked this post
         let liked = false;
@@ -839,7 +859,13 @@ router.get('/:postId', async (req, res) => {
               const userData = JSON.parse(userDataStr);
               if (userData.name) userName = userData.name;
               if (userData.username) username = userData.username;
-              if (userData.profileImage) userProfileImage = userData.profileImage;
+              if (userData.profileImage) {
+                userProfileImage = userData.profileImage;
+                // Convert to full URL if it's a filename
+                if (!userProfileImage.startsWith('http') && !userProfileImage.startsWith('data:')) {
+                  userProfileImage = buildProfileImageUrl(req, userProfileImage);
+                }
+              }
             }
           }
         } catch {}
@@ -876,6 +902,11 @@ router.get('/:postId', async (req, res) => {
         userData = await redisClient.hGetAll(`user:${userIdKey}`);
       }
     } catch {}
+    
+    // Convert profile image to full URL if it's a filename
+    if (userData.profileImage && !userData.profileImage.startsWith('http') && !userData.profileImage.startsWith('data:')) {
+      userData.profileImage = buildProfileImageUrl(req, userData.profileImage);
+    }
     
     // Check if requester liked this post
     let liked = false;
