@@ -203,22 +203,47 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
-          title: const Text('Edit Post'),
+          backgroundColor: const Color(0xFFE8F1FA),
+          title: const Text(
+            'Edit Post',
+            style: TextStyle(
+              color: Color(0xFF1E2A3A),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           content: SingleChildScrollView(
             child: TextField(
               controller: captionController,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Caption',
-                border: OutlineInputBorder(),
+                labelStyle: const TextStyle(color: Color(0xFF64B5F6)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFF9DB8E8)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFFBBDEFB)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFF64B5F6), width: 2),
+                ),
+                filled: true,
+                fillColor: Colors.white,
               ),
               maxLines: 4,
               enabled: !isUpdating,
+              style: const TextStyle(color: Color(0xFF263238)),
             ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(color: Color(0xFF64B5F6)),
+              ),
             ),
             ElevatedButton(
               onPressed: isUpdating
@@ -262,13 +287,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         setState(() => isUpdating = false);
                       }
                     },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF64B5F6),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
               child: isUpdating
                   ? const SizedBox(
                       width: 20,
                       height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
                     )
-                  : const Text('Update'),
+                  : const Text(
+                      'Update',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
             ),
           ],
         ),
@@ -280,12 +315,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Post'),
-        content: const Text('Are you sure you want to delete this post? This action cannot be undone.'),
+        backgroundColor: const Color(0xFFE8F1FA),
+        title: const Text(
+          'Delete Post',
+          style: TextStyle(
+            color: Color(0xFF1E2A3A),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: const Text(
+          'Are you sure you want to delete this post? This action cannot be undone.',
+          style: TextStyle(color: Color(0xFF546E7A)),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: Color(0xFF64B5F6)),
+            ),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -323,10 +371,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 }
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
             child: const Text(
               'Delete',
-              style: TextStyle(color: Colors.white),
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
             ),
           ),
         ],
