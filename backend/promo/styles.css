@@ -29,6 +29,11 @@ body{font-family:'Poppins',system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,sans-s
 .nav-cta:hover{background-color:var(--dark-blue);transform:scale(1.05)}
 .nav-link.active{color:var(--primary-blue);text-decoration:none;border-bottom:3px solid var(--primary-blue);padding-bottom:.3rem;font-weight:700}
 
+/* Language Toggle Button */
+.lang-toggle{background-color:var(--primary-blue);color:var(--white);border:none;padding:.6rem 1.2rem;border-radius:20px;font-size:1.1rem;font-weight:700;cursor:pointer;transition:.3s;font-family:'Poppins',sans-serif}
+.lang-toggle:hover{background-color:var(--dark-blue);transform:scale(1.05)}
+.lang-toggle:active{transform:scale(.95)}
+
 /* Hero */
 .hero{min-height:100vh;background:var(--light-bg);display:flex;align-items:center;padding:6rem 5% 3rem;gap:3rem}
 .hero-content{flex:1;max-width:650px}
