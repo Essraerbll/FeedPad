@@ -53,3 +53,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   }, { rootMargin: '-40% 0px -50% 0px', threshold: 0.2 });
   sections.forEach(sec => observer.observe(sec));
 });
+
+// Modal functions
+function openModal(img) {
+  const modal = document.getElementById('imageModal');
+  const modalImg = document.getElementById('modalImage');
+  modalImg.src = img.src;
+  modal.classList.add('active');
+}
+
+function closeModal() {
+  const modal = document.getElementById('imageModal');
+  modal.classList.remove('active');
+}

@@ -15,9 +15,9 @@
         FeedPad
       </a>
       <ul class="nav">
+        <li><a href="#about" class="nav-link">Hakkında</a></li>
         <li><a href="#features" class="nav-link">Özellikler</a></li>
         <li><a href="#how-it-works" class="nav-link">Nasıl Çalışır</a></li>
-        <li><a href="#about" class="nav-link">Hakkında</a></li>
         <li><a href="#team" class="nav-link">Ekip</a></li>
         <li><a href="#download" class="nav-link">İndir</a></li>
         <li><a href="#contact" class="nav-link nav-cta">Demo / Teklif</a></li>
@@ -30,8 +30,8 @@
       <h1>Sokaktaki Dostlarımızı Birlikte Besleyelim</h1>
       <p>FeedPad ile çevrendeki besleme noktalarını gör, dostlarımızın karnını doyur ve toplulukla paylaş.</p>
       <div class="hero-actions">
-        <a href="#download" class="cta-btn dark">App Store</a>
-        <a href="#download" class="cta-btn">Google Play</a>
+        <button style="border: none; background: none; cursor: pointer;"><img src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg" height="45"></button>
+        <button style="border: none; background: none; cursor: pointer;"><img src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg" height="45"></button>
       </div>
     </div>
     <div class="hero-image">
@@ -64,6 +64,11 @@
   </div>
 
   <main>
+    <section id="about" class="section">
+      <h2 class="section-title">Hakkında</h2>
+      <p style="max-width:700px;margin:0 auto;font-size:1.1rem;">FeedPad, sokak hayvanlarını besleme noktalarını paylaşabileceğin, besleme anlarını toplulukla paylaşabileceğin ve hayvanseverlerle bir araya gelebileceğin modern bir platformdur. Patili mavi teması ile dostça bir arayüz sağlar.</p>
+    </section>
+
     <section id="features" class="section">
       <h2 class="section-title">Neden FeedPad?</h2>
       <div class="feature-grid">
@@ -106,28 +111,16 @@
       </div>
     </section>
 
-    <section id="about" class="section">
-      <h2 class="section-title">Hakkında</h2>
-      <p style="max-width:700px;margin:0 auto;font-size:1.1rem;">FeedPad, sokak hayvanlarını besleme noktalarını paylaşabileceğin, besleme anlarını toplulukla paylaşabileceğin ve hayvanseverlerle bir araya gelebileceğin modern bir platformdur. Patili mavi teması ile dostça bir arayüz sağlar.</p>
-    </section>
-
     <section id="team" class="section alt">
       <h2 class="section-title">Ekip</h2>
       <div class="team">
         <div class="member">
-          <div class="avatar">A</div>
-          <h3>Ayşe</h3>
-          <p>Ürün • Deneyim</p>
+          <img src="images/gamze.png" alt="Gamze Karasu" class="member-img" onclick="openModal(this)">
+          <h3>Gamze Karasu</h3>
         </div>
         <div class="member">
-          <div class="avatar">B</div>
-          <h3>Baran</h3>
-          <p>Backend • Güvenlik</p>
-        </div>
-        <div class="member">
-          <div class="avatar">C</div>
-          <h3>Cem</h3>
-          <p>Mobil • Flutter</p>
+          <img src="images/esra.png" alt="Esra Erbil" class="member-img" onclick="openModal(this)">
+          <h3>Esra Erbil</h3>
         </div>
       </div>
     </section>
@@ -166,6 +159,13 @@
     </div>
     <p class="copyright">© 2025 FeedPad Projesi. Tüm Hakları Saklıdır.</p>
   </footer>
+
+  <div id="imageModal" class="modal" onclick="closeModal()">
+    <div class="modal-content" onclick="event.stopPropagation()">
+      <span class="close" onclick="closeModal()">&times;</span>
+      <img id="modalImage" src="" alt="">
+    </div>
+  </div>
 
   <script src="app.js" defer></script>
 </body>
