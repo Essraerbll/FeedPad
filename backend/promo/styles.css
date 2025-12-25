@@ -48,7 +48,10 @@ body{font-family:'Poppins',system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,sans-s
 .section.alt{background:var(--white)}
 #about{background:#F5FAFF !important}
 #team{background:var(--light-bg) !important}
-#contact{background:#F5FAFF !important}
+#contact{background:var(--light-bg) !important}
+#how-it-works{background:#F5FAFF !important}
+#security{background:#F5FAFF !important}
+#download{background:#F5FAFF !important}
 #download.section{padding:7rem 5%;background:linear-gradient(135deg,var(--light-bg) 0%,rgba(157,184,232,.1) 100%)}
 #download.section .section-title{font-size:3.8rem;font-weight:800;margin-bottom:2rem}
 .section-title{margin-bottom:3rem;font-size:3rem;color:var(--dark-blue);font-weight:700}
@@ -73,6 +76,13 @@ body{font-family:'Poppins',system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,sans-s
 .security-badge{background-color:var(--dark-blue);color:var(--white);padding:3rem 5%;display:flex;align-items:center;justify-content:space-around;flex-wrap:wrap;gap:2rem}
 .security-item{display:flex;align-items:center;gap:15px}
 .security-item i{font-size:2rem}
+
+/* Security Grid */
+.security-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:2.5rem;max-width:1200px;margin:0 auto}
+.security-card{padding:2.5rem;border-radius:20px;background-color:var(--white);box-shadow:0 5px 15px rgba(0,0,0,.05);text-align:center;transition:.3s}
+.security-card:hover{transform:translateY(-10px);box-shadow:0 15px 30px rgba(157,184,232,.2)}
+.security-card i{font-size:3rem;margin-bottom:1rem}
+.security-card h3{color:var(--dark-blue);margin-bottom:1rem;font-size:1.3rem}
 .security-item strong{display:block;margin-bottom:.3rem}
 .security-item p{font-size:.85rem;opacity:.8;margin:0}
 
