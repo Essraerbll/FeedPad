@@ -80,15 +80,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
-      const id = entry.target.id;
-      const link = linkById[id];
-      if (!link) return;
       if (entry.isIntersecting) {
+        const id = entry.target.id;
+        const link = linkById[id];
+        if (!link) return;
         links.forEach(l => l.classList.remove('active'));
         link.classList.add('active');
       }
     });
-  }, { rootMargin: '-40% 0px -50% 0px', threshold: 0.2 });
+  }, { rootMargin: '0px 0px -80% 0px', threshold: 0 });
   sections.forEach(sec => observer.observe(sec));
 });
 
