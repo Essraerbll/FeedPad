@@ -34,6 +34,11 @@ const buildImageUrl = (req, filename) => {
   return `${base}/uploads/posts/${filename}`;
 };
 
+const buildProfileImageUrl = (req, filename) => {
+  const base = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
+  return `${base}/uploads/profiles/${filename}`;
+};
+
 // Get user's posts
 router.get('/user/:userId', async (req, res) => {
   try {
@@ -83,7 +88,13 @@ router.get('/user/:userId', async (req, res) => {
                   const userData = JSON.parse(userDataStr);
                   if (userData.name) userName = userData.name;
                   if (userData.username) username = userData.username;
-                  if (userData.profileImage) userProfileImage = userData.profileImage;
+                  if (userData.profileImage) {
+                    userProfileImage = userData.profileImage;
+                    // Convert to full URL if it's a filename
+                    if (!userProfileImage.startsWith('http') && !userProfileImage.startsWith('data:')) {
+                      userProfileImage = buildProfileImageUrl(req, userProfileImage);
+                    }
+                  }
                 }
               }
             } catch {}
@@ -96,6 +107,8 @@ router.get('/user/:userId', async (req, res) => {
               userProfileImage: userProfileImage,
               timestamp: parseInt(commentData.timestamp)
             });
+            
+            console.log(`Comment user: ${userName}, profileImage: ${userProfileImage}`);
           }
         }
         
@@ -121,6 +134,13 @@ router.get('/user/:userId', async (req, res) => {
             userData = await redisClient.hGetAll(`user:${userIdKey}`);
           }
         } catch {}
+        
+        // Convert profile image to full URL if it's a filename
+        if (userData.profileImage && !userData.profileImage.startsWith('http') && !userData.profileImage.startsWith('data:')) {
+          userData.profileImage = buildProfileImageUrl(req, userData.profileImage);
+        }
+        
+        console.log('Post owner userData:', { name: userData.name, profileImage: userData.profileImage });
         
         // Check if requester liked this post
         let liked = false;
@@ -694,6 +714,229 @@ router.post('/migrate/user-post-keys', async (req, res) => {
   } catch (error) {
     console.error('Migrate user post keys error:', error);
     res.status(500).json({ success: false, message: 'Failed to migrate user post keys' });
+  }
+});
+
+// Delete post
+router.post('/delete', async (req, res) => {
+  try {
+    const { postId, userId } = req.body;
+    
+    if (!postId || !userId) {
+      return res.status(400).json({ success: false, message: 'Post ID and User ID required' });
+    }
+    
+    // Resolve canonical userId (UUID) from email if needed
+    let canonicalUserId = userId;
+    try {
+      const resolvedUserId = await redisClient.get(`user:email:${String(userId).toLowerCase()}`);
+      if (resolvedUserId) {
+        canonicalUserId = resolvedUserId;
+      }
+    } catch {}
+    
+    // Get post data to verify ownership
+    const postData = await redisClient.hGetAll(`post:${postId}`);
+    if (!postData || Object.keys(postData).length === 0) {
+      return res.status(404).json({ success: false, message: 'Post not found' });
+    }
+    
+    // Verify ownership
+    const postOwnerId = postData.userId;
+    if (postOwnerId !== canonicalUserId && postOwnerId !== userId) {
+      return res.status(403).json({ success: false, message: 'Not authorized to delete this post' });
+    }
+    
+    // Delete post hash
+    await redisClient.del(`post:${postId}`);
+    
+    // Remove from user's posts lists
+    await redisClient.lRem(`user:${canonicalUserId}:posts`, 0, postId);
+    await redisClient.lRem(`user:${userId}:posts`, 0, postId);
+    
+    // Delete comments associated with post
+    const commentsIds = await redisClient.lRange(`post:${postId}:comments`, 0, -1);
+    for (const commentId of commentsIds) {
+      await redisClient.del(`comment:${commentId}`);
+    }
+    await redisClient.del(`post:${postId}:comments`);
+    
+    // Delete likes set
+    await redisClient.del(`post:${postId}:likes`);
+    
+    res.json({ success: true, message: 'Post deleted successfully' });
+  } catch (error) {
+    console.error('Delete post error:', error);
+    res.status(500).json({ success: false, message: 'Failed to delete post' });
+  }
+});
+
+// Update post
+router.post('/update', async (req, res) => {
+  try {
+    const { postId, userId, caption, location } = req.body;
+    
+    if (!postId || !userId || !caption) {
+      return res.status(400).json({ success: false, message: 'Post ID, User ID, and caption required' });
+    }
+    
+    // Resolve canonical userId (UUID) from email if needed
+    let canonicalUserId = userId;
+    try {
+      const resolvedUserId = await redisClient.get(`user:email:${String(userId).toLowerCase()}`);
+      if (resolvedUserId) {
+        canonicalUserId = resolvedUserId;
+      }
+    } catch {}
+    
+    // Get post data to verify ownership
+    const postData = await redisClient.hGetAll(`post:${postId}`);
+    if (!postData || Object.keys(postData).length === 0) {
+      return res.status(404).json({ success: false, message: 'Post not found' });
+    }
+    
+    // Verify ownership
+    const postOwnerId = postData.userId;
+    if (postOwnerId !== canonicalUserId && postOwnerId !== userId) {
+      return res.status(403).json({ success: false, message: 'Not authorized to update this post' });
+    }
+    
+    // Update post data
+    await redisClient.hSet(`post:${postId}`, 'caption', caption);
+    if (location) {
+      await redisClient.hSet(`post:${postId}`, 'location', location);
+    }
+    
+    // Get updated post
+    const updatedPostData = await redisClient.hGetAll(`post:${postId}`);
+    
+    res.json({ 
+      success: true, 
+      message: 'Post updated successfully',
+      post: updatedPostData
+    });
+  } catch (error) {
+    console.error('Update post error:', error);
+    res.status(500).json({ success: false, message: 'Failed to update post' });
+  }
+});
+
+// Get single post details (MUST BE LAST - generic route)
+router.get('/:postId', async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const { requesterId } = req.query; // Who is requesting to check liked status
+    
+    console.log('=== GET Post Details ===');
+    console.log('Post ID:', postId);
+    console.log('Requester ID:', requesterId);
+    
+    const postData = await redisClient.hGetAll(`post:${postId}`);
+    console.log('Post data from Redis:', postData);
+    console.log('Post data keys:', Object.keys(postData));
+    
+    if (!postData || Object.keys(postData).length === 0) {
+      console.log('ERROR: Post not found in Redis');
+      return res.status(404).json({ success: false, message: 'Post not found' });
+    }
+    
+    // Get comments for this post
+    const commentsIds = await redisClient.lRange(`post:${postId}:comments`, 0, -1);
+    const comments = [];
+    
+    for (const commentId of commentsIds) {
+      const commentData = await redisClient.hGetAll(`comment:${commentId}`);
+      if (commentData && Object.keys(commentData).length > 0) {
+        // Get latest userName, username, and profileImage from user profile
+        let userName = commentData.userName || 'Anonymous';
+        let username = commentData.username || 'user';
+        let userProfileImage = commentData.userProfileImage || '';
+        try {
+          const commentUserId = commentData.userId;
+          if (commentUserId) {
+            const userDataStr = await redisClient.get(`user:${commentUserId}`);
+            if (userDataStr) {
+              const userData = JSON.parse(userDataStr);
+              if (userData.name) userName = userData.name;
+              if (userData.username) username = userData.username;
+              if (userData.profileImage) {
+                userProfileImage = userData.profileImage;
+                // Convert to full URL if it's a filename
+                if (!userProfileImage.startsWith('http') && !userProfileImage.startsWith('data:')) {
+                  userProfileImage = buildProfileImageUrl(req, userProfileImage);
+                }
+              }
+            }
+          }
+        } catch {}
+        
+        comments.push({
+          id: commentId,
+          ...commentData,
+          userName: userName,
+          username: username,
+          userProfileImage: userProfileImage,
+          timestamp: parseInt(commentData.timestamp)
+        });
+      }
+    }
+    
+    // Get user info for the post
+    let userIdKey = postData.userId || '';
+    try {
+      if (typeof userIdKey === 'string' && userIdKey.length > 0) {
+        const emailKey = `user:email:${userIdKey.toLowerCase()}`;
+        const userIdByEmail = await redisClient.get(emailKey);
+        if (userIdByEmail) {
+          userIdKey = userIdByEmail;
+        }
+      }
+    } catch {}
+    
+    let userData = {};
+    try {
+      const userJson = await redisClient.get(`user:${userIdKey}`);
+      if (userJson) {
+        userData = JSON.parse(userJson);
+      } else {
+        userData = await redisClient.hGetAll(`user:${userIdKey}`);
+      }
+    } catch {}
+    
+    // Convert profile image to full URL if it's a filename
+    if (userData.profileImage && !userData.profileImage.startsWith('http') && !userData.profileImage.startsWith('data:')) {
+      userData.profileImage = buildProfileImageUrl(req, userData.profileImage);
+    }
+    
+    // Check if requester liked this post
+    let liked = false;
+    if (requesterId) {
+      try {
+        liked = await redisClient.sIsMember(`post:${postId}:likes`, requesterId);
+      } catch {}
+    }
+    
+    const post = {
+      id: postId,
+      ...postData,
+      likes: parseInt(postData.likes) || 0,
+      liked: liked,
+      comments: comments,
+      timestamp: parseInt(postData.timestamp),
+      user: {
+        name: postData.userName || userData.name || 'User',
+        username: userData.username || 'user',
+        profileImage: userData.profileImage || null
+      }
+    };
+    
+    console.log('Sending successful response with post data');
+    console.log('Post:', JSON.stringify(post, null, 2));
+    res.json({ success: true, post });
+  } catch (error) {
+    console.error('Get post details error:', error);
+    console.error('Error stack:', error.stack);
+    res.status(500).json({ success: false, message: 'Failed to get post details', error: error.message });
   }
 });
 
