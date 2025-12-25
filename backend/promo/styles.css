@@ -19,18 +19,18 @@ body{font-family:'Poppins',system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,sans-s
 /* Appbar */
 .appbar{position:fixed;top:0;width:100%;z-index:1000;background-color:var(--white);padding:1.2rem 5%;box-shadow:0 4px 15px rgba(0,0,0,.05)}
 .appbar-inner{display:flex;align-items:center;justify-content:space-between}
-.brand{color:var(--dark-blue);font-size:2.6rem;font-weight:800;display:flex;align-items:center;gap:12px;text-decoration:none;letter-spacing:-.5px}
+.brand{color:var(--dark-blue);font-size:2.2rem;font-weight:800;display:flex;align-items:center;gap:12px;text-decoration:none;letter-spacing:-.5px}
 .brand .logo-icon{height:75px;width:auto;flex-shrink:0}
 .footer .brand{color:var(--white)}
 .nav{display:flex;gap:2.5rem;align-items:center;list-style:none}
-.nav-link{color:var(--dark-blue);text-decoration:none;font-weight:600;font-size:1.3rem;transition:.3s}
+.nav-link{color:var(--dark-blue);text-decoration:none;font-weight:600;font-size:1.05rem;transition:.3s}
 .nav-link:hover{color:var(--primary-blue)}
-.nav-cta{background-color:var(--primary-blue);color:var(--white);padding:.8rem 2rem;border-radius:25px;font-weight:700;font-size:1.3rem;transition:.3s}
+.nav-cta{background-color:var(--primary-blue);color:var(--white);padding:.8rem 2rem;border-radius:25px;font-weight:700;font-size:1.05rem;transition:.3s}
 .nav-cta:hover{background-color:var(--dark-blue);transform:scale(1.05)}
 .nav-link.active{color:var(--primary-blue);text-decoration:none;border-bottom:3px solid var(--primary-blue);padding-bottom:.3rem;font-weight:700}
 
 /* Language Toggle Button */
-.lang-toggle{background-color:var(--primary-blue);color:var(--white);border:none;padding:.6rem 1.2rem;border-radius:20px;font-size:1.1rem;font-weight:700;cursor:pointer;transition:.3s;font-family:'Poppins',sans-serif}
+.lang-toggle{background-color:var(--primary-blue);color:var(--white);border:none;padding:.6rem 1.2rem;border-radius:20px;font-size:1rem;font-weight:700;cursor:pointer;transition:.3s;font-family:'Poppins',sans-serif}
 .lang-toggle:hover{background-color:var(--dark-blue);transform:scale(1.05)}
 .lang-toggle:active{transform:scale(.95)}
 
