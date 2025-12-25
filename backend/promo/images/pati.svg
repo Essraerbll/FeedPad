@@ -1,0 +1,14 @@
+<svg viewBox="0 0 200 260" xmlns="http://www.w3.org/2000/svg">
+  <!-- Sol üst paw -->
+  <circle cx="50" cy="60" r="32" fill="#9DB8E8"/>
+  <!-- Sol orta paw -->
+  <circle cx="80" cy="30" r="35" fill="#9DB8E8"/>
+  <!-- Orta paw (en büyük) -->
+  <circle cx="100" cy="10" r="38" fill="#9DB8E8"/>
+  <!-- Sağ orta paw -->
+  <circle cx="120" cy="30" r="35" fill="#9DB8E8"/>
+  <!-- Sağ üst paw -->
+  <circle cx="150" cy="60" r="32" fill="#9DB8E8"/>
+  <!-- Ana pad (ayak tabanı) -->
+  <ellipse cx="100" cy="180" rx="70" ry="80" fill="#9DB8E8"/>
+</svg>

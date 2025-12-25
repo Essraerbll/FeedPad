@@ -3,13 +3,29 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const cookieParser = require('cookie-parser');
+const compression = require('compression');
+const csurf = require('csurf');
 const path = require('path');
 require('dotenv').config();
 
 const app = express();
 
 // Middleware
+app.use(compression());
 app.use(helmet());
+// Strengthen CSP (inline scripts/styles disallowed)
+app.use(helmet.contentSecurityPolicy({
+  useDefaults: true,
+  directives: {
+    "default-src": ["'self'"],
+    "img-src": ["'self'", "https:", "data:"],
+    "script-src": ["'self'"],
+    "style-src": ["'self'"],
+    "font-src": ["'self'", "https:", "data:"],
+    "connect-src": ["'self'"],
+    "frame-ancestors": ["'none'"]
+  }
+}));
 app.use(cors({
   origin: true,
   credentials: true,
@@ -21,6 +37,23 @@ app.use(cookieParser());
 
 // Static uploads
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Serve promotional static site
+app.use(express.static(path.join(__dirname, 'promo'), { etag: true, maxAge: '1d' }));
+
+// CSRF protection (cookie-based)
+const csrfProtection = csurf({
+  cookie: {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production'
+  }
+});
+
+// Endpoint to obtain CSRF token for forms
+app.get('/csrf-token', csrfProtection, (req, res) => {
+  res.json({ token: req.csrfToken() });
+});
 
 // Routes
 const authRoutes = require('./routes/auth.routes');
@@ -34,6 +67,14 @@ app.use('/api/posts', postsRoutes);
 
 const messagingRoutes = require('./routes/messaging.routes');
 app.use('/api/messaging', messagingRoutes);
+
+// Lead capture (promo form)
+try {
+  const leadRoutes = require('./routes/lead.routes');
+  app.use('/lead', leadRoutes);
+} catch (e) {
+  // Route dosyası yoksa devam et
+}
 
 // Diğer route'lar (varsa)
 try {

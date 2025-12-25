@@ -75,7 +75,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   // Logo veya başlık - Kedi teması
                   const Icon(
                     Icons.pets,
-                    size: 80,
+                    size: 120,
                     color: Color(0xFF9DB8E8), // Pastel mavi
                   ),
                   const SizedBox(height: 16),
