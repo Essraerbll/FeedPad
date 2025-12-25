@@ -19,6 +19,7 @@
         <li><a href="#features" class="nav-link">Özellikler</a></li>
         <li><a href="#how-it-works" class="nav-link">Nasıl Çalışır</a></li>
         <li><a href="#team" class="nav-link">Ekip</a></li>
+        <li><a href="#security" class="nav-link">Güvenlik</a></li>
         <li><a href="#download" class="nav-link">İndir</a></li>
         <li><a href="#contact" class="nav-link nav-cta">Demo / Teklif</a></li>
       </ul>
@@ -42,7 +43,7 @@
   <main>
     <section id="about" class="section">
       <h2 class="section-title">Hakkında</h2>
-      <p style="max-width:700px;margin:0 auto;font-size:1.1rem;">FeedPad, sokak hayvanlarını besleme noktalarını paylaşabileceğin, besleme anlarını toplulukla paylaşabileceğin ve hayvanseverlerle bir araya gelebileceğin modern bir platformdur. Patili mavi teması ile dostça bir arayüz sağlar.</p>
+      <p style="max-width:700px;margin:0 auto;font-size:1.1rem;">Sevginin dijital izini sürün. 🐾 Sokaktaki dostlarımızın beslenme duraklarını keşfetmeniz ve her iyilik anını toplulukla paylaşmanız için tasarlanmış, teknolojiyle şefkati buluşturan modern bir ekosistem. Hayvanseverleri ve gönüllü petshop’ları şeffaf bir iyilik ağında bir araya getirirken; uçtan uca şifreli altyapımızla hem bağışlarınızı hem de verilerinizi en yüksek güvenlik standartlarında koruyoruz. Her öğünü bir mutluluk hikayesine dönüştüren bu yolculukta, dostça olduğu kadar siber dünyada da güvenli ve tamamen şeffaf bir besleme deneyimine davetlisiniz.</p>
     </section>
 
     <section id="features" class="section">
@@ -62,6 +63,11 @@
           <i class="feature-icon">👥</i>
           <h3>Büyük Bir Topluluk</h3>
           <p>Hayvanseverlerle iletişim kur ve ortak etkinlikler düzenle.</p>
+        </div>
+        <div class="feature-card">
+          <i class="feature-icon">🧡</i>
+          <h3>Mama Paylaş</h3>
+          <p>Bağışlanan mamaları şeffafça görüntüle, pay et ve ihtiyacı olan noktalara yönlendir.</p>
         </div>
       </div>
     </section>
@@ -84,6 +90,11 @@
           <h3>Paylaş & Etkileş</h3>
           <p>Yorumlar, mesajlar ve bildirimlerle toplulukla etkileşimde kal.</p>
         </div>
+        <div class="step">
+          <div class="step-icon">🧡</div>
+          <h3>Bağışla & Paylaştır</h3>
+          <p>Mama bağışlarını ekle, şeffafça izle; ihtiyaç noktasına yönlendir.</p>
+        </div>
       </div>
     </section>
 
@@ -93,10 +104,12 @@
         <div class="member">
           <img src="images/gamze.png" alt="Gamze Karasu" class="member-img" onclick="openModal(this)">
           <h3>Gamze Karasu</h3>
+          <p>Yazılım Mühendisi</p>
         </div>
         <div class="member">
           <img src="images/esra.png" alt="Esra Erbil" class="member-img" onclick="openModal(this)">
           <h3>Esra Erbil</h3>
+          <p>Yazılım Mühendisi</p>
         </div>
       </div>
     </section>
@@ -122,6 +135,15 @@
       </div>
     </section>
 
+    <section id="download" class="section alt">
+      <h2 class="section-title">Hemen İndir</h2>
+      <p>Uygulamamızı mobil cihazlarınıza indirin ve sokak dostlarımıza yardım etmeye başlayın.</p>
+      <div class="store-buttons">
+        <button style="border: none; background: none; cursor: pointer;"><img src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg" height="45"></button>
+        <button style="border: none; background: none; cursor: pointer;"><img src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg" height="45"></button>
+      </div>
+    </section>
+
     <section id="contact" class="section">
       <h2 class="section-title">Demo / Teklif İste</h2>
       <form id="lead-form" method="post" action="/lead" novalidate>
@@ -132,28 +154,11 @@
         <p id="msg" class="msg" aria-live="polite"></p>
       </form>
     </section>
-
-    <section id="download" class="section alt">
-      <h2 class="section-title">Hemen İndir</h2>
-      <p>Uygulamamızı mobil cihazlarınıza indirin ve sokak dostlarımıza yardım etmeye başlayın.</p>
-      <div class="store-buttons">
-        <button style="border: none; background: none; cursor: pointer;"><img src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg" height="45"></button>
-        <button style="border: none; background: none; cursor: pointer;"><img src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg" height="45"></button>
-      </div>
-    </section>
   </main>
 
   <footer class="footer">
-    <div class="brand">
-      <img class="logo-icon" src="images/mavi_pati.png" alt="FeedPad Paw">
-      FeedPad
-    </div>
+    <div class="brand">FeedPad</div>
     <p class="footer-tagline">Her pati izi bir sevgi hikayesidir. 🐾</p>
-    <div class="social-links">
-      <a href="#" aria-label="Instagram">📷</a>
-      <a href="#" aria-label="Twitter">🐦</a>
-      <a href="#" aria-label="GitHub">💻</a>
-    </div>
     <p class="copyright">© 2025 FeedPad Projesi. Tüm Hakları Saklıdır.</p>
   </footer>
 
