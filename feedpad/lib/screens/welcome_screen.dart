@@ -119,7 +119,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
                             ),
                             // Main image
                             Image.asset(
-                              'assets/images/logo.png',
+                              'assets/images/logo.jpeg',
                               height: 200,
                               fit: BoxFit.contain,
                             ),

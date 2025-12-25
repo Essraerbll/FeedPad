@@ -1,6 +1,6 @@
 {
-    "name": "feedpad",
-    "short_name": "feedpad",
+    "name": "FeedPad",
+    "short_name": "FeedPad",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
