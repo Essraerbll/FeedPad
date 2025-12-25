@@ -20,15 +20,53 @@ document.addEventListener('DOMContentLoaded', async () => {
     btn.addEventListener('click', () => console.log('CTA clicked'));
   });
 
-  // Form validation (client-side aid; server validates)
+  // Form submission with fetch
   const form = document.getElementById('lead-form');
-  form?.addEventListener('submit', (e) => {
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
     const email = document.getElementById('email').value.trim();
+    const csrfToken = document.getElementById('csrfToken').value;
+
     if (!email || !email.includes('@')) {
-      e.preventDefault();
       msg.textContent = 'Lütfen geçerli bir e-posta giriniz.';
-    } else {
-      msg.textContent = 'Gönderiliyor…';
+      return;
+    }
+
+    msg.textContent = 'Gönderiliyor…';
+
+    try {
+      const params = new URLSearchParams();
+      params.append('email', email);
+      params.append('_csrf', csrfToken);
+
+      const res = await fetch('/lead', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: params.toString(),
+        credentials: 'include'
+      });
+
+      const text = await res.text();
+      console.log('Response:', text);
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        console.error('JSON parse error:', text);
+        msg.textContent = '❌ Server hatası: ' + text;
+        return;
+      }
+
+      if (res.ok && data.success) {
+        msg.textContent = '✅ Kaydınız başarıyla alındı! Teşekkürler.';
+        form.reset();
+        document.getElementById('email').blur();
+        setTimeout(() => { msg.textContent = ''; }, 5000);
+      } else {
+        msg.textContent = '❌ ' + (data.message || 'Bir hata oluştu');
+      }
+    } catch (err) {
+      msg.textContent = '❌ Hata: ' + err.message;
     }
   });
 

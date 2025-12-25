@@ -97,6 +97,16 @@ body{font-family:'Poppins',system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,sans-s
 .member h3{color:var(--dark-blue);margin-bottom:.5rem}
 .member p{color:var(--text-color);opacity:.8}
 
+#contact-info{background:var(--light-bg) !important}
+.contact-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:2.5rem;max-width:1100px;margin:0 auto}
+.contact-card{padding:2.5rem;border-radius:20px;background-color:#F5FAFF;box-shadow:0 8px 24px rgba(157,184,232,.15);transition:.3s;text-align:center}
+.contact-card:hover{transform:translateY(-8px);box-shadow:0 14px 30px rgba(157,184,232,.2)}
+.contact-card i{font-size:3.5rem;margin-bottom:1rem;display:block}
+.contact-card h3{color:var(--dark-blue);margin-bottom:1rem;font-size:1.3rem}
+.contact-card p{font-size:1rem;color:var(--text-color)}
+.contact-card a{color:var(--primary-blue);text-decoration:none;font-weight:600}
+.contact-card a:hover{text-decoration:underline}
+
 /* Lead form */
 #lead-form{display:flex;flex-direction:column;gap:1rem;max-width:500px;margin:0 auto;text-align:left;background:var(--light-bg);padding:2rem;border-radius:15px}
 #lead-form label{font-weight:600;color:var(--dark-blue)}
