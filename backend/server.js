@@ -78,13 +78,15 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 3000;
-const HOST = process.env.HOST || 'localhost'; // Localhost ve ağdan dinle
+// Tüm arayüzlerden dinleyelim; Android emülatörü (10.0.2.2) erişebilsin
+const HOST = process.env.HOST || '0.0.0.0';
 
 app.listen(PORT, HOST, () => {
-  console.log(`🚀 Server is running on http://${HOST}:${PORT}`);
+  const hostLabel = HOST === '0.0.0.0' ? '0.0.0.0 (all interfaces)' : HOST;
+  console.log(`🚀 Server is running on http://${hostLabel}:${PORT}`);
   console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🌐 Local: http://localhost:${PORT}`);
-  console.log(`📱 Network: http://192.168.1.108:${PORT}`);
+  console.log(`📱 Android emulator (host): http://10.0.2.2:${PORT}`);
 });
 
 module.exports = app;
