@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
+import '../animations/route_animations.dart';
 import 'register_screen.dart';
 import 'main_screen.dart';
 
@@ -53,7 +54,7 @@ class _LoginScreenState extends State<LoginScreen> {
     } else if (mounted && authService.isAuthenticated) {
       // Başarılı giriş - ana ekrana yönlendir
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const MainScreen()),
+        FadeRoute(page: const MainScreen()),
       );
     }
   }
@@ -61,7 +62,8 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFE8F1FA), // Welcome ekranıyla aynı açık pastel mavi
+      backgroundColor:
+          const Color(0xFFE8F1FA), // Welcome ekranıyla aynı açık pastel mavi
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -114,18 +116,21 @@ class _LoginScreenState extends State<LoginScreen> {
                           style: const TextStyle(color: Colors.black87),
                           decoration: InputDecoration(
                             labelText: 'Email',
-                            labelStyle: const TextStyle(color: Color(0xFF6B7FA8)),
-                            prefixIcon:
-                                const Icon(Icons.email, color: Color(0xFF9DB8E8)),
+                            labelStyle:
+                                const TextStyle(color: Color(0xFF6B7FA8)),
+                            prefixIcon: const Icon(Icons.email,
+                                color: Color(0xFF9DB8E8)),
                             filled: true,
                             fillColor: const Color(0xFFF5F8FA),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Color(0xFFC5D9F1), width: 1.5),
+                              borderSide: const BorderSide(
+                                  color: Color(0xFFC5D9F1), width: 1.5),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Color(0xFFC5D9F1), width: 1.5),
+                              borderSide: const BorderSide(
+                                  color: Color(0xFFC5D9F1), width: 1.5),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -152,9 +157,10 @@ class _LoginScreenState extends State<LoginScreen> {
                           style: const TextStyle(color: Colors.black87),
                           decoration: InputDecoration(
                             labelText: 'Password',
-                            labelStyle: const TextStyle(color: Color(0xFF6B7FA8)),
-                            prefixIcon:
-                                const Icon(Icons.lock, color: Color(0xFF9DB8E8)),
+                            labelStyle:
+                                const TextStyle(color: Color(0xFF6B7FA8)),
+                            prefixIcon: const Icon(Icons.lock,
+                                color: Color(0xFF9DB8E8)),
                             suffixIcon: IconButton(
                               icon: Icon(
                                 _obscurePassword
@@ -172,11 +178,13 @@ class _LoginScreenState extends State<LoginScreen> {
                             fillColor: const Color(0xFFF5F8FA),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Color(0xFFC5D9F1), width: 1.5),
+                              borderSide: const BorderSide(
+                                  color: Color(0xFFC5D9F1), width: 1.5),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Color(0xFFC5D9F1), width: 1.5),
+                              borderSide: const BorderSide(
+                                  color: Color(0xFFC5D9F1), width: 1.5),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -200,7 +208,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         ElevatedButton(
                           onPressed: _isLoading ? null : _signIn,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF9DB8E8), // Welcome buton rengi
+                            backgroundColor:
+                                const Color(0xFF9DB8E8), // Welcome buton rengi
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(
                                 vertical: 20, horizontal: 24),
@@ -236,15 +245,15 @@ class _LoginScreenState extends State<LoginScreen> {
                               : () {
                                   Navigator.push(
                                     context,
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          const RegisterScreen(),
+                                    SlideRightRoute(
+                                      page: const RegisterScreen(),
                                     ),
                                   );
                                 },
                           style: OutlinedButton.styleFrom(
                             foregroundColor: const Color(0xFF5A7FA1),
-                            side: const BorderSide(color: Color(0xFF9DB8E8), width: 2),
+                            side: const BorderSide(
+                                color: Color(0xFF9DB8E8), width: 2),
                             padding: const EdgeInsets.symmetric(
                                 vertical: 20, horizontal: 24),
                             minimumSize: const Size(double.infinity, 56),

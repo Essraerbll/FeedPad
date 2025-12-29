@@ -1,0 +1,1354 @@
+{
+	"info": {
+		"_postman_id": "feedpad-api-loadtest",
+		"name": "FeedPad API - Load Test Ready",
+		"description": "FeedPad Backend API with automatic data management for load testing",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:3000/api",
+			"type": "string"
+		},
+		{
+			"key": "session_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "user_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "user_email",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "user_name",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "user_password",
+			"value": "TestPassword123!",
+			"type": "string"
+		},
+		{
+			"key": "marker_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "post_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "test_timestamp",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Collection-level pre-request script",
+					"// Her request'ten önce çalışır",
+					"",
+					"// Timestamp'i güncelle (unique email için)",
+					"pm.collectionVariables.set('test_timestamp', Date.now());",
+					"",
+					"// Session ID kontrolü ve debug",
+					"const requestName = pm.info.requestName;",
+					"const sessionId = pm.collectionVariables.get('session_id');",
+					"",
+					"// Authentication gerektiren endpoint'ler",
+					"const authRequired = [",
+					"    'Get My Markers',",
+					"    'Create Marker',",
+					"    'Update Marker',",
+					"    'Delete Marker',",
+					"    'Get Me',",
+					"    'Logout'",
+					"];",
+					"",
+					"if (authRequired.includes(requestName)) {",
+					"    if (!sessionId) {",
+					"        console.log('❌ ERROR: Session ID not found for request:', requestName);",
+					"        console.log('⚠️ Please run Login endpoint first!');",
+					"    } else {",
+					"        console.log('✅ Session ID found for', requestName, ':', sessionId.substring(0, 20) + '...');",
+					"    }",
+					"}"
+				]
+			}
+		}
+	],
+	"item": [
+		{
+			"name": "🚀 Load Test Flow (Önerilen)",
+			"description": "Load test için hazır akış - Register → Login → Create Marker → Get My Markers\n\nCollection Runner'da bu folder'ı seçip çalıştırın. Endpoint'ler otomatik olarak doğru sırayla çalışacaktır.",
+			"item": [
+				{
+					"name": "1. Register",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Unique email oluştur",
+									"const timestamp = pm.collectionVariables.get('test_timestamp');",
+									"const randomSuffix = Math.floor(Math.random() * 10000);",
+									"const uniqueEmail = `test_${timestamp}_${randomSuffix}@loadtest.com`;",
+									"const uniqueUsername = `testuser_${timestamp}_${randomSuffix}`;",
+									"",
+									"pm.collectionVariables.set('user_email', uniqueEmail);",
+									"pm.collectionVariables.set('user_name', `Test User ${randomSuffix}`);",
+									"",
+									"// Body'yi güncelle",
+									"const requestBody = {",
+									"    email: uniqueEmail,",
+									"    password: pm.collectionVariables.get('user_password'),",
+									"    name: `Test User ${randomSuffix}`,",
+									"    username: uniqueUsername,",
+									"    userType: 'user'",
+									"};",
+									"",
+									"pm.request.body.raw = JSON.stringify(requestBody, null, 2);",
+									"",
+									"console.log('📝 [1/6] Registering with email:', uniqueEmail);"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Response'dan user_id'yi kaydet",
+									"if (pm.response.code === 201) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.user && jsonData.user.id) {",
+									"        pm.collectionVariables.set('user_id', jsonData.user.id);",
+									"        console.log('✅ [1/6] User registered with ID:', jsonData.user.id);",
+									"    }",
+									"} else {",
+									"    console.log('❌ [1/6] Registration failed:', pm.response.text());",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{user_email}}\",\n  \"password\": \"{{user_password}}\",\n  \"name\": \"{{user_name}}\",\n  \"username\": \"testuser\",\n  \"userType\": \"user\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/register",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "register"]
+						}
+					}
+				},
+				{
+					"name": "2. Login",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Email ve password'ü kontrol et",
+									"const email = pm.collectionVariables.get('user_email');",
+									"const password = pm.collectionVariables.get('user_password');",
+									"",
+									"if (!email) {",
+									"    const timestamp = pm.collectionVariables.get('test_timestamp');",
+									"    const testEmail = `test_${timestamp}@loadtest.com`;",
+									"    pm.collectionVariables.set('user_email', testEmail);",
+									"    console.log('⚠️ Using test email:', testEmail);",
+									"}",
+									"",
+									"const requestBody = {",
+									"    email: pm.collectionVariables.get('user_email'),",
+									"    password: password || 'TestPassword123!'",
+									"};",
+									"",
+									"pm.request.body.raw = JSON.stringify(requestBody, null, 2);",
+									"console.log('🔐 [2/6] Logging in with:', pm.collectionVariables.get('user_email'));"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    ",
+									"    // Session ID'yi kaydet",
+									"    let sessionId = null;",
+									"    ",
+									"    if (jsonData.sessionId) {",
+									"        sessionId = jsonData.sessionId;",
+									"        console.log('✅ [2/6] Session ID from response:', sessionId.substring(0, 30) + '...');",
+									"    } else {",
+									"        const cookies = pm.cookies.toObject();",
+									"        if (cookies && cookies.sessionId) {",
+									"            sessionId = cookies.sessionId;",
+									"            console.log('✅ [2/6] Session ID from cookie:', sessionId.substring(0, 30) + '...');",
+									"        }",
+									"    }",
+									"    ",
+									"    if (sessionId) {",
+									"        pm.collectionVariables.set('session_id', sessionId);",
+									"        console.log('✅ [2/6] Session ID saved successfully!');",
+									"    } else {",
+									"        console.log('❌ [2/6] ERROR: Session ID not found!');",
+									"    }",
+									"    ",
+									"    // User ID'yi kaydet",
+									"    if (jsonData.user && jsonData.user.id) {",
+									"        pm.collectionVariables.set('user_id', jsonData.user.id);",
+									"        pm.collectionVariables.set('user_email', jsonData.user.email);",
+									"        pm.collectionVariables.set('user_name', jsonData.user.name);",
+									"        console.log('✅ [2/6] User data saved');",
+									"    }",
+									"} else {",
+									"    console.log('❌ [2/6] Login failed:', pm.response.code, pm.response.text());",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{user_email}}\",\n  \"password\": \"{{user_password}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/login",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "login"]
+						}
+					}
+				},
+				{
+					"name": "3. Create Marker",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Session ID kontrolü",
+									"const sessionId = pm.collectionVariables.get('session_id');",
+									"if (!sessionId) {",
+									"    console.log('❌ [3/6] ERROR: session_id not found!');",
+									"    throw new Error('Session ID required. Please run Login first.');",
+									"}",
+									"",
+									"// Random koordinat oluştur (İstanbul çevresi)",
+									"const latitude = 41.0082 + (Math.random() - 0.5) * 0.1;",
+									"const longitude = 28.9784 + (Math.random() - 0.5) * 0.1;",
+									"const types = ['food', 'water'];",
+									"const petTypes = ['cat', 'dog'];",
+									"const randomType = types[Math.floor(Math.random() * types.length)];",
+									"const randomPetType = petTypes[Math.floor(Math.random() * petTypes.length)];",
+									"",
+									"const requestBody = {",
+									"    type: randomType,",
+									"    latitude: latitude,",
+									"    longitude: longitude,",
+									"    petType: randomPetType",
+									"};",
+									"",
+									"if (randomType === 'water') {",
+									"    requestBody.waterLiters = Math.floor(Math.random() * 5) + 1;",
+									"    requestBody.isWaterEnough = ['yes', 'maybe'][Math.floor(Math.random() * 2)];",
+									"}",
+									"",
+									"pm.request.body.raw = JSON.stringify(requestBody, null, 2);",
+									"console.log('📍 [3/6] Creating marker:', requestBody.type, 'at', latitude.toFixed(4), longitude.toFixed(4));"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.marker && jsonData.marker.id) {",
+									"        pm.collectionVariables.set('marker_id', jsonData.marker.id);",
+									"        console.log('✅ [3/6] Marker created with ID:', jsonData.marker.id);",
+									"    }",
+									"} else {",
+									"    console.log('❌ [3/6] Marker creation failed:', pm.response.text());",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "x-session-id",
+								"value": "{{session_id}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"type\": \"food\",\n  \"latitude\": 41.0082,\n  \"longitude\": 28.9784,\n  \"petType\": \"cat\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/markers",
+							"host": ["{{base_url}}"],
+							"path": ["markers"]
+						}
+					}
+				},
+				{
+					"name": "4. Get My Markers",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"const sessionId = pm.collectionVariables.get('session_id');",
+									"if (!sessionId) {",
+									"    console.log('❌ [4/6] ERROR: session_id not found!');",
+									"} else {",
+									"    console.log('📍 [4/6] Getting my markers...');",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-session-id",
+								"value": "{{session_id}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/markers/my-markers",
+							"host": ["{{base_url}}"],
+							"path": ["markers", "my-markers"]
+						}
+					}
+				},
+				{
+					"name": "5. Create Post",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"const userId = pm.collectionVariables.get('user_id') || pm.collectionVariables.get('user_email');",
+									"const userName = pm.collectionVariables.get('user_name') || 'Test User';",
+									"",
+									"const requestBody = {",
+									"    userId: userId,",
+									"    userName: userName,",
+									"    caption: `Test post created at ${new Date().toISOString()}`,",
+									"    imageUrl: 'https://via.placeholder.com/400',",
+									"    location: 'İstanbul'",
+									"};",
+									"",
+									"pm.request.body.raw = JSON.stringify(requestBody, null, 2);",
+									"console.log('📝 [5/6] Creating post for user:', userId);"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.postId) {",
+									"        pm.collectionVariables.set('post_id', jsonData.postId);",
+									"        console.log('✅ [5/6] Post created with ID:', jsonData.postId);",
+									"    }",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"userId\": \"{{user_id}}\",\n  \"userName\": \"{{user_name}}\",\n  \"caption\": \"Test post\",\n  \"imageUrl\": \"https://via.placeholder.com/400\",\n  \"location\": \"İstanbul\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/posts/create",
+							"host": ["{{base_url}}"],
+							"path": ["posts", "create"]
+						}
+					}
+				},
+				{
+					"name": "6. Like Post",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"const postId = pm.collectionVariables.get('post_id');",
+									"const userId = pm.collectionVariables.get('user_id') || pm.collectionVariables.get('user_email');",
+									"",
+									"if (!postId) {",
+									"    console.log('⚠️ [6/6] Warning: post_id not found. Skipping like.');",
+									"} else {",
+									"    const requestBody = {",
+									"        postId: postId,",
+									"        userId: userId",
+									"    };",
+									"    ",
+									"    pm.request.body.raw = JSON.stringify(requestBody, null, 2);",
+									"    console.log('❤️ [6/6] Liking post:', postId);",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"postId\": \"{{post_id}}\",\n  \"userId\": \"{{user_id}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/posts/like",
+							"host": ["{{base_url}}"],
+							"path": ["posts", "like"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Health Check",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/health",
+					"host": ["{{base_url}}"],
+					"path": ["health"]
+				}
+			}
+		},
+		{
+			"name": "Logout (Session Temizleme)",
+			"description": "Eski session'ı temizlemek için. Health Check'ten sonra çalışır. Session yoksa hata vermez.",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"// Session ID kontrolü - yoksa problem değil",
+							"const sessionId = pm.collectionVariables.get('session_id');",
+							"if (!sessionId) {",
+							"    console.log('ℹ️ No existing session to logout. This is OK.');",
+							"} else {",
+							"    console.log('🚪 Logging out existing session:', sessionId.substring(0, 20) + '...');",
+							"}"
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Logout sonrası tüm session ve test variable'larını temizle",
+							"pm.collectionVariables.unset('session_id');",
+							"pm.collectionVariables.unset('user_id');",
+							"pm.collectionVariables.unset('user_email');",
+							"pm.collectionVariables.unset('marker_id');",
+							"pm.collectionVariables.unset('post_id');",
+							"console.log('✅ Session and variables cleared. Ready for new test cycle.');"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "x-session-id",
+						"value": "{{session_id}}"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/auth/logout",
+					"host": ["{{base_url}}"],
+					"path": ["auth", "logout"]
+				}
+			}
+		},
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Register",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Unique email oluştur",
+									"const timestamp = pm.collectionVariables.get('test_timestamp');",
+									"const randomSuffix = Math.floor(Math.random() * 10000);",
+									"const uniqueEmail = `test_${timestamp}_${randomSuffix}@loadtest.com`;",
+									"const uniqueUsername = `testuser_${timestamp}_${randomSuffix}`;",
+									"",
+									"pm.collectionVariables.set('user_email', uniqueEmail);",
+									"pm.collectionVariables.set('user_name', `Test User ${randomSuffix}`);",
+									"",
+									"// Body'yi güncelle",
+									"const requestBody = {",
+									"    email: uniqueEmail,",
+									"    password: pm.collectionVariables.get('user_password'),",
+									"    name: `Test User ${randomSuffix}`,",
+									"    username: uniqueUsername,",
+									"    userType: 'user'",
+									"};",
+									"",
+									"pm.request.body.raw = JSON.stringify(requestBody, null, 2);",
+									"",
+									"console.log('📝 Registering with email:', uniqueEmail);"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Response'dan user_id'yi kaydet",
+									"if (pm.response.code === 201) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.user && jsonData.user.id) {",
+									"        pm.collectionVariables.set('user_id', jsonData.user.id);",
+									"        console.log('✅ User registered with ID:', jsonData.user.id);",
+									"    }",
+									"} else {",
+									"    console.log('❌ Registration failed:', pm.response.text());",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{user_email}}\",\n  \"password\": \"{{user_password}}\",\n  \"name\": \"{{user_name}}\",\n  \"username\": \"testuser\",\n  \"userType\": \"user\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/register",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "register"]
+						}
+					}
+				},
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Email ve password'ü kontrol et",
+									"const email = pm.collectionVariables.get('user_email');",
+									"const password = pm.collectionVariables.get('user_password');",
+									"",
+									"if (!email) {",
+									"    // Eğer email yoksa test email'i kullan",
+									"    const timestamp = pm.collectionVariables.get('test_timestamp');",
+									"    const testEmail = `test_${timestamp}@loadtest.com`;",
+									"    pm.collectionVariables.set('user_email', testEmail);",
+									"    console.log('⚠️ Using test email:', testEmail);",
+									"}",
+									"",
+									"// Body'yi güncelle",
+									"const requestBody = {",
+									"    email: pm.collectionVariables.get('user_email'),",
+									"    password: password || 'TestPassword123!'",
+									"};",
+									"",
+									"pm.request.body.raw = JSON.stringify(requestBody, null, 2);",
+									"console.log('🔐 Logging in with:', pm.collectionVariables.get('user_email'));"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    ",
+									"    // Session ID'yi kaydet - önce response body'den, sonra cookie'den",
+									"    let sessionId = null;",
+									"    ",
+									"    if (jsonData.sessionId) {",
+									"        sessionId = jsonData.sessionId;",
+									"        console.log('✅ Session ID from response body:', sessionId);",
+									"    } else {",
+									"        // Cookie'den almayı dene",
+									"        const cookies = pm.cookies.toObject();",
+									"        if (cookies && cookies.sessionId) {",
+									"            sessionId = cookies.sessionId;",
+									"            console.log('✅ Session ID from cookie:', sessionId);",
+									"        }",
+									"    }",
+									"    ",
+									"    if (sessionId) {",
+									"        pm.collectionVariables.set('session_id', sessionId);",
+									"        console.log('✅ Session ID saved to variable:', sessionId);",
+									"    } else {",
+									"        console.log('⚠️ WARNING: Session ID not found in response or cookies!');",
+									"        console.log('Response:', JSON.stringify(jsonData));",
+									"    }",
+									"    ",
+									"    // User ID'yi kaydet",
+									"    if (jsonData.user && jsonData.user.id) {",
+									"        pm.collectionVariables.set('user_id', jsonData.user.id);",
+									"        pm.collectionVariables.set('user_email', jsonData.user.email);",
+									"        pm.collectionVariables.set('user_name', jsonData.user.name);",
+									"        console.log('✅ User ID saved:', jsonData.user.id);",
+									"    }",
+									"} else {",
+									"    console.log('❌ Login failed:', pm.response.code, pm.response.text());",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{user_email}}\",\n  \"password\": \"{{user_password}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/login",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "login"]
+						}
+					}
+				},
+				{
+					"name": "Get Me",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Session ID kontrolü",
+									"const sessionId = pm.collectionVariables.get('session_id');",
+									"if (!sessionId) {",
+									"    console.log('⚠️ WARNING: session_id not found! Please run Login first.');",
+									"} else {",
+									"    console.log('🔐 Using session_id:', sessionId.substring(0, 20) + '...');",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-session-id",
+								"value": "{{session_id}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/auth/me",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "me"]
+						}
+					}
+				},
+				{
+					"name": "Get User by ID",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// User ID'yi kontrol et",
+									"const userId = pm.collectionVariables.get('user_id');",
+									"if (!userId) {",
+									"    console.log('⚠️ Warning: user_id not found, using default');",
+									"    pm.collectionVariables.set('user_id', pm.variables.replaceIn('{{user_email}}'));",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/auth/user/{{user_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "user", "{{user_id}}"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Markers",
+			"item": [
+				{
+					"name": "Create Marker",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Session ID kontrolü",
+									"const sessionId = pm.collectionVariables.get('session_id');",
+									"if (!sessionId) {",
+									"    console.log('❌ ERROR: session_id not found! Please run Login first.');",
+									"    throw new Error('Session ID required. Please login first.');",
+									"} else {",
+									"    console.log('🔐 Using session_id:', sessionId.substring(0, 20) + '...');",
+									"}",
+									"",
+									"// Random koordinat oluştur (İstanbul çevresi)",
+									"const latitude = 41.0082 + (Math.random() - 0.5) * 0.1;",
+									"const longitude = 28.9784 + (Math.random() - 0.5) * 0.1;",
+									"const types = ['food', 'water'];",
+									"const petTypes = ['cat', 'dog'];",
+									"const randomType = types[Math.floor(Math.random() * types.length)];",
+									"const randomPetType = petTypes[Math.floor(Math.random() * petTypes.length)];",
+									"",
+									"const requestBody = {",
+									"    type: randomType,",
+									"    latitude: latitude,",
+									"    longitude: longitude,",
+									"    petType: randomPetType",
+									"};",
+									"",
+									"if (randomType === 'water') {",
+									"    requestBody.waterLiters = Math.floor(Math.random() * 5) + 1;",
+									"    requestBody.isWaterEnough = ['yes', 'maybe'][Math.floor(Math.random() * 2)];",
+									"}",
+									"",
+									"pm.request.body.raw = JSON.stringify(requestBody, null, 2);",
+									"console.log('📍 Creating marker:', requestBody.type, 'at', latitude, longitude);"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.marker && jsonData.marker.id) {",
+									"        pm.collectionVariables.set('marker_id', jsonData.marker.id);",
+									"        console.log('✅ Marker created with ID:', jsonData.marker.id);",
+									"    }",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "x-session-id",
+								"value": "{{session_id}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"type\": \"food\",\n  \"latitude\": 41.0082,\n  \"longitude\": 28.9784,\n  \"petType\": \"cat\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/markers",
+							"host": ["{{base_url}}"],
+							"path": ["markers"]
+						}
+					}
+				},
+				{
+					"name": "Get All Markers",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/markers",
+							"host": ["{{base_url}}"],
+							"path": ["markers"]
+						}
+					}
+				},
+				{
+					"name": "Get My Markers",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Session ID kontrolü",
+									"const sessionId = pm.collectionVariables.get('session_id');",
+									"if (!sessionId) {",
+									"    console.log('❌ ERROR: session_id not found! Please run Login first.');",
+									"    throw new Error('Session ID required. Please login first.');",
+									"} else {",
+									"    console.log('🔐 Using session_id:', sessionId.substring(0, 20) + '...');",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-session-id",
+								"value": "{{session_id}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/markers/my-markers",
+							"host": ["{{base_url}}"],
+							"path": ["markers", "my-markers"]
+						}
+					}
+				},
+				{
+					"name": "Get Marker by ID",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"const markerId = pm.collectionVariables.get('marker_id');",
+									"if (!markerId) {",
+									"    console.log('⚠️ Warning: marker_id not found. Please create a marker first.');",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/markers/{{marker_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["markers", "{{marker_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Update Marker",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Session ID kontrolü",
+									"const sessionId = pm.collectionVariables.get('session_id');",
+									"if (!sessionId) {",
+									"    console.log('❌ ERROR: session_id not found! Please run Login first.');",
+									"    throw new Error('Session ID required. Please login first.');",
+									"}",
+									"",
+									"const markerId = pm.collectionVariables.get('marker_id');",
+									"if (!markerId) {",
+									"    console.log('⚠️ Warning: marker_id not found.');",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "x-session-id",
+								"value": "{{session_id}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"isWaterEnough\": \"yes\",\n  \"addedAmount\": 2.5\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/markers/{{marker_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["markers", "{{marker_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Delete Marker",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Session ID kontrolü",
+									"const sessionId = pm.collectionVariables.get('session_id');",
+									"if (!sessionId) {",
+									"    console.log('❌ ERROR: session_id not found! Please run Login first.');",
+									"    throw new Error('Session ID required. Please login first.');",
+									"}",
+									"",
+									"const markerId = pm.collectionVariables.get('marker_id');",
+									"if (!markerId) {",
+									"    console.log('⚠️ Warning: marker_id not found.');",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "x-session-id",
+								"value": "{{session_id}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/markers/{{marker_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["markers", "{{marker_id}}"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Posts",
+			"item": [
+				{
+					"name": "Create Post (JSON)",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// User ID ve Name'i kontrol et",
+									"const userId = pm.collectionVariables.get('user_id') || pm.collectionVariables.get('user_email');",
+									"const userName = pm.collectionVariables.get('user_name') || 'Test User';",
+									"",
+									"if (!userId) {",
+									"    console.log('⚠️ Warning: user_id not found. Please register or login first.');",
+									"}",
+									"",
+									"const requestBody = {",
+									"    userId: userId,",
+									"    userName: userName,",
+									"    caption: `Test post created at ${new Date().toISOString()}`,",
+									"    imageUrl: 'https://via.placeholder.com/400',",
+									"    location: 'İstanbul'",
+									"};",
+									"",
+									"pm.request.body.raw = JSON.stringify(requestBody, null, 2);",
+									"console.log('📝 Creating post for user:', userId);"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.postId) {",
+									"        pm.collectionVariables.set('post_id', jsonData.postId);",
+									"        console.log('✅ Post created with ID:', jsonData.postId);",
+									"    }",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"userId\": \"{{user_id}}\",\n  \"userName\": \"{{user_name}}\",\n  \"caption\": \"Test post\",\n  \"imageUrl\": \"https://via.placeholder.com/400\",\n  \"location\": \"İstanbul\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/posts/create",
+							"host": ["{{base_url}}"],
+							"path": ["posts", "create"]
+						}
+					}
+				},
+				{
+					"name": "Get User Posts",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"const userId = pm.collectionVariables.get('user_id') || pm.collectionVariables.get('user_email');",
+									"if (!userId) {",
+									"    console.log('⚠️ Warning: user_id not found.');",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/posts/user/{{user_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["posts", "user", "{{user_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Get Feed",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Requester ID'yi ekle (opsiyonel)",
+									"const requesterId = pm.collectionVariables.get('user_id');",
+									"if (requesterId) {",
+									"    pm.request.url.addQueryParams([{",
+									"        key: 'requesterId',",
+									"        value: requesterId",
+									"    }]);",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/posts/feed?limit=20&offset=0",
+							"host": ["{{base_url}}"],
+							"path": ["posts", "feed"],
+							"query": [
+								{
+									"key": "limit",
+									"value": "20"
+								},
+								{
+									"key": "offset",
+									"value": "0"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Like Post",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"const postId = pm.collectionVariables.get('post_id');",
+									"const userId = pm.collectionVariables.get('user_id') || pm.collectionVariables.get('user_email');",
+									"",
+									"if (!postId) {",
+									"    console.log('⚠️ Warning: post_id not found. Please create a post first.');",
+									"}",
+									"if (!userId) {",
+									"    console.log('⚠️ Warning: user_id not found.');",
+									"}",
+									"",
+									"const requestBody = {",
+									"    postId: postId,",
+									"    userId: userId",
+									"};",
+									"",
+									"pm.request.body.raw = JSON.stringify(requestBody, null, 2);"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"postId\": \"{{post_id}}\",\n  \"userId\": \"{{user_id}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/posts/like",
+							"host": ["{{base_url}}"],
+							"path": ["posts", "like"]
+						}
+					}
+				},
+				{
+					"name": "Add Comment",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"const postId = pm.collectionVariables.get('post_id');",
+									"const userId = pm.collectionVariables.get('user_id') || pm.collectionVariables.get('user_email');",
+									"const userName = pm.collectionVariables.get('user_name') || 'Test User';",
+									"",
+									"const requestBody = {",
+									"    postId: postId,",
+									"    userId: userId,",
+									"    userName: userName,",
+									"    text: `Test comment at ${new Date().toISOString()}`",
+									"};",
+									"",
+									"pm.request.body.raw = JSON.stringify(requestBody, null, 2);"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"postId\": \"{{post_id}}\",\n  \"userId\": \"{{user_id}}\",\n  \"userName\": \"{{user_name}}\",\n  \"text\": \"Test comment\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/posts/comment",
+							"host": ["{{base_url}}"],
+							"path": ["posts", "comment"]
+						}
+					}
+				},
+				{
+					"name": "Get Post Details",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"const postId = pm.collectionVariables.get('post_id');",
+									"if (!postId) {",
+									"    console.log('⚠️ Warning: post_id not found.');",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/posts/{{post_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["posts", "{{post_id}}"]
+						}
+					}
+				},
+				{
+					"name": "Delete Post",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"const postId = pm.collectionVariables.get('post_id');",
+									"const userId = pm.collectionVariables.get('user_id') || pm.collectionVariables.get('user_email');",
+									"",
+									"const requestBody = {",
+									"    postId: postId,",
+									"    userId: userId",
+									"};",
+									"",
+									"pm.request.body.raw = JSON.stringify(requestBody, null, 2);"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"postId\": \"{{post_id}}\",\n  \"userId\": \"{{user_id}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/posts/delete",
+							"host": ["{{base_url}}"],
+							"path": ["posts", "delete"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Messaging",
+			"item": [
+				{
+					"name": "Send Message",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// İki farklı kullanıcı için email oluştur",
+									"const senderId = pm.collectionVariables.get('user_id') || pm.collectionVariables.get('user_email');",
+									"const senderName = pm.collectionVariables.get('user_name') || 'Test User';",
+									"",
+									"// Recipient için test email",
+									"const timestamp = pm.collectionVariables.get('test_timestamp');",
+									"const recipientId = `recipient_${timestamp}@loadtest.com`;",
+									"",
+									"const requestBody = {",
+									"    senderId: senderId,",
+									"    senderName: senderName,",
+									"    recipientId: recipientId,",
+									"    recipientName: 'Recipient User',",
+									"    text: `Test message at ${new Date().toISOString()}`",
+									"};",
+									"",
+									"pm.request.body.raw = JSON.stringify(requestBody, null, 2);"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"senderId\": \"{{user_email}}\",\n  \"senderName\": \"{{user_name}}\",\n  \"recipientId\": \"recipient@example.com\",\n  \"recipientName\": \"Recipient User\",\n  \"text\": \"Test message\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/messaging/send",
+							"host": ["{{base_url}}"],
+							"path": ["messaging", "send"]
+						}
+					}
+				},
+				{
+					"name": "Get Conversations",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"const userId = pm.collectionVariables.get('user_email') || pm.collectionVariables.get('user_id');",
+									"if (!userId) {",
+									"    console.log('⚠️ Warning: user_email not found.');",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/messaging/conversations/{{user_email}}",
+							"host": ["{{base_url}}"],
+							"path": ["messaging", "conversations", "{{user_email}}"]
+						}
+					}
+				}
+			]
+		}
+	]
+}
+

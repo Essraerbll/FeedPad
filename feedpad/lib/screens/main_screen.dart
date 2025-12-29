@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
+import '../animations/route_animations.dart';
 import 'login_screen.dart';
 import 'feed_blog_screen.dart';
 import 'feed_map_screen.dart';
@@ -37,7 +38,7 @@ class _MainScreenState extends State<MainScreen> {
 
     if (mounted) {
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
+        SlideLeftRoute(page: const LoginScreen()),
       );
     }
   }
@@ -118,14 +119,27 @@ class _MainScreenState extends State<MainScreen> {
             const Icon(Icons.pets, size: 24, color: Colors.white),
             Text(
               _titles[_currentIndex],
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                  color: Colors.white, fontWeight: FontWeight.bold),
             ),
             const SizedBox(width: 24),
           ],
         ),
         actions: [buildSignOutButton()],
       ),
-      body: _screens[_currentIndex],
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 300),
+        transitionBuilder: (Widget child, Animation<double> animation) {
+          return FadeTransition(
+            opacity: animation,
+            child: child,
+          );
+        },
+        child: Container(
+          key: ValueKey<int>(_currentIndex),
+          child: _screens[_currentIndex],
+        ),
+      ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: const Color(0xFFD4E5F7), // Açık pastel mavi nav

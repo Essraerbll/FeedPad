@@ -132,13 +132,30 @@ class ApiService {
   Future<Map<String, dynamic>> get(String endpoint) async {
     try {
       final url = Uri.parse('${baseUrl}$endpoint');
+      debugPrint('🌐 GET request to: $url');
       final response = await http.get(url, headers: _headers);
+      
+      debugPrint('📥 GET response status: ${response.statusCode}');
+      debugPrint('📥 GET response body length: ${response.body.length}');
+      
+      if (response.statusCode != 200) {
+        debugPrint('❌ GET response error: ${response.body}');
+        throw Exception('HTTP ${response.statusCode}: ${response.body}');
+      }
 
-      final responseData = jsonDecode(response.body) as Map<String, dynamic>;
-      return responseData;
+      try {
+        final responseData = jsonDecode(response.body) as Map<String, dynamic>;
+        debugPrint('✅ GET response parsed successfully');
+        return responseData;
+      } catch (e) {
+        debugPrint('❌ JSON parse error: $e');
+        debugPrint('Response body (first 500 chars): ${response.body.substring(0, response.body.length > 500 ? 500 : response.body.length)}');
+        throw Exception('JSON parse hatası: $e');
+      }
     } on SocketException {
       throw Exception('Sunucuya bağlanılamadı. Backend çalışıyor mu?');
     } catch (e) {
+      debugPrint('❌ GET request error: $e');
       throw Exception('İstek başarısız: $e');
     }
   }

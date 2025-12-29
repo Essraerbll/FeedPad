@@ -279,7 +279,11 @@ router.get('/feed', async (req, res) => {
   try {
     const { limit = 20, offset = 0, requesterId } = req.query; // Who is requesting to check liked status
     
+    console.log('=== GET FEED DEBUG ===');
+    console.log('Query params:', { limit, offset, requesterId });
+    
     const postIds = await redisClient.lRange('feed:global', offset, offset + parseInt(limit) - 1);
+    console.log('Found post IDs:', postIds.length, postIds);
     const posts = [];
     
     for (const postId of postIds) {
@@ -366,9 +370,24 @@ router.get('/feed', async (req, res) => {
       }
     }
 
-    res.json({ success: true, posts });
+    console.log('Total posts prepared:', posts.length);
+    console.log('Response size estimate:', JSON.stringify({ success: true, posts }).length, 'bytes');
+    console.log('First post sample:', posts.length > 0 ? {
+      id: posts[0].id,
+      userId: posts[0].userId,
+      userName: posts[0].userName,
+      caption: posts[0].caption?.substring(0, 50),
+      hasImage: !!posts[0].imageUrl,
+      likes: posts[0].likes,
+      commentsCount: posts[0].comments?.length || 0
+    } : 'No posts');
+    
+    const response = { success: true, posts };
+    res.json(response);
+    console.log('✅ Feed response sent successfully');
   } catch (error) {
-    console.error('Get feed error:', error);
+    console.error('❌ Get feed error:', error);
+    console.error('Error stack:', error.stack);
     res.status(500).json({ success: false, message: 'Failed to get feed' });
   }
 });

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../animations/route_animations.dart';
 import 'login_screen.dart';
 
 class WelcomeScreen extends StatefulWidget {
@@ -161,9 +162,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
                                 widget.onGetStarted!();
                               } else {
                                 Navigator.of(context).pushReplacement(
-                                  MaterialPageRoute(
-                                    builder: (context) => const LoginScreen(),
-                                  ),
+                                  FadeRoute(page: const LoginScreen()),
                                 );
                               }
                             },

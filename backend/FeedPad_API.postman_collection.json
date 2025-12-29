@@ -1,0 +1,747 @@
+{
+	"info": {
+		"_postman_id": "feedpad-api-collection",
+		"name": "FeedPad API",
+		"description": "FeedPad Backend API Endpoints Collection",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:3000/api",
+			"type": "string"
+		},
+		{
+			"key": "session_id",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "Health Check",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/health",
+					"host": ["{{base_url}}"],
+					"path": ["health"]
+				}
+			}
+		},
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Register",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"password123\",\n  \"name\": \"Kullanıcı Adı\",\n  \"username\": \"kullaniciadi\",\n  \"userType\": \"user\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/register",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "register"]
+						}
+					}
+				},
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.sessionId) {",
+									"        pm.collectionVariables.set(\"session_id\", jsonData.sessionId);",
+									"    }",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/login",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "login"]
+						}
+					}
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-session-id",
+								"value": "{{session_id}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/auth/logout",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "logout"]
+						}
+					}
+				},
+				{
+					"name": "Get Me",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-session-id",
+								"value": "{{session_id}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/auth/me",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "me"]
+						}
+					}
+				},
+				{
+					"name": "Get User by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/auth/user/:userId",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "user", ":userId"],
+							"variable": [
+								{
+									"key": "userId",
+									"value": "user@example.com"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Markers",
+			"item": [
+				{
+					"name": "Create Marker",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "x-session-id",
+								"value": "{{session_id}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"type\": \"food\",\n  \"latitude\": 41.0082,\n  \"longitude\": 28.9784,\n  \"petType\": \"cat\",\n  \"waterLiters\": 2.5,\n  \"isWaterEnough\": \"yes\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/markers",
+							"host": ["{{base_url}}"],
+							"path": ["markers"]
+						}
+					}
+				},
+				{
+					"name": "Get All Markers",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/markers?latitude=41.0082&longitude=28.9784&radius=10",
+							"host": ["{{base_url}}"],
+							"path": ["markers"],
+							"query": [
+								{
+									"key": "latitude",
+									"value": "41.0082",
+									"disabled": true
+								},
+								{
+									"key": "longitude",
+									"value": "28.9784",
+									"disabled": true
+								},
+								{
+									"key": "radius",
+									"value": "10",
+									"disabled": true
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get My Markers",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-session-id",
+								"value": "{{session_id}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/markers/my-markers",
+							"host": ["{{base_url}}"],
+							"path": ["markers", "my-markers"]
+						}
+					}
+				},
+				{
+					"name": "Get Marker by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/markers/:id",
+							"host": ["{{base_url}}"],
+							"path": ["markers", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "MARKER_ID"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Update Marker",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "x-session-id",
+								"value": "{{session_id}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"type\": \"water\",\n  \"waterLiters\": 5.0,\n  \"isWaterEnough\": \"no\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/markers/:id",
+							"host": ["{{base_url}}"],
+							"path": ["markers", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "MARKER_ID"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete Marker",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "x-session-id",
+								"value": "{{session_id}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/markers/:id",
+							"host": ["{{base_url}}"],
+							"path": ["markers", ":id"],
+							"variable": [
+								{
+									"key": "id",
+									"value": "MARKER_ID"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Posts",
+			"item": [
+				{
+					"name": "Get User Posts",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/posts/user/:userId?requesterId=REQUESTER_ID",
+							"host": ["{{base_url}}"],
+							"path": ["posts", "user", ":userId"],
+							"query": [
+								{
+									"key": "requesterId",
+									"value": "REQUESTER_ID",
+									"disabled": true
+								}
+							],
+							"variable": [
+								{
+									"key": "userId",
+									"value": "user@example.com"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Create Post (JSON)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"userId\": \"user@example.com\",\n  \"userName\": \"Kullanıcı Adı\",\n  \"caption\": \"Post açıklaması\",\n  \"imageUrl\": \"http://example.com/image.jpg\",\n  \"location\": \"İstanbul\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/posts/create",
+							"host": ["{{base_url}}"],
+							"path": ["posts", "create"]
+						}
+					}
+				},
+				{
+					"name": "Create Post (Multipart)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "userId",
+									"value": "user@example.com",
+									"type": "text"
+								},
+								{
+									"key": "userName",
+									"value": "Kullanıcı Adı",
+									"type": "text"
+								},
+								{
+									"key": "caption",
+									"value": "Post açıklaması",
+									"type": "text"
+								},
+								{
+									"key": "image",
+									"type": "file",
+									"src": []
+								},
+								{
+									"key": "location",
+									"value": "İstanbul",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/posts/create",
+							"host": ["{{base_url}}"],
+							"path": ["posts", "create"]
+						}
+					}
+				},
+				{
+					"name": "Get Feed",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/posts/feed?limit=20&offset=0&requesterId=USER_ID",
+							"host": ["{{base_url}}"],
+							"path": ["posts", "feed"],
+							"query": [
+								{
+									"key": "limit",
+									"value": "20"
+								},
+								{
+									"key": "offset",
+									"value": "0"
+								},
+								{
+									"key": "requesterId",
+									"value": "USER_ID",
+									"disabled": true
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Like Post",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"postId\": \"post_id\",\n  \"userId\": \"user_id\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/posts/like",
+							"host": ["{{base_url}}"],
+							"path": ["posts", "like"]
+						}
+					}
+				},
+				{
+					"name": "Follow User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"followerId\": \"follower_id\",\n  \"followingId\": \"following_id\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/posts/follow",
+							"host": ["{{base_url}}"],
+							"path": ["posts", "follow"]
+						}
+					}
+				},
+				{
+					"name": "Get User Stats",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/posts/stats/:userId",
+							"host": ["{{base_url}}"],
+							"path": ["posts", "stats", ":userId"],
+							"variable": [
+								{
+									"key": "userId",
+									"value": "user@example.com"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Check Follow Status",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/posts/follow/status?followerId=FOLLOWER_ID&followingId=FOLLOWING_ID",
+							"host": ["{{base_url}}"],
+							"path": ["posts", "follow", "status"],
+							"query": [
+								{
+									"key": "followerId",
+									"value": "FOLLOWER_ID"
+								},
+								{
+									"key": "followingId",
+									"value": "FOLLOWING_ID"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Update Profile",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"userId\": \"user_id\",\n  \"name\": \"Yeni İsim\",\n  \"bio\": \"Yeni biyografi\",\n  \"profileImage\": \"data:image/jpeg;base64,...\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/posts/profile",
+							"host": ["{{base_url}}"],
+							"path": ["posts", "profile"]
+						}
+					}
+				},
+				{
+					"name": "Add Comment",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"postId\": \"post_id\",\n  \"userId\": \"user_id\",\n  \"userName\": \"Kullanıcı Adı\",\n  \"text\": \"Yorum metni\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/posts/comment",
+							"host": ["{{base_url}}"],
+							"path": ["posts", "comment"]
+						}
+					}
+				},
+				{
+					"name": "Delete Post",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"postId\": \"post_id\",\n  \"userId\": \"user_id\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/posts/delete",
+							"host": ["{{base_url}}"],
+							"path": ["posts", "delete"]
+						}
+					}
+				},
+				{
+					"name": "Update Post",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"postId\": \"post_id\",\n  \"userId\": \"user_id\",\n  \"caption\": \"Yeni açıklama\",\n  \"location\": \"Yeni konum\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/posts/update",
+							"host": ["{{base_url}}"],
+							"path": ["posts", "update"]
+						}
+					}
+				},
+				{
+					"name": "Get Post Details",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/posts/:postId?requesterId=USER_ID",
+							"host": ["{{base_url}}"],
+							"path": ["posts", ":postId"],
+							"query": [
+								{
+									"key": "requesterId",
+									"value": "USER_ID",
+									"disabled": true
+								}
+							],
+							"variable": [
+								{
+									"key": "postId",
+									"value": "POST_ID"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Messaging",
+			"item": [
+				{
+					"name": "Send Message",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"senderId\": \"sender@example.com\",\n  \"senderName\": \"Gönderen Adı\",\n  \"recipientId\": \"recipient@example.com\",\n  \"recipientName\": \"Alıcı Adı\",\n  \"text\": \"Mesaj metni\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/messaging/send",
+							"host": ["{{base_url}}"],
+							"path": ["messaging", "send"]
+						}
+					}
+				},
+				{
+					"name": "Get Conversations",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/messaging/conversations/:userId",
+							"host": ["{{base_url}}"],
+							"path": ["messaging", "conversations", ":userId"],
+							"variable": [
+								{
+									"key": "userId",
+									"value": "user@example.com"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Conversation Messages",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/messaging/conversation/:userId/:otherUserId",
+							"host": ["{{base_url}}"],
+							"path": ["messaging", "conversation", ":userId", ":otherUserId"],
+							"variable": [
+								{
+									"key": "userId",
+									"value": "user1@example.com"
+								},
+								{
+									"key": "otherUserId",
+									"value": "user2@example.com"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete Message",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/messaging/message/:conversationId/:messageId?userId=USER_ID",
+							"host": ["{{base_url}}"],
+							"path": ["messaging", "message", ":conversationId", ":messageId"],
+							"query": [
+								{
+									"key": "userId",
+									"value": "USER_ID"
+								}
+							],
+							"variable": [
+								{
+									"key": "conversationId",
+									"value": "email1@example.com:email2@example.com"
+								},
+								{
+									"key": "messageId",
+									"value": "MESSAGE_ID"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete Conversation",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/messaging/conversation/:conversationId?userId=USER_ID",
+							"host": ["{{base_url}}"],
+							"path": ["messaging", "conversation", ":conversationId"],
+							"query": [
+								{
+									"key": "userId",
+									"value": "USER_ID"
+								}
+							],
+							"variable": [
+								{
+									"key": "conversationId",
+									"value": "email1@example.com:email2@example.com"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Hide Conversation",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"conversationId\": \"email1@example.com:email2@example.com\",\n  \"userId\": \"user@example.com\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/messaging/conversation/hide",
+							"host": ["{{base_url}}"],
+							"path": ["messaging", "conversation", "hide"]
+						}
+					}
+				}
+			]
+		}
+	]
+}
+

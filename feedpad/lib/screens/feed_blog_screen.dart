@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
+import '../animations/route_animations.dart';
 import 'other_user_profile_screen.dart';
 import 'profile_screen.dart';
 import 'post_details_screen.dart';
@@ -48,19 +49,40 @@ class _FeedBlogScreenState extends State<FeedBlogScreen> {
     try {
       final auth = Provider.of<AuthService>(context, listen: false);
       final userId = auth.currentUser?.email ?? '';
+      debugPrint('🔄 Loading feed for user: $userId');
       final response = await _apiService.get('/posts/feed?requesterId=$userId');
+      debugPrint('📥 Feed response received: success=${response['success']}, posts count=${(response['posts'] as List?)?.length ?? 0}');
+      
       if (response['success'] == true) {
+        final postsList = response['posts'];
+        if (postsList != null && postsList is List) {
+          setState(() {
+            _posts = List<Map<String, dynamic>>.from(postsList);
+          });
+          debugPrint('✅ Feed loaded successfully: ${_posts.length} posts');
+        } else {
+          debugPrint('⚠️ Posts list is null or not a List: $postsList');
+          setState(() {
+            _posts = [];
+          });
+        }
+      } else {
+        debugPrint('❌ Feed response success is false: $response');
         setState(() {
-          _posts = List<Map<String, dynamic>>.from(response['posts'] ?? []);
+          _posts = [];
         });
       }
-    } catch (e) {
-      debugPrint('Feed load error: $e');
+    } catch (e, stackTrace) {
+      debugPrint('❌ Feed load error: $e');
+      debugPrint('Stack trace: $stackTrace');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Feed yüklenemedi: $e')),
         );
       }
+      setState(() {
+        _posts = [];
+      });
     } finally {
       setState(() => _isLoading = false);
     }
@@ -103,8 +125,8 @@ class _FeedBlogScreenState extends State<FeedBlogScreen> {
   void _openPostDetails(Map<String, dynamic> post) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => PostDetailsScreen(post: post, apiService: _apiService),
+      SlideRightRoute(
+        page: PostDetailsScreen(post: post, apiService: _apiService),
       ),
     );
   }
@@ -118,10 +140,36 @@ class _FeedBlogScreenState extends State<FeedBlogScreen> {
           onRefresh: _loadFeed,
           child: _isLoading
               ? const Center(child: CircularProgressIndicator(color: Color(0xFF64B5F6)))
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: _posts.length,
-                  itemBuilder: (context, index) {
+              : _posts.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.pets,
+                            size: 64,
+                            color: Color(0xFF90A4AE),
+                          ),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'Henüz post yok',
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: Color(0xFF90A4AE),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          TextButton(
+                            onPressed: _loadFeed,
+                            child: const Text('Yenile'),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: _posts.length,
+                      itemBuilder: (context, index) {
                     final post = _posts[index];
                     final user = post['user'] ?? {};
                     String userName = user['name'] ?? post['userName'] ?? user['username'] ?? '';
@@ -192,8 +240,8 @@ class _FeedBlogScreenState extends State<FeedBlogScreen> {
                                 debugPrint('Opening ProfileScreen (own profile)');
                                 Navigator.push(
                                   context,
-                                  MaterialPageRoute(
-                                    builder: (context) => const ProfileScreen(showAppBar: true),
+                                  SlideRightRoute(
+                                    page: const ProfileScreen(showAppBar: true),
                                   ),
                                 );
                               } else if (postUserId.isNotEmpty || userName.isNotEmpty) {
@@ -201,8 +249,8 @@ class _FeedBlogScreenState extends State<FeedBlogScreen> {
                                 debugPrint('Opening OtherUserProfileScreen');
                                 Navigator.push(
                                   context,
-                                  MaterialPageRoute(
-                                    builder: (context) => OtherUserProfileScreen(
+                                  SlideRightRoute(
+                                    page: OtherUserProfileScreen(
                                       user: {
                                         'id': postUserId,
                                         'email': postUserId,

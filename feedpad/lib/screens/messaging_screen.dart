@@ -4,6 +4,7 @@ import 'dart:async';
 import 'dart:convert';
 import '../services/auth_service.dart';
 import '../services/api_service.dart';
+import '../animations/route_animations.dart';
 import 'other_user_profile_screen.dart';
 import 'profile_screen.dart';
 
@@ -389,8 +390,8 @@ class _MessagingScreenState extends State<MessagingScreen> {
                           onTap: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(
-                                builder: (context) => ChatDetailScreen(
+                              SlideRightRoute(
+                                page: ChatDetailScreen(
                                 conversationId: conversation['id'],
                                 otherUserId: otherUserId,
                                 otherUserName: otherUserName,
