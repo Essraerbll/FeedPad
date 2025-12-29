@@ -4,43 +4,27 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 
 class ApiService {
-  // Gerçek cihaz için IP adresi (bilgisayarınızın yerel IP'si)
-  // Eğer IP değişirse burayı güncelleyin
   static const String realDeviceIp = '192.168.1.7';
 
-  // Backend URL - platforma göre otomatik seçilir
   static String get baseUrl {
     if (kIsWeb) {
-      // Web için
       return 'http://localhost:3000/api';
     } else if (Platform.isAndroid) {
-      // Android için: Emulator ise 10.0.2.2, gerçek cihaz ise yerel IP
-      // Gerçek cihaz kullanıyorsanız aşağıdaki satırı kullanın:
       return 'http://$realDeviceIp:3000/api';
-      // Emulator için (yukarıdaki satırı yorum yapıp bunu açın):
-      // return 'http://10.0.2.2:3000/api';
     } else if (Platform.isIOS) {
-      // iOS için: Simulator ise localhost, gerçek cihaz ise yerel IP
-      // Gerçek cihaz kullanıyorsanız aşağıdaki satırı kullanın:
       return 'http://$realDeviceIp:3000/api';
-      // Simulator için (yukarıdaki satırı yorum yapıp bunu açın):
-      // return 'http://localhost:3000/api';
     } else {
-      // Windows, Linux, macOS için
       return 'http://localhost:3000/api';
     }
   }
 
-  // Cookie'leri saklamak için
   static String? sessionId;
 
-  // HTTP headers
   Map<String, String> get _headers => {
         'Content-Type': 'application/json',
         if (sessionId != null) 'Cookie': 'sessionId=$sessionId',
       };
 
-  // POST isteği
   Future<Map<String, dynamic>> post(
     String endpoint,
     Map<String, dynamic> body,
@@ -55,7 +39,6 @@ class ApiService {
 
       final responseData = jsonDecode(response.body) as Map<String, dynamic>;
 
-      // Cookie'yi response'dan al (hem header'dan hem de body'den)
       final setCookie = response.headers['set-cookie'];
       if (setCookie != null) {
         final cookieMatch = RegExp(r'sessionId=([^;]+)').firstMatch(setCookie);
@@ -64,7 +47,6 @@ class ApiService {
         }
       }
 
-      // Eğer header'da yoksa body'den al
       if (sessionId == null && responseData['sessionId'] != null) {
         sessionId = responseData['sessionId'] as String;
       }
@@ -77,7 +59,6 @@ class ApiService {
     }
   }
 
-  // POST multipart (image upload)
   Future<Map<String, dynamic>> postMultipart(
     String endpoint,
     Map<String, String> fields, {
@@ -128,7 +109,6 @@ class ApiService {
       throw Exception('İstek başarısız: $e');
     }
   }
-  // GET isteği
   Future<Map<String, dynamic>> get(String endpoint) async {
     try {
       final url = Uri.parse('${baseUrl}$endpoint');
@@ -150,7 +130,7 @@ class ApiService {
       } catch (e) {
         debugPrint('❌ JSON parse error: $e');
         debugPrint('Response body (first 500 chars): ${response.body.substring(0, response.body.length > 500 ? 500 : response.body.length)}');
-        throw Exception('JSON parse hatası: $e');
+        throw Exception('JSON parse error: $e');
       }
     } on SocketException {
       throw Exception('Sunucuya bağlanılamadı. Backend çalışıyor mu?');
@@ -160,7 +140,6 @@ class ApiService {
     }
   }
 
-  // PUT isteği
   Future<Map<String, dynamic>> put(
     String endpoint,
     Map<String, dynamic> body,
@@ -182,7 +161,6 @@ class ApiService {
     }
   }
 
-  // DELETE isteği
   Future<Map<String, dynamic>> delete(String endpoint) async {
     try {
       final url = Uri.parse('${baseUrl}$endpoint');
@@ -197,7 +175,6 @@ class ApiService {
     }
   }
 
-  // Marker oluştur
   Future<Map<String, dynamic>> createMarker({
     required String type,
     required double latitude,
@@ -217,7 +194,6 @@ class ApiService {
     return await post('/markers', body);
   }
 
-  // Tüm marker'ları getir
   Future<Map<String, dynamic>> getMarkers({
     double? latitude,
     double? longitude,
@@ -230,17 +206,14 @@ class ApiService {
     return await get(endpoint);
   }
 
-  // Kullanıcının marker'larını getir
   Future<Map<String, dynamic>> getMyMarkers() async {
     return await get('/markers/my-markers');
   }
 
-  // Marker getir (ID ile)
   Future<Map<String, dynamic>> getMarker(String id) async {
     return await get('/markers/$id');
   }
 
-  // Marker güncelle
   Future<Map<String, dynamic>> updateMarker(
     String id, {
     String? type,
@@ -255,7 +228,7 @@ class ApiService {
     String? addedByUserId,
     String? isEnoughNow,
     bool?
-        shouldUpdateCatDogAmounts, // Pet shop owner için null değerleri göndermek için flag
+        shouldUpdateCatDogAmounts,
   }) async {
     final body = {
       if (type != null) 'type': type,
@@ -263,9 +236,6 @@ class ApiService {
       if (longitude != null) 'longitude': longitude,
       if (petType != null) 'petType': petType,
       if (waterLiters != null) 'waterLiters': waterLiters,
-      // catFoodAmount ve dogFoodAmount için null değerleri de gönder (sıfırlama için)
-      // shouldUpdateCatDogAmounts true olduğunda null değerleri de gönder
-      // null değerleri de göndermek için her zaman ekle (undefined kontrolü yapmıyoruz)
       if (shouldUpdateCatDogAmounts == true) 'catFoodAmount': catFoodAmount,
       if (shouldUpdateCatDogAmounts == true) 'dogFoodAmount': dogFoodAmount,
       if (isWaterEnough != null) 'isWaterEnough': isWaterEnough,
@@ -276,12 +246,10 @@ class ApiService {
     return await put('/markers/$id', body);
   }
 
-  // Marker sil
   Future<Map<String, dynamic>> deleteMarker(String id) async {
     return await delete('/markers/$id');
   }
 
-  // Session'ı temizle
   void clearSession() {
     sessionId = null;
   }

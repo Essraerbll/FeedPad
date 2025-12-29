@@ -18,10 +18,10 @@ class AddMarkerScreen extends StatefulWidget {
 class _AddMarkerScreenState extends State<AddMarkerScreen> {
   final _formKey = GlobalKey<FormState>();
   final _waterLitersController = TextEditingController();
-  String? _markerType; // 'food' or 'water'
-  String? _petType; // 'cat' or 'dog' (sadece food seçildiğinde)
-  String? _isWaterEnough; // 'yes' or 'maybe' (sadece water seçildiğinde)
-  String? _isExactLocation; // 'yes' or 'no' (sadece pet shop owner için)
+  String? _markerType;
+  String? _petType;
+  String? _isWaterEnough;
+  String? _isExactLocation;
 
   @override
   void dispose() {
@@ -31,7 +31,6 @@ class _AddMarkerScreenState extends State<AddMarkerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Pet shop owner kontrolü
     final authService = Provider.of<AuthService>(context, listen: false);
     final currentUser = authService.currentUser;
     final isPetShopOwner = currentUser?.userType == 'pet_shop_owner';
@@ -52,7 +51,6 @@ class _AddMarkerScreenState extends State<AddMarkerScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Logo veya başlık
                 const Icon(
                   Icons.location_on,
                   size: 80,
@@ -79,7 +77,6 @@ class _AddMarkerScreenState extends State<AddMarkerScreen> {
                 ),
                 const SizedBox(height: 32),
 
-                // Form alanları ve butonlar için beyaz çerçeve
                 Container(
                   padding: const EdgeInsets.all(24.0),
                   decoration: BoxDecoration(
@@ -89,7 +86,6 @@ class _AddMarkerScreenState extends State<AddMarkerScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // Pet shop owner için exact location sorusu
                       if (isPetShopOwner) ...[
                         Text(
                           'Is this the exact location of your pet shop?',
@@ -147,7 +143,6 @@ class _AddMarkerScreenState extends State<AddMarkerScreen> {
                         ),
                         const SizedBox(height: 24),
                       ],
-                      // Food or Water seçimi (sadece normal kullanıcılar için)
                       if (!isPetShopOwner)
                       DropdownButtonFormField<String>(
                         value: _markerType,
@@ -187,11 +182,9 @@ class _AddMarkerScreenState extends State<AddMarkerScreen> {
                         onChanged: (String? value) {
                           setState(() {
                             _markerType = value;
-                            // Food seçilmediyse pet type'ı sıfırla
                             if (value != 'food') {
                               _petType = null;
                             }
-                            // Water seçilmediyse ve Food + pet seçilmemişse water alanlarını sıfırla
                             if (value != 'water' && value != 'food') {
                               _waterLitersController.clear();
                               _isWaterEnough = null;
@@ -205,7 +198,6 @@ class _AddMarkerScreenState extends State<AddMarkerScreen> {
                           return null;
                         },
                       ),
-                      // Cat or Dog seçimi (sadece Food seçildiğinde ve normal kullanıcılar için)
                       if (!isPetShopOwner && _markerType == 'food') ...[
                         const SizedBox(height: 16),
                         DropdownButtonFormField<String>(
@@ -246,7 +238,6 @@ class _AddMarkerScreenState extends State<AddMarkerScreen> {
                           onChanged: (String? value) {
                             setState(() {
                               _petType = value;
-                              // Pet type değiştiğinde water alanlarını sıfırla
                               if (value != null) {
                                 _waterLitersController.clear();
                                 _isWaterEnough = null;
@@ -262,7 +253,6 @@ class _AddMarkerScreenState extends State<AddMarkerScreen> {
                           },
                         ),
                       ],
-                      // Water alanları (Water seçildiğinde veya Food + Cat/Dog seçildiğinde, sadece normal kullanıcılar için)
                       if (!isPetShopOwner && (_markerType == 'water' ||
                           (_markerType == 'food' && _petType != null))) ...[
                         const SizedBox(height: 16),
@@ -372,26 +362,21 @@ class _AddMarkerScreenState extends State<AddMarkerScreen> {
                       ],
                       const SizedBox(height: 24),
 
-                      // Add Marker butonu
                       ElevatedButton(
                         onPressed: () {
                           if (_formKey.currentState!.validate()) {
-                            // Pet shop owner için exact location kontrolü
                             if (isPetShopOwner) {
                               if (_isExactLocation == 'no') {
-                                // No seçildiyse dialog'u kapat ve özel bir değer döndür
                                 Navigator.pop(context, {
                                   'exactLocationDenied': true,
                                 });
                                 return;
                               } else if (_isExactLocation != 'yes') {
-                                // Henüz seçim yapılmadıysa
                                 return;
                               }
                               
-                              // Pet shop owner için marker ekle (diğer alanlar null)
                               Navigator.pop(context, {
-                                'type': 'water', // Varsayılan type
+                                'type': 'water',
                                 'petType': null,
                                 'waterLiters': null,
                                 'isWaterEnough': null,
@@ -400,7 +385,6 @@ class _AddMarkerScreenState extends State<AddMarkerScreen> {
                               return;
                             }
 
-                            // Normal kullanıcılar için Water liters'ı float'a çevir
                             double? waterLiters;
                             if ((_markerType == 'water' ||
                                     (_markerType == 'food' &&
@@ -444,10 +428,9 @@ class _AddMarkerScreenState extends State<AddMarkerScreen> {
                           'Add Marker',
                           style: TextStyle(fontSize: 16),
                         ),
-                      ),
+                        ),
                       const SizedBox(height: 16),
 
-                      // Cancel butonu
                       OutlinedButton(
                         onPressed: () {
                           Navigator.pop(context);

@@ -12,7 +12,6 @@ class DiscoverScreen extends StatefulWidget {
 }
 
 class _DiscoverScreenState extends State<DiscoverScreen> {
-  // Örnek kullanıcı listesi
   late List<Map<String, dynamic>> _allUsers;
   late Set<String> _followingUsers;
 
@@ -79,10 +78,8 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
       },
     ];
 
-    // Mevcut kullanıcıyı listeden çıkar
     _allUsers.removeWhere((user) => user['email'] == currentUserEmail);
 
-    // Takip edilen kullanıcılar
     _followingUsers = {'user_2', 'user_4'};
   }
 
@@ -132,7 +129,6 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // User header
                         Row(
                           children: [
                             CircleAvatar(
@@ -208,7 +204,6 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                           ],
                         ),
                         const SizedBox(height: 12),
-                        // Stats
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
                           children: [
@@ -247,7 +242,6 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                           ],
                         ),
                         const SizedBox(height: 12),
-                        // Action buttons
                         Row(
                           children: [
                             Expanded(
@@ -283,12 +277,10 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                                     final currentUserName = authService.currentUser?.name ?? 'You';
                                     const currentUserProfileImage = '';
                                     
-                                    // ChatDetailScreen'i direkt aç (messaging_screen.dart içindeki widget)
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
                                         builder: (context) {
-                                          // ChatDetailScreen import edilmeli
                                           final otherEmail = user['email'] ?? '';
                                           final conversationId = ([currentUserId, otherEmail]..sort()).join(':');
                                           return ChatDetailScreen(

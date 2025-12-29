@@ -13,7 +13,6 @@ function checkRedisConnection() {
   }
 }
 
-// Helper: Email ile kullanıcı bul
 async function findUserByEmail(email) {
   try {
     if (!checkRedisConnection()) {
@@ -32,7 +31,6 @@ async function findUserByEmail(email) {
   }
 }
 
-// Helper: Username ile kullanıcı bul
 async function findUserByUsername(username) {
   try {
     if (!checkRedisConnection()) {
@@ -51,7 +49,6 @@ async function findUserByUsername(username) {
   }
 }
 
-// Helper: Session kontrolü
 async function verifySession(sessionId) {
   try {
     if (!checkRedisConnection()) {
@@ -70,53 +67,47 @@ async function verifySession(sessionId) {
   }
 }
 
-// Kayıt ol endpoint
 router.post('/register', [
-  body('email').isEmail().withMessage('Geçersiz e-posta adresi'),
-  body('password').isLength({ min: 6 }).withMessage('Şifre en az 6 karakter olmalı'),
-  body('name').notEmpty().withMessage('İsim gereklidir'),
-  body('username').optional().isLength({ min: 3 }).withMessage('Kullanıcı adı en az 3 karakter olmalı'),
-  body('userType').isIn(['user', 'pet_shop_owner']).withMessage('Geçersiz kullanıcı tipi'),
+  body('email').isEmail().withMessage('Invalid email address'),
+  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+  body('name').notEmpty().withMessage('Name is required'),
+  body('username').optional().isLength({ min: 3 }).withMessage('Username must be at least 3 characters'),
+  body('userType').isIn(['user', 'pet_shop_owner']).withMessage('Invalid user type'),
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({
         success: false,
-        message: 'Validation hatası',
+        message: 'Validation error',
         errors: errors.array()
       });
     }
 
     const { email, password, name, username, userType } = req.body;
 
-    // Email kontrolü
     const existingUserByEmail = await findUserByEmail(email);
     if (existingUserByEmail) {
       return res.status(400).json({
         success: false,
-        message: 'Bu e-posta adresi zaten kullanımda.'
+        message: 'This email address is already in use.'
       });
     }
 
-    // Username kontrolü (eğer verilmişse)
     if (username) {
       const existingUserByUsername = await findUserByUsername(username);
       if (existingUserByUsername) {
         return res.status(400).json({
           success: false,
-          message: 'Bu kullanıcı adı zaten kullanılıyor.'
+          message: 'This username is already taken.'
         });
       }
     }
 
-    // Şifreyi hashle
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Kullanıcı ID oluştur
     const userId = uuidv4();
 
-    // Kullanıcı verilerini Redis'e kaydet
     const userData = {
       id: userId,
       email: email.toLowerCase(),
@@ -130,7 +121,6 @@ router.post('/register', [
       lastLogin: new Date().toISOString(),
     };
 
-    // Redis'e kaydet
     await redisClient.set(`user:${userId}`, JSON.stringify(userData));
     await redisClient.set(`user:email:${email.toLowerCase()}`, userId);
 
@@ -140,7 +130,7 @@ router.post('/register', [
 
     res.status(201).json({
       success: true,
-      message: 'Kayıt başarılı',
+      message: 'Registration successful',
       user: {
         id: userData.id,
         email: userData.email,
@@ -153,55 +143,50 @@ router.post('/register', [
     console.error('Register error:', error);
     res.status(500).json({
       success: false,
-      message: 'Kayıt sırasında bir hata oluştu'
+      message: 'An error occurred during registration'
     });
   }
 });
 
-// Giriş yap endpoint
 router.post('/login', [
-  body('email').isEmail().withMessage('Geçersiz e-posta adresi'),
-  body('password').notEmpty().withMessage('Şifre gereklidir'),
+  body('email').isEmail().withMessage('Invalid email address'),
+  body('password').notEmpty().withMessage('Password is required'),
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({
         success: false,
-        message: 'Validation hatası',
+        message: 'Validation error',
         errors: errors.array()
       });
     }
 
     const { email, password } = req.body;
 
-    // Kullanıcıyı bul
     const user = await findUserByEmail(email);
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: 'Kullanıcı bulunamadı.'
+        message: 'User not found.'
       });
     }
 
-    // Şifre kontrolü
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       return res.status(401).json({
         success: false,
-        message: 'Hatalı şifre.'
+        message: 'Incorrect password.'
       });
     }
 
-    // Aktiflik kontrolü
     if (!user.isActive) {
       return res.status(403).json({
         success: false,
-        message: 'Bu hesap devre dışı bırakılmış.'
+        message: 'This account has been disabled.'
       });
     }
 
-    // Session oluştur
     const sessionId = uuidv4();
     const sessionData = {
       userId: user.id,
@@ -209,23 +194,20 @@ router.post('/login', [
       createdAt: new Date().toISOString(),
     };
 
-    // Session'ı Redis'e kaydet (24 saat geçerli)
     await redisClient.setEx(`session:${sessionId}`, 86400, JSON.stringify(sessionData));
 
-    // Last login güncelle
     user.lastLogin = new Date().toISOString();
     await redisClient.set(`user:${user.id}`, JSON.stringify(user));
 
-    // Cookie'ye session ID ekle
     res.cookie('sessionId', sessionId, {
       httpOnly: true,
-      maxAge: 86400000, // 24 saat
+      maxAge: 86400000,
       sameSite: 'lax',
     });
 
     res.json({
       success: true,
-      message: 'Giriş başarılı',
+      message: 'Login successful',
       user: {
         id: user.id,
         email: user.email,
@@ -239,12 +221,11 @@ router.post('/login', [
     console.error('Login error:', error);
     res.status(500).json({
       success: false,
-      message: 'Giriş sırasında bir hata oluştu'
+      message: 'An error occurred during login'
     });
   }
 });
 
-// Çıkış yap endpoint
 router.post('/logout', async (req, res) => {
   try {
     const sessionId = req.cookies?.sessionId;
@@ -256,18 +237,17 @@ router.post('/logout', async (req, res) => {
     res.clearCookie('sessionId');
     res.json({
       success: true,
-      message: 'Çıkış başarılı'
+      message: 'Logout successful'
     });
   } catch (error) {
     console.error('Logout error:', error);
     res.status(500).json({
       success: false,
-      message: 'Çıkış sırasında bir hata oluştu'
+      message: 'An error occurred during logout'
     });
   }
 });
 
-// Mevcut kullanıcı bilgilerini getir
 router.get('/me', async (req, res) => {
   try {
     const sessionId = req.cookies?.sessionId;
@@ -275,7 +255,7 @@ router.get('/me', async (req, res) => {
     if (!sessionId) {
       return res.status(401).json({
         success: false,
-        message: 'Oturum bulunamadı'
+        message: 'Session not found'
       });
     }
 
@@ -283,7 +263,7 @@ router.get('/me', async (req, res) => {
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: 'Geçersiz oturum'
+        message: 'Invalid session'
       });
     }
 
@@ -301,18 +281,17 @@ router.get('/me', async (req, res) => {
     console.error('Get user error:', error);
     res.status(500).json({
       success: false,
-      message: 'Kullanıcı bilgileri alınamadı'
+      message: 'Failed to get user information'
     });
   }
 });
 
-// Kullanıcı bilgilerini getir (userId ile)
 router.get('/user/:userId', async (req, res) => {
   try {
     if (!checkRedisConnection()) {
       return res.status(503).json({
         success: false,
-        message: 'Veritabanı bağlantısı yok'
+        message: 'Database connection unavailable'
       });
     }
 
@@ -322,7 +301,7 @@ router.get('/user/:userId', async (req, res) => {
     if (!userData) {
       return res.status(404).json({
         success: false,
-        message: 'Kullanıcı bulunamadı'
+        message: 'User not found'
       });
     }
 
@@ -341,7 +320,7 @@ router.get('/user/:userId', async (req, res) => {
     console.error('Get user by ID error:', error);
     res.status(500).json({
       success: false,
-      message: 'Kullanıcı bilgileri alınamadı'
+      message: 'Failed to get user information'
     });
   }
 });

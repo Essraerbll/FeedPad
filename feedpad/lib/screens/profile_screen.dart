@@ -22,15 +22,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String? _profileImageUrl;
   bool _isLoading = false;
 
-  // Stats
   int _postsCount = 0;
   int _followersCount = 0;
   int _followingCount = 0;
 
-  // Posts from API
   List<Map<String, dynamic>> _posts = [];
 
-  // Helper function to get image provider from URL or base64
   ImageProvider? _getImageProvider(String? imageUrl) {
     if (imageUrl == null || imageUrl.isEmpty) return null;
 
@@ -48,7 +45,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  // Helper widget to build image from URL or base64
   Widget _buildPostImage(String? imageUrl) {
     if (imageUrl == null || imageUrl.isEmpty) {
       return const SizedBox.shrink();
@@ -105,7 +101,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final postId = post['id'] ?? '';
     final isLiked = post['liked'] == true;
 
-    // Optimistic update
     setState(() {
       post['liked'] = !isLiked;
       final currentLikes = post['likes'] ?? 0;
@@ -119,7 +114,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         'userId': userId,
       });
     } catch (e) {
-      // rollback on failure
       setState(() {
         post['liked'] = isLiked;
         post['likes'] =
@@ -138,10 +132,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() => _isLoading = true);
 
     final authService = Provider.of<AuthService>(context, listen: false);
-    final userId = authService.currentUser?.email; // Using email as userId
+    final userId = authService.currentUser?.email;
 
     if (userId != null) {
-      // Load stats
       try {
         final statsResponse = await _apiService.get('/posts/stats/$userId');
         if (statsResponse['success']) {
@@ -155,7 +148,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         debugPrint('Error loading stats: $e');
       }
 
-      // Load user profile data (including bio and profile image)
       try {
         final userResponse = await _apiService.get('/posts/user/$userId');
         if (userResponse['success']) {
@@ -176,7 +168,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         debugPrint('Error loading user profile: $e');
       }
 
-      // Load posts
       try {
         final postsResponse =
             await _apiService.get('/posts/user/$userId?requesterId=$userId');
@@ -411,7 +402,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         currentBio: _bio,
         currentProfileImage: _profileImageUrl,
         onProfileUpdated: () {
-          // Force reload and setState
           setState(() => _isLoading = true);
           _loadUserData();
         },
@@ -463,16 +453,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: CircularProgressIndicator(color: Color(0xFF9DB8E8)))
             : CustomScrollView(
                 slivers: [
-                  // Profile Header
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.all(16.0),
                       child: Column(
                         children: [
-                          // Profile Picture and Stats
                           Row(
                             children: [
-                              // Profile Picture with gradient border
                               Container(
                                 padding: const EdgeInsets.all(3),
                                 decoration: const BoxDecoration(
@@ -504,7 +491,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ),
                               ),
                               const SizedBox(width: 24),
-                              // Stats
                               Expanded(
                                 child: Row(
                                   mainAxisAlignment:
@@ -528,7 +514,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ],
                           ),
                           const SizedBox(height: 16),
-                          // Name and Bio
                           Align(
                             alignment: Alignment.centerLeft,
                             child: Column(
@@ -562,7 +547,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                           ),
                           const SizedBox(height: 16),
-                          // Action Buttons
                           Row(
                             children: [
                               Expanded(
@@ -604,13 +588,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ],
                           ),
                           const SizedBox(height: 16),
-                          // Divider
                           Divider(color: Colors.grey[300], height: 1),
                         ],
                       ),
                     ),
                   ),
-                  // Posts List
                   _posts.isEmpty
                       ? SliverFillRemaining(
                           child: Center(
@@ -830,7 +812,6 @@ class CommentsScreen extends StatelessWidget {
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: const [
-                  // Add dynamic comments here
                   Text('No comments yet.', style: TextStyle(fontSize: 16)),
                 ],
               ),
@@ -846,14 +827,12 @@ class CommentsScreen extends StatelessWidget {
                         border: OutlineInputBorder(),
                       ),
                       onSubmitted: (value) {
-                        // Handle comment submission
                       },
                     ),
                   ),
                   IconButton(
                     icon: const Icon(Icons.send, color: Colors.blue),
                     onPressed: () {
-                      // Handle send action
                     },
                   ),
                 ],

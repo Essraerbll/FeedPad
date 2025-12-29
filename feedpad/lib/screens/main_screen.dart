@@ -16,7 +16,7 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  int _currentIndex = 2; // FeedMap varsayılan (index 2)
+  int _currentIndex = 2;
 
   final List<Widget> _screens = [
     const FeedBlogScreen(),
@@ -45,7 +45,6 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Sign out butonu - tüm ekranlarda göster
     Widget buildSignOutButton() {
       return Container(
         margin: const EdgeInsets.only(right: 8),
@@ -142,7 +141,7 @@ class _MainScreenState extends State<MainScreen> {
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFFD4E5F7), // Açık pastel mavi nav
+          color: const Color(0xFFD4E5F7),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.1),

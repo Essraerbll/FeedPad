@@ -8,7 +8,6 @@ import 'other_user_profile_screen.dart';
 import 'profile_screen.dart';
 import 'post_details_screen.dart';
 
-// Helper function to get image provider from URL or base64
 ImageProvider? _getImageProvider(String? imageUrl) {
   if (imageUrl == null || imageUrl.isEmpty) return null;
   
@@ -96,7 +95,6 @@ class _FeedBlogScreenState extends State<FeedBlogScreen> {
     final postId = post['id'];
     final isLiked = post['liked'] == true;
 
-    // Optimistic update
     setState(() {
       post['liked'] = !isLiked;
       final currentLikes = post['likes'] ?? 0;
@@ -109,14 +107,13 @@ class _FeedBlogScreenState extends State<FeedBlogScreen> {
         'userId': userId,
       });
     } catch (e) {
-      // rollback on failure
       setState(() {
         post['liked'] = isLiked;
         post['likes'] = isLiked ? (post['likes'] ?? 1) + 1 : (post['likes'] ?? 0) - 1;
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Beğeni hatası: $e')),
+          SnackBar(content: Text('Like error: $e')),
         );
       }
     }
@@ -217,7 +214,6 @@ class _FeedBlogScreenState extends State<FeedBlogScreen> {
                               ],
                             ),
                             onTap: () {
-                              // Kullanıcının kendi profili mi kontrol et
                               final authService = Provider.of<AuthService>(context, listen: false);
                               final currentUserEmail = authService.currentUser?.email ?? '';
                               final currentUserName = authService.currentUser?.name ?? '';
@@ -231,12 +227,10 @@ class _FeedBlogScreenState extends State<FeedBlogScreen> {
                               debugPrint('Email match: ${postUserId == currentUserEmail}');
                               debugPrint('Name match: ${userName == currentUserName}');
                               
-                              // Kendi profili mi? - Email veya isim eşleşmesi kontrolü
                               final isOwnProfile = (postUserId == currentUserEmail && currentUserEmail.isNotEmpty) ||
                                                   (userName == currentUserName && currentUserName.isNotEmpty);
                               
                               if (isOwnProfile) {
-                                // Kendi profili - ProfileScreen'i aç
                                 debugPrint('Opening ProfileScreen (own profile)');
                                 Navigator.push(
                                   context,
@@ -245,7 +239,6 @@ class _FeedBlogScreenState extends State<FeedBlogScreen> {
                                   ),
                                 );
                               } else if (postUserId.isNotEmpty || userName.isNotEmpty) {
-                                // Başka kullanıcının profili - OtherUserProfileScreen'e git
                                 debugPrint('Opening OtherUserProfileScreen');
                                 Navigator.push(
                                   context,

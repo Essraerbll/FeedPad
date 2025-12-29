@@ -21,7 +21,6 @@ class _MessagingScreenState extends State<MessagingScreen> {
   bool _isLoading = false;
   Timer? _refreshTimer;
 
-  // Helper function to get image provider from URL or base64
   ImageProvider? _getImageProvider(String? imageUrl) {
     if (imageUrl == null || imageUrl.isEmpty) return null;
     try {
@@ -37,7 +36,8 @@ class _MessagingScreenState extends State<MessagingScreen> {
     }
   }
 
-  void _openUserProfileFromConversation(String userId, String name, String? username, String? profileImage) {
+  void _openUserProfileFromConversation(
+      String userId, String name, String? username, String? profileImage) {
     final authService = Provider.of<AuthService>(context, listen: false);
     final currentUserId = authService.currentUser?.email ?? '';
     final resolvedUsername = (username != null && username.isNotEmpty)
@@ -47,7 +47,8 @@ class _MessagingScreenState extends State<MessagingScreen> {
     if (userId == currentUserId && currentUserId.isNotEmpty) {
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => const ProfileScreen(showAppBar: true)),
+        MaterialPageRoute(
+            builder: (_) => const ProfileScreen(showAppBar: true)),
       );
     } else {
       Navigator.push(
@@ -72,7 +73,6 @@ class _MessagingScreenState extends State<MessagingScreen> {
   void initState() {
     super.initState();
     _loadConversations();
-    // Her 2 saniyede bir konuşmalar listesini yenile
     _refreshTimer = Timer.periodic(const Duration(seconds: 2), (_) {
       _loadConversationsWithoutLoading();
     });
@@ -84,11 +84,13 @@ class _MessagingScreenState extends State<MessagingScreen> {
       final authService = Provider.of<AuthService>(context, listen: false);
       final userId = authService.currentUser?.email ?? '';
 
-      final response = await _apiService.get('/messaging/conversations/$userId');
+      final response =
+          await _apiService.get('/messaging/conversations/$userId');
 
       if (response['success'] == true) {
         setState(() {
-          _conversations = List<Map<String, dynamic>>.from(response['conversations'] ?? []);
+          _conversations =
+              List<Map<String, dynamic>>.from(response['conversations'] ?? []);
         });
       }
     } catch (e) {
@@ -103,14 +105,17 @@ class _MessagingScreenState extends State<MessagingScreen> {
       final authService = Provider.of<AuthService>(context, listen: false);
       final userId = authService.currentUser?.email ?? '';
 
-      final response = await _apiService.get('/messaging/conversations/$userId');
+      final response =
+          await _apiService.get('/messaging/conversations/$userId');
 
       if (response['success'] == true && mounted) {
-        final newConversations = List<Map<String, dynamic>>.from(response['conversations'] ?? []);
-        // Konuşma sayısı veya sıra değişirse güncelle
+        final newConversations =
+            List<Map<String, dynamic>>.from(response['conversations'] ?? []);
         if (newConversations.length != _conversations.length ||
-            (newConversations.isNotEmpty && _conversations.isNotEmpty &&
-             newConversations[0]['lastMessageTime'] != _conversations[0]['lastMessageTime'])) {
+            (newConversations.isNotEmpty &&
+                _conversations.isNotEmpty &&
+                newConversations[0]['lastMessageTime'] !=
+                    _conversations[0]['lastMessageTime'])) {
           setState(() {
             _conversations = newConversations;
           });
@@ -135,7 +140,7 @@ class _MessagingScreenState extends State<MessagingScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Sohbet silindi'),
+              content: Text('Conversation deleted'),
               backgroundColor: Colors.green,
               duration: Duration(seconds: 2),
             ),
@@ -147,7 +152,7 @@ class _MessagingScreenState extends State<MessagingScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Silme hatası: $e'),
+            content: Text('Delete error: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -160,29 +165,29 @@ class _MessagingScreenState extends State<MessagingScreen> {
       final authService = Provider.of<AuthService>(context, listen: false);
       final userId = authService.currentUser?.email ?? '';
 
-      // Onay dialog'u göster
       final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Delete chat?'),
-          content: const Text('This chat and all messages will be permanently deleted.'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel'),
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Delete chat?'),
+              content: const Text(
+                  'This chat and all messages will be permanently deleted.'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  style: TextButton.styleFrom(foregroundColor: Colors.red),
+                  child: const Text('Delete'),
+                ),
+              ],
             ),
-            TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              style: TextButton.styleFrom(foregroundColor: Colors.red),
-              child: const Text('Delete'),
-            ),
-          ],
-        ),
-      ) ?? false;
+          ) ??
+          false;
 
       if (!confirmed) return;
 
-      // Direkt delete endpoint'ini kullan
       final response = await _apiService.delete(
         '/messaging/conversation/$conversationId?userId=$userId',
       );
@@ -192,7 +197,7 @@ class _MessagingScreenState extends State<MessagingScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Sohbet silindi'),
+              content: Text('Conversation deleted'),
               backgroundColor: Colors.green,
               duration: Duration(seconds: 2),
             ),
@@ -204,14 +209,13 @@ class _MessagingScreenState extends State<MessagingScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Silme hatası: $e'),
+            content: Text('Delete error: $e'),
             backgroundColor: Colors.red,
           ),
         );
       }
     }
   }
-
 
   String _formatTime(DateTime dateTime) {
     final now = DateTime.now();
@@ -249,7 +253,8 @@ class _MessagingScreenState extends State<MessagingScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.message_outlined, size: 80, color: Colors.grey[300]),
+                      Icon(Icons.message_outlined,
+                          size: 80, color: Colors.grey[300]),
                       const SizedBox(height: 16),
                       Text(
                         'No conversations yet',
@@ -272,20 +277,27 @@ class _MessagingScreenState extends State<MessagingScreen> {
                   itemCount: _conversations.length,
                   itemBuilder: (context, index) {
                     final conversation = _conversations[index];
-                    final authService = Provider.of<AuthService>(context, listen: false);
+                    final authService =
+                        Provider.of<AuthService>(context, listen: false);
                     final currentUserId = authService.currentUser?.email ?? '';
 
-                    // Diğer kullanıcı kimdir?
-                    final otherUserId =
-                        conversation['user1'] == currentUserId ? conversation['user2'] : conversation['user1'];
-                    final otherUserName =
-                        conversation['user1'] == currentUserId ? conversation['user2Name'] : conversation['user1Name'];
-                    final otherUsername =
-                        conversation['user1'] == currentUserId ? conversation['user2Username'] : conversation['user1Username'];
+                    final otherUserId = conversation['user1'] == currentUserId
+                        ? conversation['user2']
+                        : conversation['user1'];
+                    final otherUserName = conversation['user1'] == currentUserId
+                        ? conversation['user2Name']
+                        : conversation['user1Name'];
+                    final otherUsername = conversation['user1'] == currentUserId
+                        ? conversation['user2Username']
+                        : conversation['user1Username'];
                     final otherUserProfileImage =
-                        conversation['user1'] == currentUserId ? conversation['user2ProfileImage'] : conversation['user1ProfileImage'];
+                        conversation['user1'] == currentUserId
+                            ? conversation['user2ProfileImage']
+                            : conversation['user1ProfileImage'];
                     final currentUserProfileImage =
-                      conversation['user1'] == currentUserId ? conversation['user1ProfileImage'] : conversation['user2ProfileImage'];
+                        conversation['user1'] == currentUserId
+                            ? conversation['user1ProfileImage']
+                            : conversation['user2ProfileImage'];
 
                     return Dismissible(
                       key: Key(conversation['id']),
@@ -310,19 +322,21 @@ class _MessagingScreenState extends State<MessagingScreen> {
                               otherUserProfileImage,
                             ),
                             child: CircleAvatar(
-                            backgroundColor: const Color(0xFF9DB8E8),
-                            backgroundImage: otherUserProfileImage != null && otherUserProfileImage.isNotEmpty
-                                ? _getImageProvider(otherUserProfileImage)
-                                : null,
-                            child: otherUserProfileImage == null || otherUserProfileImage.isEmpty
-                                ? Text(
-                                    otherUserName[0].toUpperCase(),
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  )
-                                : null,
+                              backgroundColor: const Color(0xFF9DB8E8),
+                              backgroundImage: otherUserProfileImage != null &&
+                                      otherUserProfileImage.isNotEmpty
+                                  ? _getImageProvider(otherUserProfileImage)
+                                  : null,
+                              child: otherUserProfileImage == null ||
+                                      otherUserProfileImage.isEmpty
+                                  ? Text(
+                                      otherUserName[0].toUpperCase(),
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    )
+                                  : null,
                             ),
                           ),
                           title: GestureDetector(
@@ -333,23 +347,23 @@ class _MessagingScreenState extends State<MessagingScreen> {
                               otherUserProfileImage,
                             ),
                             child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                otherUserName,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF2C3E50),
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  otherUserName,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF2C3E50),
+                                  ),
                                 ),
-                              ),
-                              Text(
-                                '@${otherUsername ?? 'username'}',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Color(0xFF90A4AE),
+                                Text(
+                                  '@${otherUsername ?? 'username'}',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Color(0xFF90A4AE),
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
                             ),
                           ),
                           subtitle: Text(
@@ -366,7 +380,8 @@ class _MessagingScreenState extends State<MessagingScreen> {
                               mainAxisAlignment: MainAxisAlignment.end,
                               children: [
                                 Text(
-                                  _formatTime(DateTime.parse(conversation['lastMessageTime'])),
+                                  _formatTime(DateTime.parse(
+                                      conversation['lastMessageTime'])),
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: Colors.grey[600],
@@ -374,7 +389,8 @@ class _MessagingScreenState extends State<MessagingScreen> {
                                 ),
                                 const SizedBox(width: 8),
                                 IconButton(
-                                  icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                                  icon: const Icon(Icons.delete_outline,
+                                      color: Colors.red, size: 20),
                                   onPressed: () {
                                     _hideConversation(conversation['id']);
                                   },
@@ -389,21 +405,26 @@ class _MessagingScreenState extends State<MessagingScreen> {
                               context,
                               SlideRightRoute(
                                 page: ChatDetailScreen(
-                                conversationId: conversation['id'],
-                                otherUserId: otherUserId,
-                                otherUserName: otherUserName,
-                                otherUsername: otherUsername ?? (otherUserId.contains('@') ? otherUserId.split('@').first : ''),
-                                otherUserProfileImage: otherUserProfileImage ?? '',
-                                currentUserProfileImage: currentUserProfileImage ?? '',
-                                currentUserId: currentUserId,
-                                currentUserName: currentUser?.name ?? 'You',
-                                onMessagesUpdated: () {
-                                  _loadConversations();
-                                },
+                                  conversationId: conversation['id'],
+                                  otherUserId: otherUserId,
+                                  otherUserName: otherUserName,
+                                  otherUsername: otherUsername ??
+                                      (otherUserId.contains('@')
+                                          ? otherUserId.split('@').first
+                                          : ''),
+                                  otherUserProfileImage:
+                                      otherUserProfileImage ?? '',
+                                  currentUserProfileImage:
+                                      currentUserProfileImage ?? '',
+                                  currentUserId: currentUserId,
+                                  currentUserName: currentUser?.name ?? 'You',
+                                  onMessagesUpdated: () {
+                                    _loadConversations();
+                                  },
+                                ),
                               ),
-                            ),
                             );
-                        },
+                          },
                         ),
                       ),
                     );
@@ -450,7 +471,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   bool _isSending = false;
   Timer? _refreshTimer;
 
-  // Helper function to get image provider from URL or base64
   ImageProvider? _getImageProvider(String? imageUrl) {
     if (imageUrl == null || imageUrl.isEmpty) return null;
     try {
@@ -484,7 +504,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
       if (response['success'] == true) {
         setState(() {
-          _messages = List<Map<String, dynamic>>.from(response['messages'] ?? []);
+          _messages =
+              List<Map<String, dynamic>>.from(response['messages'] ?? []);
         });
         _scrollToBottom();
       }
@@ -502,8 +523,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       );
 
       if (response['success'] == true && mounted) {
-        final newMessages = List<Map<String, dynamic>>.from(response['messages'] ?? []);
-        // Sadece yeni mesaj varsa güncelle
+        final newMessages =
+            List<Map<String, dynamic>>.from(response['messages'] ?? []);
         if (newMessages.length != _messages.length) {
           setState(() {
             _messages = newMessages;
@@ -512,7 +533,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         }
       }
     } catch (e) {
-      // Sessiz hata - refresh timer devam etsin
       debugPrint('Error refreshing messages: $e');
     }
   }
@@ -569,7 +589,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Mesaj silindi'),
+              content: Text('Message deleted'),
               backgroundColor: Colors.green,
               duration: Duration(seconds: 2),
             ),
@@ -581,7 +601,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Silme hatası: $e'),
+            content: Text('Delete error: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -608,10 +628,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final headerUsername = widget.otherUsername.isNotEmpty
-      ? widget.otherUsername
-      : (widget.otherUserId.contains('@')
-        ? widget.otherUserId.split('@').first
-        : widget.otherUserName.replaceAll(' ', '').toLowerCase());
+        ? widget.otherUsername
+        : (widget.otherUserId.contains('@')
+            ? widget.otherUserId.split('@').first
+            : widget.otherUserName.replaceAll(' ', '').toLowerCase());
 
     return Scaffold(
       appBar: AppBar(
@@ -680,22 +700,33 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                             style: TextStyle(color: Colors.grey[600]),
                           ),
                         )
-                        : ListView.builder(
+                      : ListView.builder(
                           controller: _scrollController,
                           padding: const EdgeInsets.all(12),
                           itemCount: _messages.length,
                           itemBuilder: (context, index) {
                             final message = _messages[index];
-                            final isSent = message['senderId'] == widget.currentUserId;
-                            final senderName = message['senderName'] ?? (isSent ? widget.currentUserName : widget.otherUserName);
+                            final isSent =
+                                message['senderId'] == widget.currentUserId;
+                            final senderName = message['senderName'] ??
+                                (isSent
+                                    ? widget.currentUserName
+                                    : widget.otherUserName);
                             final senderUsername = message['senderUsername'] ??
-                              (message['senderId'] is String && (message['senderId'] as String).contains('@')
-                                ? (message['senderId'] as String).split('@').first
-                                : isSent
-                                  ? widget.currentUserId.split('@').first
-                                  : widget.otherUserId.split('@').first);
-                            final senderProfileImage = message['senderProfileImage'] ??
-                              (isSent ? widget.currentUserProfileImage : widget.otherUserProfileImage);
+                                (message['senderId'] is String &&
+                                        (message['senderId'] as String)
+                                            .contains('@')
+                                    ? (message['senderId'] as String)
+                                        .split('@')
+                                        .first
+                                    : isSent
+                                        ? widget.currentUserId.split('@').first
+                                        : widget.otherUserId.split('@').first);
+                            final senderProfileImage =
+                                message['senderProfileImage'] ??
+                                    (isSent
+                                        ? widget.currentUserProfileImage
+                                        : widget.otherUserProfileImage);
 
                             return GestureDetector(
                               onLongPress: isSent
@@ -708,8 +739,11 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
                                               ListTile(
-                                                leading: const Icon(Icons.delete, color: Colors.red),
-                                                title: const Text('Delete Message'),
+                                                leading: const Icon(
+                                                    Icons.delete,
+                                                    color: Colors.red),
+                                                title: const Text(
+                                                    'Delete Message'),
                                                 onTap: () {
                                                   Navigator.pop(context);
                                                   _deleteMessage(message['id']);
@@ -722,23 +756,29 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                                     }
                                   : null,
                               child: Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 4),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 4),
                                 child: Row(
-                                  mainAxisAlignment:
-                                      isSent ? MainAxisAlignment.end : MainAxisAlignment.start,
+                                  mainAxisAlignment: isSent
+                                      ? MainAxisAlignment.end
+                                      : MainAxisAlignment.start,
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     if (!isSent)
                                       CircleAvatar(
                                         radius: 18,
-                                        backgroundColor: const Color(0xFF9DB8E8),
-                                        backgroundImage: senderProfileImage.isNotEmpty
-                                            ? _getImageProvider(senderProfileImage)
-                                            : null,
+                                        backgroundColor:
+                                            const Color(0xFF9DB8E8),
+                                        backgroundImage:
+                                            senderProfileImage.isNotEmpty
+                                                ? _getImageProvider(
+                                                    senderProfileImage)
+                                                : null,
                                         child: senderProfileImage.isEmpty
                                             ? Text(
                                                 senderName.isNotEmpty
-                                                    ? senderName[0].toUpperCase()
+                                                    ? senderName[0]
+                                                        .toUpperCase()
                                                     : '?',
                                                 style: const TextStyle(
                                                   color: Colors.white,
@@ -750,12 +790,14 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                                     if (!isSent) const SizedBox(width: 8),
                                     Flexible(
                                       child: Column(
-                                        crossAxisAlignment:
-                                            isSent ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                                        crossAxisAlignment: isSent
+                                            ? CrossAxisAlignment.end
+                                            : CrossAxisAlignment.start,
                                         children: [
                                           Column(
-                                            crossAxisAlignment:
-                                                isSent ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                                            crossAxisAlignment: isSent
+                                                ? CrossAxisAlignment.end
+                                                : CrossAxisAlignment.start,
                                             children: [
                                               Text(
                                                 senderName,
@@ -776,10 +818,12 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                                           ),
                                           const SizedBox(height: 4),
                                           Align(
-                                            alignment:
-                                                isSent ? Alignment.centerRight : Alignment.centerLeft,
+                                            alignment: isSent
+                                                ? Alignment.centerRight
+                                                : Alignment.centerLeft,
                                             child: Container(
-                                              padding: const EdgeInsets.symmetric(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
                                                 horizontal: 12,
                                                 vertical: 8,
                                               ),
@@ -787,7 +831,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                                                 color: isSent
                                                     ? const Color(0xFF9DB8E8)
                                                     : Colors.grey[300],
-                                                borderRadius: BorderRadius.circular(12),
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
                                               ),
                                               child: Column(
                                                 crossAxisAlignment: isSent
@@ -797,14 +842,17 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                                                   Text(
                                                     message['text'],
                                                     style: TextStyle(
-                                                      color: isSent ? Colors.white : Colors.black87,
+                                                      color: isSent
+                                                          ? Colors.white
+                                                          : Colors.black87,
                                                       fontSize: 14,
                                                     ),
                                                   ),
                                                   const SizedBox(height: 4),
                                                   Text(
                                                     _formatMessageTime(
-                                                        DateTime.parse(message['timestamp'])),
+                                                        DateTime.parse(message[
+                                                            'timestamp'])),
                                                     style: TextStyle(
                                                       color: isSent
                                                           ? Colors.white70
@@ -823,14 +871,18 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                                     if (isSent)
                                       CircleAvatar(
                                         radius: 18,
-                                        backgroundColor: const Color(0xFF9DB8E8),
-                                        backgroundImage: senderProfileImage.isNotEmpty
-                                            ? _getImageProvider(senderProfileImage)
-                                            : null,
+                                        backgroundColor:
+                                            const Color(0xFF9DB8E8),
+                                        backgroundImage:
+                                            senderProfileImage.isNotEmpty
+                                                ? _getImageProvider(
+                                                    senderProfileImage)
+                                                : null,
                                         child: senderProfileImage.isEmpty
                                             ? Text(
                                                 senderName.isNotEmpty
-                                                    ? senderName[0].toUpperCase()
+                                                    ? senderName[0]
+                                                        .toUpperCase()
                                                     : '?',
                                                 style: const TextStyle(
                                                   color: Colors.white,
@@ -886,7 +938,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                               ),
                             ),
                           ),
-                          onSubmitted: _isSending ? null : (_) => _sendMessage(),
+                          onSubmitted:
+                              _isSending ? null : (_) => _sendMessage(),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -899,11 +952,12 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                                   height: 20,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    valueColor:
-                                        AlwaysStoppedAnimation<Color>(Colors.white),
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white),
                                   ),
                                 )
-                              : const Icon(Icons.send, color: Colors.white, size: 20),
+                              : const Icon(Icons.send,
+                                  color: Colors.white, size: 20),
                           onPressed: _isSending ? null : _sendMessage,
                           padding: EdgeInsets.zero,
                         ),

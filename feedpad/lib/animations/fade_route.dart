@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-/// Fade in/out animasyonu
 class FadeRoute extends PageRouteBuilder {
   final Widget page;
 

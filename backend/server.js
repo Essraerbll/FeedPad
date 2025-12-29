@@ -7,7 +7,6 @@ require('dotenv').config();
 
 const app = express();
 
-// Middleware
 app.use(helmet());
 app.use(cors({
   origin: true,
@@ -18,7 +17,6 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 
-// Routes
 const authRoutes = require('./routes/auth.routes');
 app.use('/api/auth', authRoutes);
 
@@ -31,22 +29,18 @@ app.use('/api/posts', postsRoutes);
 const messagingRoutes = require('./routes/messaging.routes');
 app.use('/api/messaging', messagingRoutes);
 
-// Diğer route'lar (varsa)
 try {
   const locationRoutes = require('./routes/location.routes');
   app.use('/api/location', locationRoutes);
 } catch (e) {
-  // Route dosyası yoksa devam et
 }
 
 try {
   const userRoutes = require('./routes/user.routes');
   app.use('/api/user', userRoutes);
 } catch (e) {
-  // Route dosyası yoksa devam et
 }
 
-// Health check
 app.get('/api/health', (req, res) => {
   res.status(200).json({
     status: 'OK',
@@ -55,7 +49,6 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// 404 handler
 app.use((req, res) => {
   res.status(404).json({
     success: false,
@@ -63,7 +56,6 @@ app.use((req, res) => {
   });
 });
 
-// Error handler
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(err.status || 500).json({
@@ -74,7 +66,7 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 3000;
-const HOST = process.env.HOST || '0.0.0.0'; // Tüm ağ arayüzlerinden gelen istekleri kabul et
+const HOST = process.env.HOST || '0.0.0.0';
 
 app.listen(PORT, HOST, () => {
   console.log(`🚀 Server is running on http://${HOST}:${PORT}`);

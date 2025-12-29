@@ -19,17 +19,14 @@ class FeedMapScreen extends StatefulWidget {
 class _FeedMapScreenState extends State<FeedMapScreen> {
   final MapController mapController = MapController();
   final List<Marker> _markers = [];
-  final Map<String, Map<String, dynamic>> _markerDataMap =
-      {}; // markerId -> markerData
-  final Map<String, int> _markerIndexMap =
-      {}; // markerId -> marker index in _markers list
+  final Map<String, Map<String, dynamic>> _markerDataMap = {};
+  final Map<String, int> _markerIndexMap = {};
   final ApiService _apiService = ApiService();
   bool _isLocationLoaded = false;
 
-  // Başlangıç konumu (İstanbul örnek olarak)
   static const LatLng _initialCenter = LatLng(41.0082, 28.9784);
   static const double _initialZoom = 12.0;
-  static const double _userLocationZoom = 18.0; // Cadde seviyesi için zoom
+  static const double _userLocationZoom = 18.0;
 
   @override
   void initState() {
@@ -38,52 +35,42 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
     _loadMarkers();
   }
 
-  /// Konum izni iste ve konum al
   Future<void> _requestLocationPermission() async {
     if (_isLocationLoaded) return;
 
     try {
-      // Konum izni durumunu kontrol et
       PermissionStatus status = await Permission.location.status;
 
       if (status.isDenied) {
-        // İzin iste
         status = await Permission.location.request();
       }
 
       if (status.isGranted) {
-        // İzin verildi, konumu al
         await _getCurrentLocation();
       } else {
-        // İzin reddedildi, İstanbul'a zoom yap
         _zoomToIstanbul();
       }
     } catch (e) {
-      print('Konum izni hatası: $e');
+      print('Location permission error: $e');
       _zoomToIstanbul();
     }
   }
 
-  /// Kullanıcının mevcut konumunu al
   Future<void> _getCurrentLocation() async {
     try {
-      // Konum servislerinin açık olup olmadığını kontrol et
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
         _zoomToIstanbul();
         return;
       }
 
-      // Konum al
       Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
 
-      // Haritaya kullanıcı konumuna zoom yap
       final userLocation = LatLng(position.latitude, position.longitude);
 
       if (mounted) {
-        // Kısa bir gecikme ile haritanın yüklenmesini bekle
         await Future.delayed(const Duration(milliseconds: 500));
         mapController.move(userLocation, _userLocationZoom);
 
@@ -92,12 +79,11 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
         });
       }
     } catch (e) {
-      print('Konum alma hatası: $e');
+      print('Error getting location: $e');
       _zoomToIstanbul();
     }
   }
 
-  /// İstanbul'a zoom yap
   void _zoomToIstanbul() {
     if (mounted) {
       Future.delayed(const Duration(milliseconds: 500), () {
@@ -111,18 +97,13 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
     }
   }
 
-  /// Backend'den marker'ları yükle
   Future<void> _loadMarkers() async {
     try {
-      print('Marker yükleme başlatılıyor...');
       final response = await _apiService.getMarkers();
-      print('Marker yükleme response: $response');
 
       if (response['success'] == true && mounted) {
         final markersData = response['markers'] as List<dynamic>;
-        print('Yüklenen marker sayısı: ${markersData.length}');
 
-        // Tüm unique userId'leri topla
         final Set<String> uniqueUserIds = {};
         for (var markerData in markersData) {
           final userId = markerData['userId'] as String?;
@@ -131,7 +112,6 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
           }
         }
 
-        // Tüm kullanıcı bilgilerini paralel olarak al
         final Map<String, String> userIdToUserTypeMap = {};
         final List<Future<void>> userInfoFutures = [];
 
@@ -149,7 +129,6 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
           }));
         }
 
-        // Tüm kullanıcı bilgilerinin yüklenmesini bekle
         await Future.wait(userInfoFutures);
 
         setState(() {
@@ -159,7 +138,6 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
           for (var markerData in markersData) {
             final markerId = markerData['id'] as String;
 
-            // Güvenli double dönüşümü (int veya double olabilir)
             final latitude = (markerData['latitude'] is int)
                 ? (markerData['latitude'] as int).toDouble()
                 : (markerData['latitude'] as num).toDouble();
@@ -169,7 +147,6 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
 
             final position = LatLng(latitude, longitude);
 
-            // waterLiters için güvenli dönüşüm
             double? waterLiters;
             if (markerData['waterLiters'] != null) {
               waterLiters = (markerData['waterLiters'] is int)
@@ -177,7 +154,6 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
                   : (markerData['waterLiters'] as num).toDouble();
             }
 
-            // addedAmount için güvenli dönüşüm
             double? addedAmount;
             if (markerData['addedAmount'] != null) {
               addedAmount = (markerData['addedAmount'] is int)
@@ -185,13 +161,11 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
                   : (markerData['addedAmount'] as num).toDouble();
             }
 
-            // Pet shop owner kontrolü - marker'ın userId'sine bakarak kontrol et
             final markerUserId = markerData['userId'] as String?;
             final userType =
                 markerUserId != null ? userIdToUserTypeMap[markerUserId] : null;
             final isPetShopOwnerMarker = userType == 'pet_shop_owner';
 
-            // catFoodAmount ve dogFoodAmount için güvenli dönüşüm
             double? catFoodAmount;
             if (markerData['catFoodAmount'] != null) {
               catFoodAmount = (markerData['catFoodAmount'] is int)
@@ -205,11 +179,10 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
                   : (markerData['dogFoodAmount'] as num).toDouble();
             }
 
-            // Marker verilerini sakla (userType bilgisini de ekle)
             _markerDataMap[markerId] = {
               'id': markerId,
               'userId': markerData['userId'] as String?,
-              'userType': userType, // userType bilgisini sakla
+              'userType': userType,
               'type': markerData['type'] as String,
               'catFoodAmount': catFoodAmount,
               'dogFoodAmount': dogFoodAmount,
@@ -234,19 +207,17 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
             );
           }
         });
-        print('Marker yükleme tamamlandı. Toplam marker: ${_markers.length}');
+        print('Marker loading completed. Total markers: ${_markers.length}');
       } else {
         print(
-            'Marker yükleme başarısız: ${response['message'] ?? 'Bilinmeyen hata'}');
+            'Failed to load markers: ${response['message'] ?? 'Unknown error'}');
       }
     } catch (e) {
-      print('Marker yükleme hatası: $e');
+      print('Error loading markers: $e');
     }
   }
 
-  /// Haritada tıklama ile marker detay popup'ını açar
   void _onMapTap(TapPosition tapPosition, LatLng latlng) async {
-    // Tıklanan noktaya en yakın marker'ı bul
     String? closestMarkerId;
     double minDistance = double.infinity;
 
@@ -257,11 +228,9 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
         markerData['longitude'] as double,
       );
 
-      // Basit mesafe hesaplama (Haversine yerine basit Euclidean)
       final distance = (latlng.latitude - markerPosition.latitude).abs() +
           (latlng.longitude - markerPosition.longitude).abs();
 
-      // Eğer marker'a yakınsa (yaklaşık 0.001 derece = ~100m)
       if (distance < 0.001 && distance < minDistance) {
         minDistance = distance;
         closestMarkerId = entry.key;
@@ -279,7 +248,6 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
         ),
       );
 
-      // Eğer opinion submit edildiyse marker'ı güncelle
       if (result != null && mounted) {
         final markerId = result['markerId'] as String?;
         final newIsEnough = result['isWaterEnough'] as String?;
@@ -287,34 +255,27 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
         final dogFoodAmount = result['dogFoodAmount'];
 
         if (markerId != null && _markerDataMap.containsKey(markerId)) {
-          // Marker verisini ve rengini aynı setState içinde güncelle (anında renk güncellemesi için)
           setState(() {
-            // Marker verisini güncelle (userType bilgisini koru)
             final existingUserType = _markerDataMap[markerId]!['userType'];
             _markerDataMap[markerId]!['isWaterEnough'] = newIsEnough;
 
-            // Yeni alanları da güncelle (addedAmount, addedByUserId, isEnoughNow)
             if (result['addedAmount'] != null) {
               _markerDataMap[markerId]!['addedAmount'] = result['addedAmount'];
             } else {
-              // Eğer null ise de güncelle (temizleme için)
               _markerDataMap[markerId]!['addedAmount'] = null;
             }
             if (result['addedByUserId'] != null) {
               _markerDataMap[markerId]!['addedByUserId'] =
                   result['addedByUserId'];
             } else {
-              // Eğer null ise de güncelle (temizleme için)
               _markerDataMap[markerId]!['addedByUserId'] = null;
             }
             if (result['isEnoughNow'] != null) {
               _markerDataMap[markerId]!['isEnoughNow'] = result['isEnoughNow'];
             } else {
-              // Eğer null ise de güncelle (temizleme için)
               _markerDataMap[markerId]!['isEnoughNow'] = null;
             }
 
-            // Bağış bilgilerini güncelle (pet shop owner için)
             if (catFoodAmount != null) {
               _markerDataMap[markerId]!['catFoodAmount'] =
                   (catFoodAmount as num).toDouble();
@@ -332,7 +293,6 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
               _markerDataMap[markerId]!['userType'] = existingUserType;
             }
 
-            // Marker'ı hemen güncelle (aynı setState içinde)
             if (_markerIndexMap.containsKey(markerId)) {
               final markerIndex = _markerIndexMap[markerId]!;
               final markerData = _markerDataMap[markerId]!;
@@ -342,17 +302,14 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
               );
               final type = markerData['type'] as String;
               final petType = markerData['petType'] as String?;
-              // Güncellenmiş değerleri kullan (result'tan veya güncellenmiş markerData'dan)
               final isWaterEnough =
                   newIsEnough ?? markerData['isWaterEnough'] as String?;
               final isEnoughNow = result['isEnoughNow'] as String? ??
                   markerData['isEnoughNow'] as String?;
 
-              // Pet shop owner kontrolü
               final userType = markerData['userType'] as String?;
               final isPetShopOwnerMarker = userType == 'pet_shop_owner';
 
-              // Renk belirleme: isEnoughNow varsa onu kullan, yoksa isWaterEnough'u kullan
               final statusToUse = isEnoughNow ?? isWaterEnough;
               Color markerColor;
               bool isHouseShape = false;
@@ -386,7 +343,6 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
                 markerColor = Colors.blue;
               }
 
-              // Icon'u belirle
               IconData iconData;
               if (isPetShopOwnerMarker) {
                 iconData = Icons.home;
@@ -406,7 +362,6 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
                 iconData = Icons.location_on;
               }
 
-              // Marker'ı güncelle
               _markers[markerIndex] = Marker(
                 point: position,
                 width: 50.0,
@@ -472,7 +427,6 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
                                   existingUserType;
                             }
 
-                            // Marker'ı hemen güncelle
                             if (_markerIndexMap.containsKey(updatedMarkerId)) {
                               final updatedMarkerIndex =
                                   _markerIndexMap[updatedMarkerId]!;
@@ -486,7 +440,6 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
                                   updatedMarkerData['type'] as String;
                               final updatedPetType =
                                   updatedMarkerData['petType'] as String?;
-                              // Güncellenmiş değerleri kullan (result'tan veya güncellenmiş markerData'dan)
                               final updatedIsWaterEnough = newIsEnough ??
                                   updatedMarkerData['isWaterEnough'] as String?;
                               final updatedIsEnoughNow = result['isEnoughNow']
@@ -586,7 +539,6 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
                                             _markerDataMap
                                                 .containsKey(nestedMarkerId)) {
                                           setState(() {
-                                            // Marker verisini güncelle
                                             final existingUserType =
                                                 _markerDataMap[nestedMarkerId]![
                                                     'userType'];
@@ -594,7 +546,6 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
                                                     'isWaterEnough'] =
                                                 nestedIsEnough;
 
-                                            // Yeni alanları da güncelle
                                             if (result['addedAmount'] != null) {
                                               _markerDataMap[nestedMarkerId]![
                                                       'addedAmount'] =
@@ -621,7 +572,6 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
                                                   'isEnoughNow'] = null;
                                             }
 
-                                            // Bağış bilgilerini güncelle
                                             if (nestedCatFoodAmount != null) {
                                               _markerDataMap[nestedMarkerId]![
                                                       'catFoodAmount'] =
@@ -647,7 +597,6 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
                                                   existingUserType;
                                             }
 
-                                            // Marker'ı hemen güncelle
                                             if (_markerIndexMap
                                                 .containsKey(nestedMarkerId)) {
                                               final nestedMarkerIndex =
@@ -668,7 +617,6 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
                                               final nestedPetType =
                                                   nestedMarkerData['petType']
                                                       as String?;
-                                              // Güncellenmiş değerleri kullan (result'tan veya güncellenmiş markerData'dan)
                                               final nestedIsWaterEnough =
                                                   nestedIsEnough ??
                                                       nestedMarkerData[
@@ -886,20 +834,16 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
     }
   }
 
-  /// Haritada uzun basış ile marker ekleme formunu açar
   void _onMapLongPress(TapPosition tapPosition, LatLng latlng) async {
-    // Pet shop owner kontrolü
     final authService = Provider.of<AuthService>(context, listen: false);
     final currentUser = authService.currentUser;
     final isPetShopOwner = currentUser?.userType == 'pet_shop_owner';
 
-    // Marker ekleme formunu popup olarak aç
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (context) => AddMarkerScreen(position: latlng),
     );
 
-    // Eğer pet shop owner exact location'ı reddettiyse hata mesajı göster
     if (result != null && result['exactLocationDenied'] == true) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -913,10 +857,9 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
           ),
         );
       }
-      return; // Marker eklenmesin
+      return;
     }
 
-    // Eğer form başarıyla tamamlandıysa marker ekle
     if (result != null && result['exactLocationDenied'] != true) {
       final type = result['type'] as String;
       final position = result['position'] as LatLng;
@@ -924,7 +867,6 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
       final waterLiters = result['waterLiters'] as double?;
       final isWaterEnough = result['isWaterEnough'] as String?;
 
-      // Backend'e kaydet
       try {
         final response = await _apiService.createMarker(
           type: type,
@@ -936,14 +878,11 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
         );
 
         if (response['success'] == true && mounted) {
-          // Başarılı olursa haritaya ekle
           final markerId = response['marker']?['id'] as String?;
           if (markerId != null) {
-            // Marker verilerini sakla
             final markerResponse = response['marker'] as Map<String, dynamic>?;
             final markerUserId = markerResponse?['userId'] as String?;
 
-            // Pet shop owner kontrolü için kullanıcı bilgisini al
             String? userType;
             if (markerUserId != null) {
               try {
@@ -962,7 +901,7 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
             _markerDataMap[markerId] = {
               'id': markerId,
               'userId': markerUserId,
-              'userType': userType, // userType bilgisini sakla
+              'userType': userType,
               'type': type,
               'petType': petType,
               'waterLiters': waterLiters,
@@ -982,10 +921,8 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
             isPetShopOwnerMarker: isPetShopOwner,
           );
 
-          // Marker'ları tekrar yükle (backend'den güncel listeyi al)
           await _loadMarkers();
 
-          // Başarı mesajı göster
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -999,7 +936,6 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
             );
           }
         } else {
-          // Hata mesajı göster
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -1015,7 +951,7 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
           }
         }
       } catch (e) {
-        print('Marker kaydetme hatası: $e');
+        print('Error saving marker: $e');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -1045,7 +981,6 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
         ),
         children: [
           TileLayer(
-            // OpenStreetMap - Renkli harita, dükkan isimleri görünür
             urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
             subdomains: const ['a', 'b', 'c'],
             userAgentPackageName: 'com.example.feedpad',
@@ -1060,7 +995,6 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
     );
   }
 
-  /// Belirtilen konuma yeni bir marker ekler (sadece haritaya, backend'e kaydetmez)
   void _addMarkerToMap(
     LatLng position,
     String type, {
@@ -1075,33 +1009,28 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
       IconData iconData;
       bool isHouseShape = false;
 
-      // Pet shop owner marker kontrolü
       if (isPetShopOwnerMarker == true) {
         isHouseShape = true;
         iconData = Icons.home;
-        // Pet shop owner marker'ları için donate durumuna göre renk
         markerColor = isWaterEnough == 'yes'
             ? Colors.green
             : isWaterEnough == 'no'
                 ? Colors.red
-                : Colors.blue; // Varsayılan renk
+                : Colors.blue;
       } else if (type == 'food' && petType != null) {
-        // Food + Cat/Dog için: Yes = yeşil, Maybe = turuncu, No = kırmızı
         markerColor = isWaterEnough == 'yes'
             ? Colors.green
             : isWaterEnough == 'maybe'
                 ? Colors.orange
                 : Colors.red;
-        // Cat için kedi patisi, Dog için donut ikonu
         if (petType == 'cat') {
-          iconData = Icons.pets; // Kedi patisi için pets ikonu
+          iconData = Icons.pets;
         } else if (petType == 'dog') {
-          iconData = Icons.donut_large; // Köpek için donut ikonu
+          iconData = Icons.donut_large;
         } else {
           iconData = Icons.restaurant;
         }
       } else if (type == 'water') {
-        // Water için: Yes = yeşil, Maybe = turuncu, No = kırmızı
         markerColor = isWaterEnough == 'yes'
             ? Colors.green
             : isWaterEnough == 'maybe'
@@ -1109,11 +1038,9 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
                 : Colors.red;
         iconData = Icons.water_drop;
       } else if (type == 'food') {
-        // Food seçildi ama pet type seçilmedi (eski durum için)
         markerColor = Colors.orange;
         iconData = Icons.restaurant;
       } else {
-        // Varsayılan
         markerColor = Colors.blue;
         iconData = Icons.location_on;
       }
@@ -1125,7 +1052,6 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
         child: markerId != null
             ? GestureDetector(
                 onTap: () async {
-                  // Marker detay popup'ını aç
                   if (_markerDataMap.containsKey(markerId)) {
                     final result = await showDialog<Map<String, dynamic>>(
                       context: context,
@@ -1135,27 +1061,22 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
                       ),
                     );
 
-                    // Eğer opinion submit edildiyse marker'ı güncelle
                     if (result != null && mounted) {
                       final updatedMarkerId = result['markerId'] as String?;
                       final newIsEnough = result['isWaterEnough'] as String?;
 
                       if (updatedMarkerId != null &&
                           _markerDataMap.containsKey(updatedMarkerId)) {
-                        // Marker verisini setState içinde güncelle (anında renk güncellemesi için)
                         setState(() {
-                          // Marker verisini güncelle (userType bilgisini koru)
                           final existingUserType =
                               _markerDataMap[updatedMarkerId]!['userType'];
                           _markerDataMap[updatedMarkerId]!['isWaterEnough'] =
                               newIsEnough;
 
-                          // Yeni alanları da güncelle
                           if (result['addedAmount'] != null) {
                             _markerDataMap[updatedMarkerId]!['addedAmount'] =
                                 result['addedAmount'];
                           } else {
-                            // Eğer null ise de güncelle (temizleme için)
                             _markerDataMap[updatedMarkerId]!['addedAmount'] =
                                 null;
                           }
@@ -1163,7 +1084,6 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
                             _markerDataMap[updatedMarkerId]!['addedByUserId'] =
                                 result['addedByUserId'];
                           } else {
-                            // Eğer null ise de güncelle (temizleme için)
                             _markerDataMap[updatedMarkerId]!['addedByUserId'] =
                                 null;
                           }
@@ -1171,18 +1091,15 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
                             _markerDataMap[updatedMarkerId]!['isEnoughNow'] =
                                 result['isEnoughNow'];
                           } else {
-                            // Eğer null ise de güncelle (temizleme için)
                             _markerDataMap[updatedMarkerId]!['isEnoughNow'] =
                                 null;
                           }
-                          // userType bilgisini koru
                           if (existingUserType != null) {
                             _markerDataMap[updatedMarkerId]!['userType'] =
                                 existingUserType;
                           }
                         });
 
-                        // Marker'ı haritada güncelle (isWaterEnough veya isEnoughNow'e göre renk hesaplanacak)
                         _updateMarkerColor(updatedMarkerId);
                       }
                     }
@@ -1225,16 +1142,14 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
       );
       _markers.add(newMarker);
 
-      // Marker index'ini sakla
       if (markerId != null) {
         _markerIndexMap[markerId] = _markers.length - 1;
       }
     });
     print(
-        'Marker eklendi: ${position.latitude}, ${position.longitude} - Type: $type - Toplam marker sayısı: ${_markers.length}');
+        'Marker added: ${position.latitude}, ${position.longitude} - Type: $type - Total marker count: ${_markers.length}');
   }
 
-  /// Marker'ın rengini güncelle
   void _updateMarkerColor(String markerId) {
     if (!_markerIndexMap.containsKey(markerId) ||
         !_markerDataMap.containsKey(markerId)) {
@@ -1252,24 +1167,20 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
     final isWaterEnough = markerData['isWaterEnough'] as String?;
     final isEnoughNow = markerData['isEnoughNow'] as String?;
 
-    // Pet shop owner kontrolü - marker verisinden userType'ı al
     final userType = markerData['userType'] as String?;
     final isPetShopOwnerMarker = userType == 'pet_shop_owner';
 
-    // Renk belirleme: isEnoughNow varsa onu kullan, yoksa isWaterEnough'u kullan
-    // Yes = yeşil, Maybe = turuncu, No = kırmızı
     final statusToUse = isEnoughNow ?? isWaterEnough;
     Color markerColor;
     bool isHouseShape = false;
 
     if (isPetShopOwnerMarker) {
       isHouseShape = true;
-      // Pet shop owner marker'ları için donate durumuna göre renk
       markerColor = statusToUse == 'yes'
           ? Colors.green
           : statusToUse == 'no'
               ? Colors.red
-              : Colors.blue; // Varsayılan renk
+              : Colors.blue;
     } else if (type == 'food' && petType != null) {
       markerColor = statusToUse == 'yes'
           ? Colors.green
@@ -1292,7 +1203,6 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
       markerColor = Colors.blue;
     }
 
-    // Icon'u belirle
     IconData iconData;
     if (isPetShopOwnerMarker) {
       iconData = Icons.home;
@@ -1313,14 +1223,12 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
     }
 
     setState(() {
-      // Marker'ı güncelle
       _markers[markerIndex] = Marker(
         point: position,
         width: 50.0,
         height: 50.0,
         child: GestureDetector(
           onTap: () async {
-            // Marker detay popup'ını aç
             if (_markerDataMap.containsKey(markerId)) {
               final result = await showDialog<Map<String, dynamic>>(
                 context: context,
@@ -1330,7 +1238,6 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
                 ),
               );
 
-              // Eğer opinion submit edildiyse marker'ı güncelle
               if (result != null && mounted) {
                 final updatedMarkerId = result['markerId'] as String?;
                 final newIsEnough = result['isWaterEnough'] as String?;
@@ -1339,38 +1246,31 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
 
                 if (updatedMarkerId != null &&
                     _markerDataMap.containsKey(updatedMarkerId)) {
-                  // Marker verisini setState içinde güncelle (anında renk güncellemesi için)
                   setState(() {
-                    // Marker verisini güncelle (userType bilgisini koru)
                     final existingUserType =
                         _markerDataMap[updatedMarkerId]!['userType'];
                     _markerDataMap[updatedMarkerId]!['isWaterEnough'] =
                         newIsEnough;
 
-                    // Yeni alanları da güncelle (addedAmount, addedByUserId, isEnoughNow)
                     if (result['addedAmount'] != null) {
                       _markerDataMap[updatedMarkerId]!['addedAmount'] =
                           result['addedAmount'];
                     } else {
-                      // Eğer null ise de güncelle (temizleme için)
                       _markerDataMap[updatedMarkerId]!['addedAmount'] = null;
                     }
                     if (result['addedByUserId'] != null) {
                       _markerDataMap[updatedMarkerId]!['addedByUserId'] =
                           result['addedByUserId'];
                     } else {
-                      // Eğer null ise de güncelle (temizleme için)
                       _markerDataMap[updatedMarkerId]!['addedByUserId'] = null;
                     }
                     if (result['isEnoughNow'] != null) {
                       _markerDataMap[updatedMarkerId]!['isEnoughNow'] =
                           result['isEnoughNow'];
                     } else {
-                      // Eğer null ise de güncelle (temizleme için)
                       _markerDataMap[updatedMarkerId]!['isEnoughNow'] = null;
                     }
 
-                    // Bağış bilgilerini güncelle (pet shop owner için)
                     if (waterLiters != null) {
                       _markerDataMap[updatedMarkerId]!['waterLiters'] =
                           (waterLiters as num).toDouble();
@@ -1385,7 +1285,6 @@ class _FeedMapScreenState extends State<FeedMapScreen> {
                     }
                   });
 
-                  // Marker'ı haritada güncelle (isWaterEnough veya isEnoughNow'e göre renk hesaplanacak)
                   _updateMarkerColor(updatedMarkerId);
                 }
               }

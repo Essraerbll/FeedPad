@@ -19,7 +19,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
-  String? _userType; // 'user' or 'pet_shop_owner'
+  String? _userType;
 
   @override
   void initState() {
@@ -65,7 +65,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
       );
     } else if (mounted) {
-      // Başarılı kayıt
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
@@ -77,7 +76,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
       );
 
-      // 3 saniye sonra login sayfasına yönlendir
       await Future.delayed(const Duration(seconds: 3));
 
       if (mounted) {
@@ -108,7 +106,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Logo veya başlık
                   Icon(
                     Icons.pets,
                     size: 80,
@@ -135,7 +132,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   const SizedBox(height: 48),
 
-                  // Form alanları ve butonlar için beyaz çerçeve
                   Container(
                     padding: const EdgeInsets.all(24.0),
                     decoration: BoxDecoration(
@@ -145,7 +141,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        // İsim alanı
                         TextFormField(
                           controller: _nameController,
                           textCapitalization: TextCapitalization.words,
@@ -183,7 +178,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                         const SizedBox(height: 16),
 
-                        // Kullanıcı adı alanı
                         TextFormField(
                           controller: _usernameController,
                           style: const TextStyle(color: Colors.black87),
@@ -225,7 +219,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                         const SizedBox(height: 16),
 
-                        // User Profile alanı
                         DropdownButtonFormField<String>(
                           initialValue: _userType,
                           style: const TextStyle(color: Color(0xFF2C3E50), fontSize: 16, fontWeight: FontWeight.w500),
@@ -303,7 +296,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                         const SizedBox(height: 16),
 
-                        // E-posta alanı
                         TextFormField(
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
@@ -341,7 +333,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                         const SizedBox(height: 16),
 
-                        // Şifre alanı
                         TextFormField(
                           controller: _passwordController,
                           obscureText: _obscurePassword,
@@ -392,7 +383,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                         const SizedBox(height: 16),
 
-                        // Şifre tekrar alanı
                         TextFormField(
                           controller: _confirmPasswordController,
                           obscureText: _obscureConfirmPassword,
@@ -444,7 +434,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                         const SizedBox(height: 24),
 
-                        // Kayıt ol butonu
                         ElevatedButton(
                           onPressed: _isLoading ? null : _signUp,
                           style: ElevatedButton.styleFrom(

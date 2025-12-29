@@ -20,51 +20,45 @@ class MarkerDetailScreen extends StatefulWidget {
 class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
   final _formKey = GlobalKey<FormState>();
   final ApiService _apiService = ApiService();
-  String? _userOpinion; // 'yes', 'maybe', or 'no'
-  String? _wouldLikeToAdd; // 'yes' or 'no' (sadece Maybe/No seçildiğinde)
+  String? _userOpinion;
+  String? _wouldLikeToAdd;
   final TextEditingController _addedAmountController = TextEditingController();
-  String? _isEnoughNow; // 'yes' or 'maybe' (sadece ekleme yapıldığında)
+  String? _isEnoughNow;
   String?
-      _wouldLikeToDonate; // 'yes' or 'no' (sadece pet shop owner kendi marker'ı için)
-  String? _donatePetType; // 'cat' or 'dog' (sadece pet shop owner bağış için)
+      _wouldLikeToDonate;
+  String? _donatePetType;
   final TextEditingController _donateKilosController = TextEditingController();
   bool _isLoading = false;
   String? _username;
-  String? _addedByUsername; // Son ekleme yapan kişinin kullanıcı adı
+  String? _addedByUsername;
   bool _isLoadingUser = true;
   bool _isLoadingAddedBy = true;
 
-  // Marker verilerini state'te tut (güncel veriler için)
   Map<String, dynamic> _currentMarkerData = {};
 
   @override
   void initState() {
     super.initState();
-    // İlk olarak widget.markerData'yı _currentMarkerData'ya kopyala
     _currentMarkerData = Map<String, dynamic>.from(widget.markerData);
-    _loadMarkerData(); // Backend'den güncel marker verilerini yükle
+    _loadMarkerData();
   }
 
   Future<void> _loadMarkerData() async {
     try {
-      // Backend'den güncel marker verilerini al
       final markerResponse = await _apiService.getMarker(widget.markerId);
       if (markerResponse['success'] == true &&
           markerResponse['marker'] != null) {
         final marker = markerResponse['marker'] as Map<String, dynamic>;
 
-        // Marker verilerini state'te güncelle
-        // Backend'den gelen tüm verileri kullan, widget.markerData'yı sadece fallback olarak kullan
         setState(() {
           _currentMarkerData = {
             'id': marker['id'] ?? widget.markerData['id'],
             'userId': marker['userId'] ?? widget.markerData['userId'],
             'userType': widget
-                .markerData['userType'], // userType widget.markerData'dan gelir
+                .markerData['userType'],
             'type': marker['type'] ?? widget.markerData['type'],
             'latitude': marker['latitude'] ?? widget.markerData['latitude'],
             'longitude': marker['longitude'] ?? widget.markerData['longitude'],
-            // Backend'den gelen değerleri kullan (null olsa bile)
             'addedAmount': marker['addedAmount'] ?? null,
             'addedByUserId': marker['addedByUserId'] ?? null,
             'isEnoughNow': marker['isEnoughNow'] ?? null,
@@ -73,8 +67,8 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
                 ? ((marker['waterLiters'] is int)
                     ? (marker['waterLiters'] as int).toDouble()
                     : (marker['waterLiters'] as num).toDouble())
-                : null, // Bağış miktarı için
-            'petType': marker['petType'] ?? null, // Pet type için
+                : null,
+            'petType': marker['petType'] ?? null,
             'catFoodAmount': marker['catFoodAmount'] != null
                 ? ((marker['catFoodAmount'] is int)
                     ? (marker['catFoodAmount'] as int).toDouble()
@@ -88,14 +82,9 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
           };
         });
 
-        // Bağış yapıldıysa form alanlarını güncelle
-        // Cat veya Dog için bağış varsa formu doldur
         if (marker['catFoodAmount'] != null ||
             marker['dogFoodAmount'] != null) {
           _wouldLikeToDonate = 'yes';
-          // Eğer Cat için bağış varsa Cat seçili olsun ve miktarı göster
-          // Eğer Dog için bağış varsa Dog seçili olsun ve miktarı göster
-          // Eğer her ikisi için de bağış varsa, en son güncelleneni göster (veya Cat'i öncelik ver)
           if (marker['catFoodAmount'] != null) {
             _donatePetType = 'cat';
             _donateKilosController.text = marker['catFoodAmount'].toString();
@@ -104,27 +93,23 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
             _donateKilosController.text = marker['dogFoodAmount'].toString();
           }
         } else {
-          // Hiç bağış yoksa form alanlarını sıfırla
           _wouldLikeToDonate = null;
           _donatePetType = null;
           _donateKilosController.clear();
         }
 
-        // Eğer marker'da addedAmount varsa, input'a yaz
         final addedAmount = marker['addedAmount'];
         if (addedAmount != null) {
           _addedAmountController.text = addedAmount.toString();
         }
 
-        // Kullanıcı bilgilerini yükle
         final hasAddedBy = marker['addedByUserId'] != null;
         if (hasAddedBy) {
           _loadAddedByUserInfo();
         } else {
-          _loadUserInfo(); // İlk ekleyen kişi için
+          _loadUserInfo();
         }
       } else {
-        // Backend'den veri alınamazsa widget.markerData'dan yükle
         setState(() {
           _currentMarkerData = Map<String, dynamic>.from(widget.markerData);
         });
@@ -133,7 +118,6 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
       }
     } catch (e) {
       print('Marker data loading error: $e');
-      // Hata olsa bile kullanıcı bilgilerini yüklemeyi dene
       setState(() {
         _currentMarkerData = Map<String, dynamic>.from(widget.markerData);
       });
@@ -151,7 +135,6 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
 
   Future<void> _loadAddedByUserInfo() async {
     try {
-      // _currentMarkerData'dan kontrol et, yoksa widget.markerData'dan
       String? addedByUserId = _currentMarkerData['addedByUserId'] as String? ??
           widget.markerData['addedByUserId'] as String?;
 
@@ -188,11 +171,9 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
 
   Future<void> _loadUserInfo() async {
     try {
-      // Önce marker verisinden userId'yi al, yoksa backend'den çek
       String? userId = widget.markerData['userId'] as String?;
       print('Marker data userId: $userId');
 
-      // Eğer marker verisinde userId yoksa backend'den marker'ı çek
       if (userId == null) {
         print('UserId not found in marker data, fetching from backend...');
         final markerResponse = await _apiService.getMarker(widget.markerId);
@@ -207,7 +188,6 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
 
       if (userId != null) {
         print('Fetching user info for userId: $userId');
-        // Kullanıcı bilgilerini al
         final userResponse = await _apiService.get('/auth/user/$userId');
         print('User response: $userResponse');
         if (userResponse['success'] == true && userResponse['user'] != null) {
@@ -249,7 +229,6 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // _currentMarkerData varsa onu kullan, yoksa widget.markerData'yı kullan
       final markerData = _currentMarkerData.isNotEmpty
           ? _currentMarkerData
           : widget.markerData;
@@ -257,7 +236,6 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
       final markerType = markerData['type'] as String? ?? '';
       final currentIsEnough = markerData['isWaterEnough'] as String?;
 
-      // Marker'ın mevcut rengini kontrol et
       Color currentColor;
       if (markerType == 'food' && markerData['petType'] != null) {
         currentColor = currentIsEnough == 'yes'
@@ -280,7 +258,6 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
       String? addedByUserId;
       String? isEnoughNow;
 
-      // Mevcut kullanıcı bilgisini al
       final authService = Provider.of<AuthService>(context, listen: false);
       final currentUser = authService.currentUser;
       final isPetShopOwner = currentUser?.userType == 'pet_shop_owner';
@@ -291,11 +268,9 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
       final shouldShowDonateQuestion =
           isMarkerOwnerPetShopOwner && isCurrentUserMarkerOwner;
 
-      // Pet shop owner kendi marker'ı için "Would you like to donate?" kontrolü
       double? newCatFoodAmount;
       double? newDogFoodAmount;
 
-      // Mevcut Cat ve Dog miktarlarını al
       final currentCatFoodAmount = markerData['catFoodAmount'] != null
           ? ((markerData['catFoodAmount'] is int)
               ? (markerData['catFoodAmount'] as int).toDouble()
@@ -308,50 +283,40 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
           : null;
 
       if (shouldShowDonateQuestion) {
-        // Donate sorusuna göre marker rengini güncelle
         if (_wouldLikeToDonate == 'yes') {
-          newIsEnough = 'yes'; // Yeşil
-          // Bağış miktarını kaydet
+          newIsEnough = 'yes';
           if (_donateKilosController.text.isNotEmpty &&
               _donatePetType != null) {
             final donateKilosAmount =
                 double.tryParse(_donateKilosController.text);
 
-            // Sadece ilgili pet type için miktarı güncelle, diğerini koru
             if (_donatePetType == 'cat') {
               newCatFoodAmount = donateKilosAmount;
-              newDogFoodAmount = currentDogFoodAmount; // Dog miktarını koru
+              newDogFoodAmount = currentDogFoodAmount;
             } else if (_donatePetType == 'dog') {
-              newCatFoodAmount = currentCatFoodAmount; // Cat miktarını koru
+              newCatFoodAmount = currentCatFoodAmount;
               newDogFoodAmount = donateKilosAmount;
             }
           }
         } else if (_wouldLikeToDonate == 'no') {
-          newIsEnough = 'no'; // Kırmızı
-          // No cevabı verildiğinde Cat ve Dog miktarlarını null yap
+          newIsEnough = 'no';
           newCatFoodAmount = null;
           newDogFoodAmount = null;
         } else {
-          newIsEnough = currentIsEnough; // Değişiklik yok
-          newCatFoodAmount = currentCatFoodAmount; // Mevcut değerleri koru
+          newIsEnough = currentIsEnough;
+          newCatFoodAmount = currentCatFoodAmount;
           newDogFoodAmount = currentDogFoodAmount;
         }
       } else if (isPetShopOwner && !shouldShowDonateQuestion) {
-        // Pet shop owner başka marker'lara dokunduğunda düzenleme yapamaz
-        // Bu durum zaten shouldShowOpinionSection ile engellenmiş olmalı
-        newIsEnough = currentIsEnough; // Değişiklik yok
+        newIsEnough = currentIsEnough;
       } else if (_userOpinion == 'yes') {
-        // Yes seçildi: Marker'ın arka planı turuncu/kırmızıysa yeşile çevir
         if (currentColor == Colors.orange || currentColor == Colors.red) {
           newIsEnough = 'yes';
         } else {
-          // Zaten yeşilse değişiklik yok
           newIsEnough = currentIsEnough;
         }
       } else if (_userOpinion == 'maybe' || _userOpinion == 'no') {
-        // Maybe veya No seçildi: "Would you like to add?" sorusuna göre
         if (_wouldLikeToAdd == 'yes') {
-          // Yes seçildi: Eklenen miktarı ve yeterlilik durumunu kaydet
           if (_addedAmountController.text.isNotEmpty) {
             addedAmount = double.tryParse(_addedAmountController.text);
             if (addedAmount == null || addedAmount <= 0) {
@@ -360,11 +325,10 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
             addedByUserId = currentUser?.id;
             isEnoughNow = _isEnoughNow;
 
-            // isEnoughNow'e göre marker rengini güncelle
             if (isEnoughNow == 'yes') {
-              newIsEnough = 'yes'; // Yeşil
+              newIsEnough = 'yes';
             } else if (isEnoughNow == 'maybe') {
-              newIsEnough = 'maybe'; // Turuncu
+              newIsEnough = 'maybe';
             } else {
               newIsEnough = currentIsEnough;
             }
@@ -372,9 +336,8 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
             throw Exception('Please enter the amount you added');
           }
         } else if (_wouldLikeToAdd == 'no') {
-          // No seçildi: Marker'ı "Is food/water enough?" sorusuna verilen cevaba göre güncelle
           newIsEnough =
-              _userOpinion; // 'maybe' → turuncu, 'no' → kırmızı, 'yes' → yeşil
+              _userOpinion;
         } else {
           newIsEnough = currentIsEnough;
         }
@@ -382,8 +345,6 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
         newIsEnough = currentIsEnough;
       }
 
-      // Pet shop owner için sadece isWaterEnough güncelle, diğer alanları null yap
-      // Ama donate sorusu için özel işlem yapma
       if (isPetShopOwner && !shouldShowDonateQuestion) {
         addedAmount = null;
         addedByUserId = null;
@@ -393,28 +354,22 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
         addedAmount = null;
         addedByUserId = null;
         isEnoughNow = null;
-        // newIsEnough zaten yukarıda ayarlandı
       }
 
-      // Backend'e marker'ı güncelle
       final updateResponse = await _apiService.updateMarker(
         widget.markerId,
         isWaterEnough: newIsEnough,
         addedAmount: addedAmount,
         addedByUserId: addedByUserId,
         isEnoughNow: isEnoughNow,
-        // Pet shop owner bağış için Cat ve Dog miktarlarını güncelle
-        // No cevabı verildiğinde null gönder (sıfırlama için)
         catFoodAmount: shouldShowDonateQuestion ? newCatFoodAmount : null,
         dogFoodAmount: shouldShowDonateQuestion ? newDogFoodAmount : null,
         shouldUpdateCatDogAmounts:
-            shouldShowDonateQuestion, // Pet shop owner için null değerleri göndermek için flag
+            shouldShowDonateQuestion,
       );
 
-      // Güncellenmiş marker verilerini al
       final updatedMarker = updateResponse['marker'] as Map<String, dynamic>?;
 
-      // Eğer ekleme yapıldıysa veya bağış yapıldıysa/iptal edildiyse, marker verilerini ve kullanıcı bilgilerini yeniden yükle
       final hasDonated = shouldShowDonateQuestion &&
           _wouldLikeToDonate == 'yes' &&
           _donatePetType != null &&
@@ -424,12 +379,9 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
 
       if ((addedByUserId != null || hasDonated || hasCancelledDonation) &&
           mounted) {
-        // Bağış yapıldıysa veya iptal edildiyse marker verilerini backend'den tamamen yeniden yükle
         if (hasDonated || hasCancelledDonation) {
-          // Marker verilerini backend'den tamamen yeniden yükle
           await _loadMarkerData();
         } else {
-          // Marker verilerini state'te güncelle
           setState(() {
             _currentMarkerData['addedAmount'] =
                 updatedMarker?['addedAmount'] ?? addedAmount;
@@ -439,25 +391,20 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
                 updatedMarker?['isEnoughNow'] ?? isEnoughNow;
             _currentMarkerData['isWaterEnough'] =
                 updatedMarker?['isWaterEnough'] ?? newIsEnough;
-          });
+            });
         }
 
-        // Kullanıcı bilgilerini yeniden yükle
         if (addedByUserId != null) {
           await _loadAddedByUserInfo();
         }
       }
 
-      // Popup'ı kapat ve callback ile marker'ı güncelle
       if (mounted) {
-        // Bağış yapıldıysa veya iptal edildiyse güncellenmiş verileri kullan
-        // _loadMarkerData() çağrıldıysa _currentMarkerData'dan al, yoksa updatedMarker'dan
         double? finalCatFoodAmount;
         double? finalDogFoodAmount;
 
         if (shouldShowDonateQuestion) {
           if (hasDonated || hasCancelledDonation) {
-            // _loadMarkerData() çağrıldı, _currentMarkerData'dan al
             finalCatFoodAmount = _currentMarkerData['catFoodAmount'] != null
                 ? ((_currentMarkerData['catFoodAmount'] is int)
                     ? (_currentMarkerData['catFoodAmount'] as int).toDouble()
@@ -467,9 +414,8 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
                 ? ((_currentMarkerData['dogFoodAmount'] is int)
                     ? (_currentMarkerData['dogFoodAmount'] as int).toDouble()
                     : (_currentMarkerData['dogFoodAmount'] as num).toDouble())
-                : null;
+                    : null;
           } else {
-            // _loadMarkerData() çağrılmadı, updatedMarker'dan al
             finalCatFoodAmount = updatedMarker?['catFoodAmount'] != null
                 ? ((updatedMarker?['catFoodAmount'] is int)
                     ? (updatedMarker?['catFoodAmount'] as int).toDouble()
@@ -496,7 +442,6 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
           'dogFoodAmount': finalDogFoodAmount,
         });
 
-        // Bağış yapıldıysa veya iptal edildiyse özel mesaj göster
         if (hasDonated) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -554,7 +499,6 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // _currentMarkerData her zaman backend'den yüklenen güncel verileri içerir
     final markerData = _currentMarkerData;
 
     final markerType = markerData['type'] as String? ?? '';
@@ -574,29 +518,24 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
     final hasAddedBy = markerData['addedByUserId'] != null;
     final addedAmount = markerData['addedAmount'];
 
-    // Pet shop owner için Cat ve Dog miktarlarını hesapla
     final catAmount = catFoodAmount ?? 0.0;
     final dogAmount = dogFoodAmount ?? 0.0;
 
-    // Pet shop owner kontrolü
     final authService = Provider.of<AuthService>(context, listen: false);
     final currentUser = authService.currentUser;
     final isPetShopOwner = currentUser?.userType == 'pet_shop_owner';
 
-    // Marker'ın sahibinin pet shop owner olup olmadığını ve mevcut kullanıcının marker sahibi olup olmadığını kontrol et
     final markerUserId = markerData['userId'] as String?;
     final markerUserType = markerData['userType'] as String?;
     final isMarkerOwnerPetShopOwner = markerUserType == 'pet_shop_owner';
     final isCurrentUserMarkerOwner = currentUser?.id == markerUserId;
     final shouldShowDonateQuestion =
         isMarkerOwnerPetShopOwner && isCurrentUserMarkerOwner;
-    // Pet shop owner'lar sadece kendi marker'larını düzenleyebilir
-    // Normal kullanıcılar tüm marker'ları düzenleyebilir
     final shouldShowOpinionSection = isPetShopOwner
         ? (isMarkerOwnerPetShopOwner &&
-            isCurrentUserMarkerOwner) // Pet shop owner sadece kendi marker'ını düzenleyebilir
+            isCurrentUserMarkerOwner)
         : (!isMarkerOwnerPetShopOwner ||
-            isCurrentUserMarkerOwner); // Normal kullanıcılar tüm marker'ları düzenleyebilir
+            isCurrentUserMarkerOwner);
 
     return Dialog(
       backgroundColor: Colors.transparent,
@@ -614,7 +553,6 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Başlık
                 Text(
                   'Marker Details',
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
@@ -625,7 +563,6 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
                 ),
                 const SizedBox(height: 32),
 
-                // Form alanları ve butonlar için beyaz çerçeve
                 Container(
                   padding: const EdgeInsets.all(24.0),
                   decoration: BoxDecoration(
@@ -635,9 +572,7 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // Last added by (eğer ekleme yapılmışsa) veya Added by (eğer ekleme yapılmamışsa)
                       if (hasAddedBy)
-                        // Son ekleme yapan kişi
                         _isLoadingAddedBy
                             ? const Center(
                                 child: Padding(
@@ -683,7 +618,6 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
                                 ),
                               )
                       else
-                        // İlk ekleyen kişi
                         _isLoadingUser
                             ? const Center(
                                 child: Padding(
@@ -730,16 +664,11 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
                               ),
                       const SizedBox(height: 16),
 
-                      // Pet shop owner marker'ı için özel durum: Eğer hiç bağış yapılmamışsa sadece Added by göster
                       if (isMarkerOwnerPetShopOwner &&
                           catFoodAmount == null &&
                           dogFoodAmount == null) ...[
-                        // Hiç bağış yapılmamış, sadece Added by göster (zaten yukarıda gösterildi)
                       ] else ...[
-                        // Marker bilgileri
-                        // Pet shop owner marker'ı için Cat ve Dog için ayrı satırlar göster
                         if (isMarkerOwnerPetShopOwner) ...[
-                          // Cat için miktar göster
                           _buildInfoRow(
                             'Cat',
                             '${catAmount.toStringAsFixed(1)} kilograms',
@@ -747,7 +676,6 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
                           ),
                           const SizedBox(height: 12),
 
-                          // Dog için miktar göster
                           _buildInfoRow(
                             'Dog',
                             '${dogAmount.toStringAsFixed(1)} kilograms',
@@ -755,7 +683,6 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
                           ),
                           const SizedBox(height: 20),
                         ] else ...[
-                          // Normal marker'lar için Type göster
                           _buildInfoRow(
                             'Type',
                             markerType == 'food' ? 'Food' : 'Water',
@@ -772,11 +699,8 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
                           if (petType != null) const SizedBox(height: 12),
                         ],
 
-                        // Pet shop owner marker'ı için Cat ve Dog satırları yukarıda gösterildi
                         if (!isMarkerOwnerPetShopOwner) ...[
-                          // Normal marker'lar için: Eğer ekleme yapılmışsa son eklenen miktarı göster, yoksa ilk miktarı göster
                           if (hasAddedBy && addedAmount != null)
-                            // Son eklenen miktar
                             _buildInfoRow(
                               markerType == 'water'
                                   ? 'Last added water'
@@ -787,7 +711,6 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
                                   : Icons.add_circle,
                             )
                           else if (waterLiters != null)
-                            // İlk miktar
                             _buildInfoRow(
                               markerType == 'water'
                                   ? 'Water Amount'
@@ -801,8 +724,6 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
                               waterLiters != null)
                             const SizedBox(height: 12),
 
-                          // Normal marker'lar için Is Water Enough göster
-                          // Normal marker'lar için Is Water Enough göster
                           if (isWaterEnough != null)
                             _buildInfoRow(
                               markerType == 'water'
@@ -819,9 +740,7 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
                         ],
                       ],
 
-                      // Pet shop owner marker'ı için özel durumlar
                       if (shouldShowOpinionSection) ...[
-                        // Ayırıcı
                         const Divider(
                           thickness: 1,
                           color: Colors.grey,
@@ -837,7 +756,6 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
                         ),
                         const SizedBox(height: 16),
 
-                        // Pet shop owner kendi marker'ı için "Would you like to donate?" sorusu
                         if (shouldShowDonateQuestion) ...[
                           Text(
                             'Would you like to donate?',
@@ -890,7 +808,6 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
                             onChanged: (String? value) {
                               setState(() {
                                 _wouldLikeToDonate = value;
-                                // No seçilirse diğer alanları sıfırla
                                 if (value == 'no') {
                                   _donatePetType = null;
                                   _donateKilosController.clear();
@@ -905,7 +822,6 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
                               return null;
                             },
                           ),
-                          // Cat or Dog sorusu (sadece Yes seçildiğinde)
                           if (_wouldLikeToDonate == 'yes') ...[
                             const SizedBox(height: 16),
                             Text(
@@ -959,7 +875,6 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
                               onChanged: (String? value) {
                                 setState(() {
                                   _donatePetType = value;
-                                  // Pet type değiştiğinde kilos alanını sıfırla
                                   if (value == null) {
                                     _donateKilosController.clear();
                                   }
@@ -970,10 +885,9 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
                                     (value == null || value.isEmpty)) {
                                   return 'Please select an option';
                                 }
-                                return null;
-                              },
-                            ),
-                            // How many kilos sorusu (sadece Cat or Dog seçildiğinde)
+                              return null;
+                            },
+                          ),
                             if (_donatePetType != null) ...[
                               const SizedBox(height: 16),
                               Text(
@@ -1035,8 +949,6 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
                             ],
                           ],
                         ] else ...[
-                          // Normal kullanıcılar için opinion sorusu
-                          // Opinion sorusu
                           Text(
                             markerType == 'water'
                                 ? 'Is Water Enough?'
@@ -1094,7 +1006,6 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
                             onChanged: (String? value) {
                               setState(() {
                                 _userOpinion = value;
-                                // Pet shop owner değilse ve Maybe veya No seçilmediyse wouldLikeToAdd'ı sıfırla
                                 if (!isPetShopOwner &&
                                     value != 'maybe' &&
                                     value != 'no') {
@@ -1109,7 +1020,6 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
                               return null;
                             },
                           ),
-                          // "Would you like to add?" sorusu (sadece Maybe veya No seçildiğinde ve pet shop owner değilse)
                           if (!isPetShopOwner &&
                               (_userOpinion == 'maybe' ||
                                   _userOpinion == 'no')) ...[
@@ -1165,7 +1075,6 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
                               onChanged: (String? value) {
                                 setState(() {
                                   _wouldLikeToAdd = value;
-                                  // No seçilirse ekleme alanlarını sıfırla
                                   if (value == 'no') {
                                     _addedAmountController.clear();
                                     _isEnoughNow = null;
@@ -1178,10 +1087,9 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
                                     (value == null || value.isEmpty)) {
                                   return 'Please select an option';
                                 }
-                                return null;
-                              },
-                            ),
-                            // "Would you like to add?" sorusuna "Yes" denirse gösterilecek alanlar
+                              return null;
+                            },
+                          ),
                             if (_wouldLikeToAdd == 'yes') ...[
                               const SizedBox(height: 16),
                               Text(
@@ -1318,7 +1226,6 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
                       ],
                       const SizedBox(height: 24),
 
-                      // Submit butonu (sadece opinion section gösteriliyorsa)
                       if (shouldShowOpinionSection)
                         ElevatedButton(
                           onPressed: _isLoading ? null : _submitOpinion,
@@ -1361,7 +1268,6 @@ class _MarkerDetailScreenState extends State<MarkerDetailScreen> {
                         ),
                       if (shouldShowOpinionSection) const SizedBox(height: 16),
 
-                      // Cancel butonu
                       OutlinedButton(
                         onPressed: () {
                           Navigator.pop(context);

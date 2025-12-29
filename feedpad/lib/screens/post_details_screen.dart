@@ -4,10 +4,9 @@ import 'package:provider/provider.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 
-// Helper function to get image provider from URL or base64
 ImageProvider? _getImageProvider(String? imageUrl) {
   if (imageUrl == null || imageUrl.isEmpty) return null;
-  
+
   try {
     if (imageUrl.startsWith('data:image')) {
       final base64Str = imageUrl.split(',').last;
@@ -47,16 +46,18 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
   void initState() {
     super.initState();
     _commentController = TextEditingController();
-    _comments = widget.post['comments'] is List ? List<Map<String, dynamic>>.from(widget.post['comments']) : [];
-    
-    // Debug: Profil resimlerini kontrol et
+    _comments = widget.post['comments'] is List
+        ? List<Map<String, dynamic>>.from(widget.post['comments'])
+        : [];
+
     debugPrint('=== POST DETAILS SCREEN INIT ===');
     debugPrint('Post data keys: ${widget.post.keys.toList()}');
     debugPrint('Post user object: ${widget.post['user']}');
     debugPrint('Post userProfileImage: ${widget.post['userProfileImage']}');
     debugPrint('Comments count: ${_comments.length}');
     if (_comments.isNotEmpty) {
-      debugPrint('First comment userProfileImage: ${_comments[0]['userProfileImage']}');
+      debugPrint(
+          'First comment userProfileImage: ${_comments[0]['userProfileImage']}');
       debugPrint('First comment userName: ${_comments[0]['userName']}');
     }
   }
@@ -70,7 +71,7 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
   Future<void> _submitComment() async {
     if (_commentController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Yorum yazınız')),
+        const SnackBar(content: Text('Please write a comment')),
       );
       return;
     }
@@ -85,7 +86,7 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
       final username = userEmail.split('@').first;
 
       if (userId == null) {
-        throw Exception('Kullanıcı bilgisi bulunamadı');
+        throw Exception('User information not found');
       }
 
       final response = await widget.apiService.post('/posts/comment', {
@@ -112,19 +113,19 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Yorum eklendi!'),
+              content: Text('Comment added!'),
               backgroundColor: Color(0xFF66BB6A),
             ),
           );
         }
       } else {
-        throw Exception(response['message'] ?? 'Yorum eklenemedi');
+        throw Exception(response['message'] ?? 'Failed to add comment');
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Hata: $e'),
+            content: Text('Error: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -138,12 +139,11 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
     final auth = Provider.of<AuthService>(context, listen: false);
     final currentUserId = auth.currentUser?.email ?? '';
     final postOwnerId = widget.post['userId'] ?? '';
-    
-    // Only show actions if current user is post owner
+
     if (currentUserId != postOwnerId && !postOwnerId.isEmpty) {
       return [];
     }
-    
+
     return [
       PopupMenuButton<String>(
         onSelected: (value) {
@@ -215,9 +215,11 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                   : () async {
                       setState(() => isUpdating = true);
                       try {
-                        final auth = Provider.of<AuthService>(context, listen: false);
+                        final auth =
+                            Provider.of<AuthService>(context, listen: false);
                         final userId = auth.currentUser?.email;
-                        final response = await widget.apiService.post('/posts/update', {
+                        final response =
+                            await widget.apiService.post('/posts/update', {
                           'postId': widget.post['id'],
                           'userId': userId,
                           'caption': captionController.text,
@@ -238,7 +240,8 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                             this.setState(() {});
                           }
                         } else {
-                          throw Exception(response['message'] ?? 'Update failed');
+                          throw Exception(
+                              response['message'] ?? 'Update failed');
                         }
                       } catch (e) {
                         if (mounted) {
@@ -272,7 +275,8 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Post'),
-        content: const Text('Are you sure you want to delete this post? This action cannot be undone.'),
+        content: const Text(
+            'Are you sure you want to delete this post? This action cannot be undone.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -290,8 +294,8 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
 
                 if (response['success'] == true) {
                   if (mounted) {
-                    Navigator.pop(context); // Close dialog
-                    Navigator.pop(context); // Close post details
+                    Navigator.pop(context);
+                    Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('Post deleted successfully!'),
@@ -328,15 +332,17 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     final user = widget.post['user'] ?? {};
-    String senderName = user['name'] ?? widget.post['userName'] ?? user['username'] ?? '';
+    String senderName =
+        user['name'] ?? widget.post['userName'] ?? user['username'] ?? '';
     String username = user['username'] ?? widget.post['username'] ?? 'username';
-    final userProfileImage = user['profileImage'] ?? widget.post['userProfileImage'] ?? '';
+    final userProfileImage =
+        user['profileImage'] ?? widget.post['userProfileImage'] ?? '';
     if (senderName.isEmpty) {
       final uid = widget.post['userId'];
       if (uid is String && uid.isNotEmpty) {
         senderName = uid.contains('@') ? uid.split('@').first : uid;
       } else {
-        senderName = 'Bilinmiyor';
+        senderName = 'Unknown';
       }
     }
     final caption = widget.post['caption'] ?? widget.post['content'] ?? '';
@@ -365,21 +371,24 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                 children: [
                   Card(
                     elevation: 3,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14)),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Post header with sender info
                         Padding(
                           padding: const EdgeInsets.all(12),
                           child: Row(
                             children: [
                               CircleAvatar(
                                 backgroundColor: const Color(0xFF64B5F6),
-                                backgroundImage: _getImageProvider(userProfileImage),
+                                backgroundImage:
+                                    _getImageProvider(userProfileImage),
                                 child: userProfileImage.isEmpty
                                     ? Text(
-                                        senderName.isNotEmpty ? senderName[0].toUpperCase() : 'U',
+                                        senderName.isNotEmpty
+                                            ? senderName[0].toUpperCase()
+                                            : 'U',
                                         style: const TextStyle(
                                           color: Colors.white,
                                           fontWeight: FontWeight.bold,
@@ -414,7 +423,6 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                           ),
                         ),
                         const Divider(height: 1),
-                        // Post caption FIRST (before image)
                         if (caption.isNotEmpty)
                           Padding(
                             padding: const EdgeInsets.all(12),
@@ -427,8 +435,8 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                               ),
                             ),
                           ),
-                        // Post image SECOND (after caption)
-                        if (widget.post['imageUrl'] != null && (widget.post['imageUrl'] as String).isNotEmpty)
+                        if (widget.post['imageUrl'] != null &&
+                            (widget.post['imageUrl'] as String).isNotEmpty)
                           ClipRRect(
                             borderRadius: const BorderRadius.only(
                               bottomLeft: Radius.circular(14),
@@ -442,7 +450,8 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                                   height: 200,
                                   color: Colors.grey[200],
                                   child: const Center(
-                                    child: Icon(Icons.broken_image, size: 50, color: Colors.grey),
+                                    child: Icon(Icons.broken_image,
+                                        size: 50, color: Colors.grey),
                                   ),
                                 );
                               },
@@ -452,7 +461,6 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  // Comments section
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 4),
                     child: Text(
@@ -485,10 +493,12 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                       itemCount: _comments.length,
                       itemBuilder: (context, index) {
                         final comment = _comments[index];
-                        final commentProfileImage = comment['userProfileImage'] ?? '';
+                        final commentProfileImage =
+                            comment['userProfileImage'] ?? '';
                         final commentName = comment['userName'] ?? 'Anonymous';
                         final commentUsername = comment['username'] ??
-                            (comment['userId'] is String && (comment['userId'] as String).contains('@')
+                            (comment['userId'] is String &&
+                                    (comment['userId'] as String).contains('@')
                                 ? (comment['userId'] as String).split('@').first
                                 : (comment['userId'] ?? 'username'));
                         return Card(
@@ -496,10 +506,13 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                           child: ListTile(
                             leading: CircleAvatar(
                               backgroundColor: const Color(0xFF64B5F6),
-                              backgroundImage: _getImageProvider(commentProfileImage),
+                              backgroundImage:
+                                  _getImageProvider(commentProfileImage),
                               child: commentProfileImage.isEmpty
                                   ? Text(
-                                      commentName.isNotEmpty ? commentName[0].toUpperCase() : 'U',
+                                      commentName.isNotEmpty
+                                          ? commentName[0].toUpperCase()
+                                          : 'U',
                                       style: const TextStyle(
                                         color: Colors.white,
                                         fontWeight: FontWeight.bold,
@@ -528,9 +541,11 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                             ),
                             subtitle: Text(
                               comment['text'] ?? '',
-                              style: const TextStyle(fontSize: 13, color: Color(0xFF546E7A)),
+                              style: const TextStyle(
+                                  fontSize: 13, color: Color(0xFF546E7A)),
                             ),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
                           ),
                         );
                       },
@@ -538,7 +553,6 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                 ],
               ),
             ),
-            // Comment input
             Container(
               decoration: const BoxDecoration(
                 color: Colors.white,
@@ -553,21 +567,26 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                       enabled: !_isSubmitting,
                       decoration: InputDecoration(
                         hintText: 'Write a comment...',
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(24),
-                          borderSide: const BorderSide(color: Color(0xFFBBDEFB)),
+                          borderSide:
+                              const BorderSide(color: Color(0xFFBBDEFB)),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(24),
-                          borderSide: const BorderSide(color: Color(0xFFBBDEFB)),
+                          borderSide:
+                              const BorderSide(color: Color(0xFFBBDEFB)),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(24),
-                          borderSide: const BorderSide(color: Color(0xFF64B5F6), width: 2),
+                          borderSide: const BorderSide(
+                              color: Color(0xFF64B5F6), width: 2),
                         ),
                       ),
-                      onSubmitted: _isSubmitting ? null : (_) => _submitComment(),
+                      onSubmitted:
+                          _isSubmitting ? null : (_) => _submitComment(),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -580,10 +599,12 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                               height: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                valueColor:
+                                    AlwaysStoppedAnimation<Color>(Colors.white),
                               ),
                             )
-                          : const Icon(Icons.send, color: Colors.white, size: 20),
+                          : const Icon(Icons.send,
+                              color: Colors.white, size: 20),
                       onPressed: _isSubmitting ? null : _submitComment,
                       padding: EdgeInsets.zero,
                     ),

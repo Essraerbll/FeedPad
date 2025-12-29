@@ -52,7 +52,6 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       );
     } else if (mounted && authService.isAuthenticated) {
-      // Başarılı giriş - ana ekrana yönlendir
       Navigator.of(context).pushReplacement(
         FadeRoute(page: const MainScreen()),
       );
@@ -63,7 +62,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor:
-          const Color(0xFFE8F1FA), // Welcome ekranıyla aynı açık pastel mavi
+          const Color(0xFFE8F1FA),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -74,18 +73,17 @@ class _LoginScreenState extends State<LoginScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Logo veya başlık - Kedi teması
                   const Icon(
                     Icons.pets,
                     size: 80,
-                    color: Color(0xFF9DB8E8), // Pastel mavi
+                    color: Color(0xFF9DB8E8),
                   ),
                   const SizedBox(height: 16),
                   Text(
                     'FeedPad',
                     style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                           fontWeight: FontWeight.bold,
-                          color: const Color(0xFF5A7FA1), // Welcome ile aynı
+                          color: const Color(0xFF5A7FA1),
                         ),
                     textAlign: TextAlign.center,
                   ),
@@ -99,7 +97,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 48),
 
-                  // Form alanları ve butonlar için beyaz çerçeve
                   Container(
                     padding: const EdgeInsets.all(24.0),
                     decoration: BoxDecoration(
@@ -109,7 +106,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        // E-posta alanı
                         TextFormField(
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
@@ -150,7 +146,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         const SizedBox(height: 16),
 
-                        // Şifre alanı
                         TextFormField(
                           controller: _passwordController,
                           obscureText: _obscurePassword,
@@ -204,13 +199,12 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         const SizedBox(height: 24),
 
-                        // Giriş butonu
                         ElevatedButton(
                           onPressed: _isLoading ? null : _signIn,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                                const Color(0xFF9DB8E8), // Welcome buton rengi
-                            foregroundColor: Colors.white,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor:
+                                  const Color(0xFF9DB8E8),
+                              foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(
                                 vertical: 20, horizontal: 24),
                             minimumSize: const Size(double.infinity, 56),
@@ -238,7 +232,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         const SizedBox(height: 16),
 
-                        // Kayıt ol butonu
                         OutlinedButton(
                           onPressed: _isLoading
                               ? null

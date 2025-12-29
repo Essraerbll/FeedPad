@@ -13,13 +13,12 @@ class AuthWrapper extends StatefulWidget {
 }
 
 class _AuthWrapperState extends State<AuthWrapper> {
-  bool _showWelcome = true; // İlk kez açılışta welcome göster
+  bool _showWelcome = true;
 
   @override
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
 
-    // Loading durumu
     if (authService.isLoading) {
       return const Scaffold(
         body: Center(
@@ -28,7 +27,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
       );
     }
 
-    // İlk kez açılışta welcome ekranını göster (kalıcı - sadece buton ile geç)
     if (_showWelcome && !authService.isAuthenticated) {
       return WelcomeScreen(
         onGetStarted: () {
@@ -37,12 +35,10 @@ class _AuthWrapperState extends State<AuthWrapper> {
       );
     }
 
-    // Kullanıcı giriş yapmışsa ana ekrana yönlendir
     if (authService.isAuthenticated) {
       return const MainScreen();
     }
 
-    // Kullanıcı giriş yapmamışsa login ekranına yönlendir
     return const LoginScreen();
   }
 }

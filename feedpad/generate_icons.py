@@ -1,16 +1,10 @@
 #!/usr/bin/env python3
-"""
-Bu script, logo.jpeg dosyasını alıp tüm platformlar için
-gerekli boyutlarda uygulama ikonları oluşturur.
-"""
 
 from PIL import Image
 import os
 
-# Logo dosyasının yolu
 LOGO_PATH = "assets/images/logo.jpeg"
 
-# Android ikon boyutları (mipmap klasörlerine göre)
 ANDROID_SIZES = {
     "mipmap-mdpi": 48,
     "mipmap-hdpi": 72,
@@ -19,7 +13,6 @@ ANDROID_SIZES = {
     "mipmap-xxxhdpi": 192,
 }
 
-# iOS ikon boyutları (Contents.json'dan çıkarılan gerçek pixel boyutları)
 IOS_SIZES = {
     "Icon-App-20x20@1x.png": 20,      # iPad
     "Icon-App-20x20@2x.png": 40,      # iPhone/iPad
@@ -35,10 +28,9 @@ IOS_SIZES = {
     "Icon-App-76x76@1x.png": 76,      # iPad
     "Icon-App-76x76@2x.png": 152,     # iPad
     "Icon-App-83.5x83.5@2x.png": 167, # iPad Pro
-    "Icon-App-1024x1024@1x.png": 1024, # App Store
+    "Icon-App-1024x1024@1x.png": 1024,
 }
 
-# macOS ikon boyutları
 MACOS_SIZES = {
     "app_icon_16.png": 16,
     "app_icon_32.png": 32,
@@ -49,7 +41,6 @@ MACOS_SIZES = {
     "app_icon_1024.png": 1024,
 }
 
-# Web ikon boyutları
 WEB_SIZES = {
     "favicon.png": 48,
     "Icon-192.png": 192,
@@ -59,31 +50,24 @@ WEB_SIZES = {
 }
 
 def create_icon(input_path, output_path, size):
-    """Logo'dan belirtilen boyutta bir ikon oluşturur"""
     try:
-        # Logo'yu aç
         img = Image.open(input_path)
         
-        # RGB'ye dönüştür (RGBA varsa)
         if img.mode != 'RGB':
-            # Şeffaflık varsa beyaz arka plan ekle
             if img.mode in ('RGBA', 'LA'):
                 background = Image.new('RGB', img.size, (255, 255, 255))
                 if img.mode == 'RGBA':
-                    background.paste(img, mask=img.split()[3])  # Alpha kanalını mask olarak kullan
+                    background.paste(img, mask=img.split()[3])
                 else:
                     background.paste(img)
                 img = background
             else:
                 img = img.convert('RGB')
         
-        # Yeniden boyutlandır (kaliteli resampling)
         img_resized = img.resize((size, size), Image.Resampling.LANCZOS)
         
-        # Dizin yoksa oluştur
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         
-        # PNG olarak kaydet
         img_resized.save(output_path, "PNG", optimize=True)
         print(f"[OK] Olusturuldu: {output_path} ({size}x{size})")
         return True
@@ -101,7 +85,6 @@ def main():
     success_count = 0
     total_count = 0
     
-    # Android ikonları oluştur
     print("Android ikonlari olusturuluyor...")
     for folder, size in ANDROID_SIZES.items():
         output_path = f"android/app/src/main/res/{folder}/ic_launcher.png"
@@ -109,7 +92,6 @@ def main():
         if create_icon(LOGO_PATH, output_path, size):
             success_count += 1
     
-    # iOS ikonları oluştur
     print("\niOS ikonlari olusturuluyor...")
     ios_base = "ios/Runner/Assets.xcassets/AppIcon.appiconset"
     for filename, size in IOS_SIZES.items():
@@ -118,7 +100,6 @@ def main():
         if create_icon(LOGO_PATH, output_path, size):
             success_count += 1
     
-    # macOS ikonları oluştur
     print("\nmacOS ikonlari olusturuluyor...")
     macos_base = "macos/Runner/Assets.xcassets/AppIcon.appiconset"
     for filename, size in MACOS_SIZES.items():
@@ -127,7 +108,6 @@ def main():
         if create_icon(LOGO_PATH, output_path, size):
             success_count += 1
     
-    # Web ikonları oluştur
     print("\nWeb ikonlari olusturuluyor...")
     for filename, size in WEB_SIZES.items():
         output_path = f"web/{filename}" if filename == "favicon.png" else f"web/icons/{filename}"

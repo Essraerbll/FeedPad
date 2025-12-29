@@ -2,12 +2,10 @@ const express = require('express');
 const redisClient = require('../config/redis');
 const router = express.Router();
 
-// Helper: Konuşma ID'si oluştur (iki kullanıcı ID'sini sırala)
 function getConversationId(user1, user2) {
   return [user1, user2].sort().join(':');
 }
 
-// Mesaj gönder
 router.post('/send', async (req, res) => {
   try {
     let { senderId, senderName, recipientId, recipientName, text } = req.body;
@@ -19,11 +17,10 @@ router.post('/send', async (req, res) => {
     if (!senderId || !recipientId || !text) {
       return res.status(400).json({
         success: false,
-        message: 'Eksik bilgi (senderId, recipientId, text gerekli)'
+        message: 'Missing information (senderId, recipientId, text required)'
       });
     }
 
-    // If recipientId is UUID, resolve to email
     if (recipientId.includes('-') && !recipientId.includes('@')) {
       console.log('recipientId is UUID, resolving to email...');
       try {
@@ -62,20 +59,16 @@ router.post('/send', async (req, res) => {
       timestamp,
     };
 
-    // Mesajı Redis'e kaydet
     await redisClient.lPush(
       `conversation:${conversationId}`,
       JSON.stringify(message)
     );
 
-    // Konuşma metadata'sını güncelle
-    // user1 ve user2'yi conversationId ile aynı sırada tut
     const sortedUsers = [
       { id: senderId, name: senderName || senderId },
       { id: recipientId, name: recipientName || recipientId }
     ].sort((a, b) => a.id.localeCompare(b.id));
 
-    // Get username and profile image for both users
     let user1Username = '';
     let user2Username = '';
     let user1ProfileImage = '';
@@ -122,19 +115,18 @@ router.post('/send', async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Mesaj gönderildi',
+      message: 'Message sent',
       data: message
     });
   } catch (error) {
     console.error('Send message error:', error);
     res.status(500).json({
       success: false,
-      message: 'Mesaj gönderme hatası'
+      message: 'Error sending message'
     });
   }
 });
 
-// Konuşmaları getir (belirli kullanıcı için)
 router.get('/conversations/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
@@ -145,11 +137,10 @@ router.get('/conversations/:userId', async (req, res) => {
     if (!userId) {
       return res.status(400).json({
         success: false,
-        message: 'userId gerekli'
+        message: 'userId required'
       });
     }
 
-    // Tüm konuşmaları taraması gerektiği için pattern ile arama yapıyoruz
     const keys = await redisClient.keys('conversation:metadata:*');
     console.log('Found metadata keys:', keys.length);
     
@@ -166,17 +157,14 @@ router.get('/conversations/:userId', async (req, res) => {
         console.log('  user2:', metadata.user2);
         console.log('  userId (looking for):', userId);
         
-        // Sadece e-posta tabanlı konuşmalar (UUID kalıntılarını gizle)
         if (!metadata.user1?.includes('@') || !metadata.user2?.includes('@')) {
           console.log('  ⚠️ Skipping legacy/uuid conversation');
           continue;
         }
 
-        // Eğer kullanıcı bu konuşmada varsa, ekle
         if (metadata.user1 === userId || metadata.user2 === userId) {
           console.log('  ✅ MATCH! Adding to conversations');
 
-          // Helper to resolve user data safely by email (handles uuid mapping)
           const resolveUserData = async (email) => {
             if (!email) return {};
             let canonicalId = email;
@@ -196,7 +184,6 @@ router.get('/conversations/:userId', async (req, res) => {
             }
           };
 
-          // If username or profile image is missing, fetch it from user profile without scanning all keys
           if (!metadata.user1Username || !metadata.user2Username || !metadata.user1ProfileImage || !metadata.user2ProfileImage) {
             console.log('  ⚠️ Username or profile image missing, fetching from user profiles...');
             try {
@@ -215,7 +202,6 @@ router.get('/conversations/:userId', async (req, res) => {
             }
           }
 
-          // conversationId'yi metadata'ya ekle
           const conversationId = key.replace('conversation:metadata:', '');
           conversations.push({ ...metadata, id: conversationId });
         } else {
@@ -226,7 +212,6 @@ router.get('/conversations/:userId', async (req, res) => {
 
     console.log('\nTotal conversations found:', conversations.length);
 
-    // Son mesaj zamanına göre sırala
     conversations.sort((a, b) => {
       return new Date(b.lastMessageTime) - new Date(a.lastMessageTime);
     });
@@ -239,12 +224,11 @@ router.get('/conversations/:userId', async (req, res) => {
     console.error('Get conversations error:', error);
     res.status(500).json({
       success: false,
-      message: 'Konuşmalar alınamadı'
+      message: 'Failed to get conversations'
     });
   }
 });
 
-// Belirli konuşmanın mesajlarını getir
 router.get('/conversation/:userId/:otherUserId', async (req, res) => {
   try {
     let { userId, otherUserId } = req.params;
@@ -252,11 +236,10 @@ router.get('/conversation/:userId/:otherUserId', async (req, res) => {
     if (!userId || !otherUserId) {
       return res.status(400).json({
         success: false,
-        message: 'userId ve otherUserId gerekli'
+        message: 'userId and otherUserId required'
       });
     }
 
-    // UUID'leri email'e çevir (eğer gerekirse)
     if (userId.includes('-') && !userId.includes('@')) {
       try {
         const userJson = await redisClient.get(`user:${userId}`);
@@ -292,10 +275,8 @@ router.get('/conversation/:userId/:otherUserId', async (req, res) => {
       -1
     );
 
-    // Mesajları ters sırala (eski mesajlar altta, yeni mesajlar üstte)
     const messages = messagesStr.map(msg => JSON.parse(msg)).reverse();
 
-    // Konuşma metadata'sını al
     const metadataStr = await redisClient.get(
       `conversation:metadata:${conversationId}`
     );
@@ -311,21 +292,20 @@ router.get('/conversation/:userId/:otherUserId', async (req, res) => {
     console.error('Get conversation messages error:', error);
     res.status(500).json({
       success: false,
-      message: 'Mesajlar alınamadı'
+      message: 'Failed to get messages'
     });
   }
 });
 
-// Mesaj sil
 router.delete('/message/:conversationId/:messageId', async (req, res) => {
   try {
     const { conversationId, messageId } = req.params;
-    const { userId } = req.query; // İsteği yapan kullanıcı
+    const { userId } = req.query;
 
     if (!conversationId || !messageId || !userId) {
       return res.status(400).json({
         success: false,
-        message: 'Eksik parametre (conversationId, messageId, userId gerekli)'
+        message: 'Missing parameter (conversationId, messageId, userId required)'
       });
     }
 
@@ -334,14 +314,12 @@ router.delete('/message/:conversationId/:messageId', async (req, res) => {
     console.log('messageId:', messageId);
     console.log('userId (who is deleting):', userId);
 
-    // Tüm mesajları al
     const messagesStr = await redisClient.lRange(
       `conversation:${conversationId}`,
       0,
       -1
     );
 
-    // Silinecek mesajı bul
     let messageToDelete = null;
     let messageIndex = -1;
 
@@ -357,25 +335,21 @@ router.delete('/message/:conversationId/:messageId', async (req, res) => {
     if (!messageToDelete) {
       return res.status(404).json({
         success: false,
-        message: 'Mesaj bulunamadı'
+        message: 'Message not found'
       });
     }
 
-    // Sadece gönderici silebilsin
     if (messageToDelete.senderId !== userId) {
       return res.status(403).json({
         success: false,
-        message: 'Yalnızca kendi mesajınızı silebilirsiniz'
+        message: 'You can only delete your own message'
       });
     }
 
-    // Mesajı Redis listesinden sil
-    // lRange 0 ile messageIndex-1 arası + messageIndex+1 ile -1 arası al
     const beforeDelete = messagesStr.slice(0, messageIndex);
     const afterDelete = messagesStr.slice(messageIndex + 1);
     const remainingMessages = [...beforeDelete, ...afterDelete];
 
-    // Listeyi sil ve yeniden oluştur
     await redisClient.del(`conversation:${conversationId}`);
     if (remainingMessages.length > 0) {
       for (const msg of remainingMessages.reverse()) {
@@ -387,18 +361,17 @@ router.delete('/message/:conversationId/:messageId', async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Mesaj silindi'
+      message: 'Message deleted'
     });
   } catch (error) {
     console.error('Delete message error:', error);
     res.status(500).json({
       success: false,
-      message: 'Mesaj silme hatası'
+      message: 'Error deleting message'
     });
   }
 });
 
-// Sohbeti sil
 router.delete('/conversation/:conversationId', async (req, res) => {
   try {
     const { conversationId } = req.params;
@@ -407,7 +380,7 @@ router.delete('/conversation/:conversationId', async (req, res) => {
     if (!conversationId || !userId) {
       return res.status(400).json({
         success: false,
-        message: 'Eksik parametre (conversationId, userId gerekli)'
+        message: 'Missing parameter (conversationId, userId required)'
       });
     }
 
@@ -415,13 +388,12 @@ router.delete('/conversation/:conversationId', async (req, res) => {
     console.log('conversationId:', conversationId);
     console.log('userId (who is deleting):', userId);
 
-    // Sohbetin metadata'sını al (JSON string)
     const metadataKey = `conversation:metadata:${conversationId}`;
     const metadataStr = await redisClient.get(metadataKey);
     if (!metadataStr) {
       return res.status(404).json({
         success: false,
-        message: 'Sohbet bulunamadı'
+        message: 'Conversation not found'
       });
     }
     let metadata;
@@ -429,26 +401,24 @@ router.delete('/conversation/:conversationId', async (req, res) => {
       metadata = JSON.parse(metadataStr);
     } catch (e) {
       console.error('Metadata parse error (delete):', e);
-      return res.status(500).json({ success: false, message: 'Metadata parse hatası' });
+      return res.status(500).json({ success: false, message: 'Metadata parse error' });
     }
 
-    // Mesajları sil
     await redisClient.del(`conversation:${conversationId}`);
     
-    // Metadata'yı sil
     await redisClient.del(metadataKey);
 
     console.log('Conversation deleted successfully');
 
     res.json({
       success: true,
-      message: 'Sohbet silindi'
+      message: 'Conversation deleted'
     });
   } catch (error) {
     console.error('Delete conversation error:', error);
     res.status(500).json({
       success: false,
-      message: 'Sohbet silme hatası'
+      message: 'Error deleting conversation'
     });
   }
 });

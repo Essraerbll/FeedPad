@@ -4,7 +4,6 @@ require('dotenv').config();
 let redisClient = null;
 let isConnected = false;
 
-// Redis client oluştur
 function createRedisClient() {
   if (redisClient) return redisClient;
 
@@ -42,7 +41,6 @@ function createRedisClient() {
     isConnected = false;
   });
 
-  // Redis bağlantısını başlat (non-blocking)
   (async () => {
     try {
       await redisClient.connect();
@@ -56,7 +54,6 @@ function createRedisClient() {
   return redisClient;
 }
 
-// Lazy initialization
 const getRedisClient = () => {
   if (!redisClient) {
     return createRedisClient();
@@ -64,10 +61,8 @@ const getRedisClient = () => {
   return redisClient;
 };
 
-// Helper function to check if Redis is connected
 const isRedisConnected = () => isConnected;
 
-// Export client and connection status
 const client = getRedisClient();
 client.isConnected = isRedisConnected;
 

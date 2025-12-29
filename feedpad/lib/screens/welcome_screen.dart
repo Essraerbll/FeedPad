@@ -39,10 +39,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFE8F1FA), // Yumuşak pastel mavi
+      backgroundColor: const Color(0xFFE8F1FA),
       body: Stack(
         children: [
-          // Background paw decorations - very soft
           Positioned(
             top: 60,
             right: 40,
@@ -61,7 +60,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
               color: const Color(0xFFC5D9F1).withValues(alpha: 0.3),
             ),
           ),
-          // Main content
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
@@ -74,11 +72,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
                       children: [
                         const SizedBox(height: 80),
 
-                        // Dog and cat illustration with paw decorations
                         Stack(
                           alignment: Alignment.center,
                           children: [
-                            // Left paw
                             Positioned(
                               left: 20,
                               top: 40,
@@ -88,7 +84,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
                                 color: const Color(0xFFC5D9F1).withValues(alpha: 0.6),
                               ),
                             ),
-                            // Right paw
                             Positioned(
                               right: 20,
                               top: 40,
@@ -98,7 +93,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
                                 color: const Color(0xFFC5D9F1).withValues(alpha: 0.6),
                               ),
                             ),
-                            // Left bottom paw
                             Positioned(
                               left: 40,
                               bottom: 20,
@@ -108,7 +102,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
                                 color: const Color(0xFFC5D9F1).withValues(alpha: 0.5),
                               ),
                             ),
-                            // Right bottom paw
                             Positioned(
                               right: 40,
                               bottom: 20,
@@ -118,7 +111,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
                                 color: const Color(0xFFC5D9F1).withValues(alpha: 0.5),
                               ),
                             ),
-                            // Main image
                             Image.asset(
                               'assets/images/logo.jpeg',
                               height: 200,
@@ -129,7 +121,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
 
                         const SizedBox(height: 60),
 
-                        // Title - simple and clean
                         Text(
                           'Welcome to',
                           style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -152,7 +143,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
 
                         const SizedBox(height: 100),
 
-                        // GET STARTED button
                         SizedBox(
                           width: double.infinity,
                           height: 56,
@@ -167,7 +157,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
                               }
                             },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF9DB8E8), // Çok açık pastel mavi
+                              backgroundColor: const Color(0xFF9DB8E8),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),

@@ -6,7 +6,6 @@ import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../services/api_service.dart';
 
-// Separate dialog widgets to avoid StatefulBuilder issues
 class CreatePostDialog extends StatefulWidget {
   final ApiService apiService;
   final VoidCallback onPostCreated;
@@ -44,7 +43,6 @@ class _CreatePostDialogState extends State<CreatePostDialog> {
       if (result != null && result.files.isNotEmpty && result.files.first.bytes != null) {
         final bytes = result.files.first.bytes!;
         
-        // Check file size (max 2MB for safety)
         if (bytes.length > 2 * 1024 * 1024) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -183,7 +181,6 @@ class _CreatePostDialogState extends State<CreatePostDialog> {
         height: 580,
         child: Column(
           children: [
-            // Header
             Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
@@ -202,7 +199,6 @@ class _CreatePostDialogState extends State<CreatePostDialog> {
                 ],
               ),
             ),
-            // Content
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -301,7 +297,6 @@ class _CreatePostDialogState extends State<CreatePostDialog> {
                 ),
               ),
             ),
-            // Actions
             Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
@@ -398,12 +393,11 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
       if (result != null && result.files.isNotEmpty) {
         final file = result.files.first;
         if (file.bytes != null) {
-          // Check file size (max 2MB for safety)
           if (file.bytes!.length > 2 * 1024 * 1024) {
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text('Resim çok büyük! Lütfen 2MB\'dan küçük bir resim seçin.'),
+                  content: Text('Image is too large! Please select an image smaller than 2MB.'),
                   backgroundColor: Colors.orange,
                   duration: Duration(seconds: 3),
                 ),
@@ -428,7 +422,7 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Resim seçme hatası: $e'),
+            content: Text('Image selection error: $e'),
             backgroundColor: Colors.red,
           ),
         );

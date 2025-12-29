@@ -6,7 +6,6 @@ import '../services/auth_service.dart';
 import 'messaging_screen.dart';
 import 'post_details_screen.dart';
 
-// Shared helper to support network or base64 profile images
 ImageProvider? _getImageProvider(String? imageUrl) {
   if (imageUrl == null || imageUrl.isEmpty) return null;
   try {
@@ -162,7 +161,6 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
     final postId = post['id'] ?? '';
     final isLiked = post['liked'] == true;
 
-    // Optimistic update
     setState(() {
       post['liked'] = !isLiked;
       final currentLikes = post['likes'] ?? 0;
@@ -175,7 +173,6 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
         'userId': userId,
       });
     } catch (e) {
-      // rollback on failure
       setState(() {
         post['liked'] = isLiked;
         post['likes'] = isLiked ? (post['likes'] ?? 1) + 1 : (post['likes'] ?? 0) - 1;
@@ -261,7 +258,6 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
       ),
       body: CustomScrollView(
         slivers: [
-          // Profile Header
           SliverToBoxAdapter(
             child: Container(
               color: const Color(0xFFE8F1FA),
@@ -269,7 +265,6 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // Profile Picture (uses same fallback as posts list)
                   Container(
                     padding: const EdgeInsets.all(3),
                     decoration: const BoxDecoration(
@@ -306,7 +301,6 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  // Name
                   Text(
                     widget.user['name'],
                     style: const TextStyle(
@@ -316,7 +310,6 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  // Username
                   Text(
                     '@$profileUsername',
                     style: const TextStyle(
@@ -325,7 +318,6 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  // Bio
                   Text(
                     widget.user['bio'],
                     textAlign: TextAlign.center,
@@ -335,7 +327,6 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  // Stats
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
@@ -351,7 +342,6 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  // Action Buttons
                   Row(
                     children: [
                       Expanded(
@@ -401,7 +391,6 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
                               return;
                             }
                             
-                            // Create conversation ID by sorting emails
                             final conversationId = ([currentUserEmail, otherUserEmail]..sort()).join(':');
                             
                             Navigator.push(
@@ -439,7 +428,6 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
               ),
             ),
           ),
-          // Posts Section
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -503,7 +491,6 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // User header with avatar and name
                                 ListTile(
                                   leading: CircleAvatar(
                                     backgroundColor: const Color(0xFF64B5F6),
@@ -532,7 +519,6 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
                                     ],
                                   ),
                                 ),
-                                // Post caption
                                 Padding(
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 16, vertical: 8),
@@ -544,7 +530,6 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
                                     ),
                                   ),
                                 ),
-                                // Post image
                                 if (post['imageUrl'] != null &&
                                     (post['imageUrl'] as String).isNotEmpty)
                                   Image.network(
@@ -565,7 +550,6 @@ class _OtherUserProfileScreenState extends State<OtherUserProfileScreen> {
                                       );
                                     },
                                   ),
-                                // Like and comment row
                                 Padding(
                                   padding: const EdgeInsets.all(8.0),
                                   child: Row(

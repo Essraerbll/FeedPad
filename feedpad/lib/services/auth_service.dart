@@ -36,7 +36,6 @@ class AuthService extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isAuthenticated => _currentUser != null;
 
-  // Kayıt ol
   Future<String?> signUp({
     required String email,
     required String password,
@@ -60,12 +59,9 @@ class AuthService extends ChangeNotifier {
       notifyListeners();
 
       if (response['success'] == true) {
-        // Kayıt başarılı ama otomatik giriş yapılmıyor
-        // Kullanıcıyı null bırak, login ekranına yönlendirilecek
         _currentUser = null;
-        return null; // Başarılı
+        return null;
       } else {
-        // Validation hatalarını kontrol et
         if (response['errors'] != null) {
           final errors = response['errors'] as List;
           if (errors.isNotEmpty) {
@@ -83,7 +79,6 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-  // Giriş yap
   Future<String?> signIn({
     required String email,
     required String password,
@@ -107,10 +102,9 @@ class AuthService extends ChangeNotifier {
       if (response['success'] == true) {
         _currentUser = User.fromJson(response['user']);
         notifyListeners();
-        return null; // Başarılı
+        return null;
       } else {
         debugPrint('❌ Login failed: ${response['message']}');
-        // Validation hatalarını kontrol et
         if (response['errors'] != null) {
           final errors = response['errors'] as List;
           if (errors.isNotEmpty) {
@@ -129,12 +123,10 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-  // Çıkış yap
   Future<void> signOut() async {
     try {
       await _apiService.post('/auth/logout', {});
     } catch (e) {
-      // Hata olsa bile çıkış yap
       debugPrint('Logout error: $e');
       print('Logout error: $e');
     } finally {
@@ -144,7 +136,6 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-  // Mevcut kullanıcı bilgilerini getir
   Future<void> getCurrentUser() async {
     try {
       final response = await _apiService.get('/auth/me');

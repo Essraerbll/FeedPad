@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-/// Sağdan sola slide animasyonu (varsayılan)
 class SlideRightRoute extends PageRouteBuilder {
   final Widget page;
 
@@ -34,7 +33,6 @@ class SlideRightRoute extends PageRouteBuilder {
         );
 }
 
-/// Soldan sağa slide animasyonu (geri dönüş için)
 class SlideLeftRoute extends PageRouteBuilder {
   final Widget page;
 
