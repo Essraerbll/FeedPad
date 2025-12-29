@@ -149,10 +149,6 @@ router.get('/conversations/:userId', async (req, res) => {
       });
     }
 
-    // Kullanıcının gizlediği sohbetleri al
-    const hiddenConversations = await redisClient.sMembers(`hidden:conversations:${userId}`);
-    console.log('Hidden conversations for user:', hiddenConversations);
-
     // Tüm konuşmaları taraması gerektiği için pattern ile arama yapıyoruz
     const keys = await redisClient.keys('conversation:metadata:*');
     console.log('Found metadata keys:', keys.length);
@@ -164,12 +160,6 @@ router.get('/conversations/:userId', async (req, res) => {
       if (metadataStr) {
         const metadata = JSON.parse(metadataStr);
         const conversationId = key.replace('conversation:metadata:', '');
-        
-        // Eğer kullanıcı bu sohbeti gizlemiş ise, listeye ekleme
-        if (hiddenConversations.includes(conversationId)) {
-          console.log(`\nSkipping hidden conversation: ${conversationId}`);
-          continue;
-        }
 
         console.log(`\nMetadata for ${key}:`);
         console.log('  user1:', metadata.user1);
@@ -463,54 +453,5 @@ router.delete('/conversation/:conversationId', async (req, res) => {
   }
 });
 
-// Sohbeti sadece kendisi için gizle (soft delete)
-router.post('/conversation/hide', async (req, res) => {
-  try {
-    const { conversationId, userId } = req.body;
-
-    if (!conversationId || !userId) {
-      return res.status(400).json({
-        success: false,
-        message: 'Eksik parametre (conversationId, userId gerekli)'
-      });
-    }
-
-    console.log('\n=== HIDE CONVERSATION DEBUG ===');
-    console.log('conversationId:', conversationId);
-    console.log('userId (who is hiding):', userId);
-
-    // Sohbetin metadata'sını al (JSON string)
-    const metadataKey = `conversation:metadata:${conversationId}`;
-    const metadataStr = await redisClient.get(metadataKey);
-    if (!metadataStr) {
-      return res.status(404).json({
-        success: false,
-        message: 'Sohbet bulunamadı'
-      });
-    }
-    try {
-      JSON.parse(metadataStr); // sadece doğrulama için
-    } catch (e) {
-      console.error('Metadata parse error (hide):', e);
-      return res.status(500).json({ success: false, message: 'Metadata parse hatası' });
-    }
-
-    // Gizli sohbetler listesine ekle
-    await redisClient.sAdd(`hidden:conversations:${userId}`, conversationId);
-
-    console.log('Conversation hidden for user:', userId);
-
-    res.json({
-      success: true,
-      message: 'Sohbet gizlendi'
-    });
-  } catch (error) {
-    console.error('Hide conversation error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Sohbet gizleme hatası'
-    });
-  }
-});
 
 module.exports = router;

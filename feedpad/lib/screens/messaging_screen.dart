@@ -165,7 +165,7 @@ class _MessagingScreenState extends State<MessagingScreen> {
         context: context,
         builder: (context) => AlertDialog(
           title: const Text('Delete chat?'),
-          content: const Text('This chat will be removed from your list.'),
+          content: const Text('This chat and all messages will be permanently deleted.'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
@@ -182,12 +182,9 @@ class _MessagingScreenState extends State<MessagingScreen> {
 
       if (!confirmed) return;
 
-      final response = await _apiService.post(
-        '/messaging/conversation/hide',
-        {
-          'conversationId': conversationId,
-          'userId': userId,
-        },
+      // Direkt delete endpoint'ini kullan
+      final response = await _apiService.delete(
+        '/messaging/conversation/$conversationId?userId=$userId',
       );
 
       if (response['success'] == true) {
@@ -203,7 +200,7 @@ class _MessagingScreenState extends State<MessagingScreen> {
         }
       }
     } catch (e) {
-      debugPrint('Error hiding conversation: $e');
+      debugPrint('Error deleting conversation: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
