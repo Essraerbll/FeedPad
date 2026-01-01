@@ -91,6 +91,17 @@ try {
   // Route dosyası yoksa devam et
 }
 
+// APK download endpoint
+app.get('/api/download/android', (req, res) => {
+  const apkPath = path.join(__dirname, 'uploads', 'apk', 'app-release.apk');
+  res.download(apkPath, 'FeedPad.apk', (err) => {
+    if (err) {
+      console.error('APK download error:', err);
+      res.status(404).json({ success: false, message: 'APK not found' });
+    }
+  });
+});
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.status(200).json({
